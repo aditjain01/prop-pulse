@@ -1,7 +1,7 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, ForeignKey, Date, Numeric
+from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, ForeignKey, Date, Numeric, ARRAY
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from .database import Base
+from server.database import Base
 
 class User(Base):
     __tablename__ = "users"
@@ -28,7 +28,7 @@ class Property(Base):
     builder_area = Column(Numeric)
     floor_number = Column(Integer)
     parking_details = Column(String)
-    amenities = Column(JSON)
+    amenities = Column(ARRAY(String))
     initial_rate = Column(Numeric, nullable=False)
     current_price = Column(Numeric, nullable=False)
     status = Column(String, nullable=False, default='available')
@@ -104,7 +104,7 @@ class Document(Base):
     entity_id = Column(Integer, nullable=False)
     file_path = Column(String, nullable=False)
     document_vector = Column(String)
-    metadata = Column(JSON)
+    doc_metadata = Column(JSON)  # Renamed from metadata to avoid conflict
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Add polymorphic relationships
