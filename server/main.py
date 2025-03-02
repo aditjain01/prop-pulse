@@ -19,6 +19,10 @@ from server.database import engine, get_db
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 
+# Initialize construction statuses
+from server.init_construction_status import init_construction_statuses
+init_construction_statuses()
+
 app = FastAPI()
 
 # Security
@@ -117,6 +121,19 @@ def logout():
     # In a stateless JWT system, the client just needs to delete the token
     return {"message": "Successfully logged out"}
 
+# Construction Status routes
+@app.get("/api/construction-statuses", response_model=List[schemas.ConstructionStatus])
+def get_construction_statuses(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    statuses = db.query(models.ConstructionStatus).all()
+    return statuses
+
+@app.get("/api/construction-statuses/{status_id}", response_model=schemas.ConstructionStatus)
+def get_construction_status(status_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    status = db.query(models.ConstructionStatus).filter(models.ConstructionStatus.id == status_id).first()
+    if status is None:
+        raise HTTPException(status_code=404, detail="Construction status not found")
+    return status
+
 # Property routes
 @app.get("/api/properties", response_model=List[schemas.Property])
 def get_properties(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -132,7 +149,16 @@ def get_property(property_id: int, current_user: models.User = Depends(get_curre
 
 @app.post("/api/properties", response_model=schemas.Property)
 def create_property(property: schemas.PropertyCreate, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
-    db_property = models.Property(**property.model_dump())
+    property_data = property.model_dump()
+    
+    # Calculate super_area if carpet_area, exclusive_area, and common_area are provided
+    carpet_area = property_data.get('carpet_area') or 0
+    exclusive_area = property_data.get('exclusive_area') or 0
+    common_area = property_data.get('common_area') or 0
+    
+    property_data['super_area'] = carpet_area + exclusive_area + common_area
+    
+    db_property = models.Property(**property_data)
     try:
         db.add(db_property)
         db.commit()
@@ -148,8 +174,17 @@ def update_property(property_id: int, property: schemas.PropertyCreate, current_
     if db_property is None:
         raise HTTPException(status_code=404, detail="Property not found")
     
+    property_data = property.model_dump()
+    
+    # Calculate super_area if carpet_area, exclusive_area, and common_area are provided
+    carpet_area = property_data.get('carpet_area') or 0
+    exclusive_area = property_data.get('exclusive_area') or 0
+    common_area = property_data.get('common_area') or 0
+    
+    property_data['super_area'] = carpet_area + exclusive_area + common_area
+    
     # Update property fields
-    for key, value in property.model_dump().items():
+    for key, value in property_data.items():
         setattr(db_property, key, value)
     
     try:

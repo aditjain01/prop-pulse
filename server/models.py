@@ -16,6 +16,17 @@ class User(Base):
     purchases = relationship("Purchase", back_populates="user")
     payments = relationship("Payment", back_populates="user")
 
+class ConstructionStatus(Base):
+    __tablename__ = "construction_statuses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, unique=True)
+    description = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    properties = relationship("Property", back_populates="construction_status")
+
 class Property(Base):
     __tablename__ = "properties"
 
@@ -23,19 +34,23 @@ class Property(Base):
     title = Column(String, nullable=False)
     address = Column(String, nullable=False)
     property_type = Column(String, nullable=False)
+    developer = Column(String)
     carpet_area = Column(Numeric)
-    super_area = Column(Numeric)
-    builder_area = Column(Numeric)
+    exclusive_area = Column(Numeric)
+    common_area = Column(Numeric)
+    super_area = Column(Numeric)  # This will be calculated
     floor_number = Column(Integer)
     parking_details = Column(String)
     amenities = Column(ARRAY(String))
     initial_rate = Column(Numeric, nullable=False)
-    current_price = Column(Numeric, nullable=False)
-    status = Column(String, nullable=False, default='available')
+    current_rate = Column(Numeric, nullable=False)
+    rera_id = Column(String)
+    construction_status_id = Column(Integer, ForeignKey("construction_statuses.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Relationships
+    construction_status = relationship("ConstructionStatus", back_populates="properties")
     purchases = relationship("Purchase", back_populates="property")
     documents = relationship("Document", back_populates="property")
 
@@ -48,9 +63,13 @@ class Purchase(Base):
     purchase_date = Column(Date, nullable=False)
     registration_date = Column(Date)
     possession_date = Column(Date)
-    final_purchase_price = Column(Numeric, nullable=False)
-    cost_breakdown = Column(JSON, nullable=False)
-    seller_info = Column(String)
+    base_cost = Column(Numeric, nullable=False)
+    other_charges = Column(Numeric, nullable=False, default=0)
+    ifms = Column(Numeric, nullable=False, default=0)  # Interest-Free Maintenance Security
+    lease_rent = Column(Numeric, nullable=False, default=0)
+    amc = Column(Numeric, nullable=False, default=0)  # Annual Maintenance Charges
+    gst = Column(Numeric, nullable=False, default=0)
+    seller = Column(String)
     remarks = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

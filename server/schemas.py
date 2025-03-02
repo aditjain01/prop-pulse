@@ -17,19 +17,34 @@ class User(UserBase):
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
+class ConstructionStatusBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+class ConstructionStatusCreate(ConstructionStatusBase):
+    pass
+
+class ConstructionStatus(ConstructionStatusBase):
+    id: int
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
 class PropertyBase(BaseModel):
     title: str
     address: str
     property_type: str
+    developer: Optional[str] = None
     carpet_area: Optional[Decimal] = None
+    exclusive_area: Optional[Decimal] = None
+    common_area: Optional[Decimal] = None
     super_area: Optional[Decimal] = None
-    builder_area: Optional[Decimal] = None
     floor_number: Optional[int] = None
     parking_details: Optional[str] = None
     amenities: List[str] = []
     initial_rate: Decimal
-    current_price: Decimal
-    status: str = "available"
+    current_rate: Decimal
+    rera_id: Optional[str] = None
+    construction_status_id: Optional[int] = None
 
 class PropertyCreate(PropertyBase):
     pass
@@ -38,6 +53,7 @@ class Property(PropertyBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    construction_status: Optional[ConstructionStatus] = None
     model_config = ConfigDict(from_attributes=True)
 
 class PurchaseBase(BaseModel):
@@ -45,9 +61,13 @@ class PurchaseBase(BaseModel):
     purchase_date: date
     registration_date: Optional[date] = None
     possession_date: Optional[date] = None
-    final_purchase_price: Decimal
-    cost_breakdown: Dict[str, Any]
-    seller_info: Optional[str] = None
+    base_cost: Decimal
+    other_charges: Decimal = Decimal('0')
+    ifms: Decimal = Decimal('0')
+    lease_rent: Decimal = Decimal('0')
+    amc: Decimal = Decimal('0')
+    gst: Decimal = Decimal('0')
+    seller: Optional[str] = None
     remarks: Optional[str] = None
 
 class PurchaseCreate(PurchaseBase):
@@ -58,6 +78,18 @@ class Purchase(PurchaseBase):
     user_id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+    
+    @property
+    def property_cost(self) -> Decimal:
+        return self.base_cost + self.other_charges
+        
+    @property
+    def total_cost(self) -> Decimal:
+        return self.property_cost + self.ifms + self.lease_rent + self.amc
+        
+    @property
+    def total_sale_cost(self) -> Decimal:
+        return self.total_cost + self.gst
 
 class LoanBase(BaseModel):
     purchase_id: int
