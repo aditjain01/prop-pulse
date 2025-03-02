@@ -9,7 +9,8 @@ import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import PropertyList from "@/pages/property-list";
 import PropertyDetail from "@/pages/property-detail";
-import PurchaseDetail from "@/pages/purchase-detail";
+import PurchasesPage from "@/pages/purchases-page"; // Placeholder component
+import PurchaseDetail from "@/pages/purchase-detail"; // Placeholder component
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -18,6 +19,7 @@ function Router() {
       <ProtectedRoute path="/" component={HomePage} />
       <ProtectedRoute path="/properties" component={PropertyList} />
       <ProtectedRoute path="/properties/:id" component={PropertyDetail} />
+      <ProtectedRoute path="/purchases" component={PurchasesPage} />
       <ProtectedRoute path="/purchases/:id" component={PurchaseDetail} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
@@ -37,3 +39,12 @@ function App() {
 }
 
 export default App;
+
+// Placeholder components (replace with actual implementation)
+function PurchasesPage() {
+  return <div>Purchases Page</div>;
+}
+
+function PurchaseDetail() {
+  return <div>Purchase Detail Page</div>;
+}
