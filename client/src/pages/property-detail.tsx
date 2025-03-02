@@ -3,7 +3,7 @@ import { useParams } from "wouter";
 import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PropertyForm } from "@/components/property-form";
 import { PurchaseForm } from "@/components/purchase-form";
@@ -172,6 +172,7 @@ export default function PropertyDetailPage() {
             </DialogTrigger>
             <DialogContent>
               <DialogTitle>Create Purchase</DialogTitle>
+              <DialogDescription>Fill out the details to record your property purchase.</DialogDescription>
               <PurchaseForm propertyId={propertyId} />
             </DialogContent>
           </Dialog>
