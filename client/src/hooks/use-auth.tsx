@@ -11,6 +11,7 @@ type User = {
 
 type AuthContextType = {
   user: User | null;
+  token: string | null;
   isLoading: boolean;
   error: Error | null;
   login: (credentials: LoginCredentials) => Promise<void>;
@@ -22,11 +23,13 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
   const loginMutation = useMutation({
     mutationFn: api.auth.login,
     onSuccess: (data) => {
       setUser(data.user);
+      setToken(data.token);
     },
     onError: (error: Error) => {
       toast({
@@ -40,7 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const registerMutation = useMutation({
     mutationFn: api.auth.register,
     onSuccess: (data) => {
-      setUser(data);
+      setUser(data.user);
+      setToken(data.token);
     },
     onError: (error: Error) => {
       toast({
@@ -63,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        token,
         isLoading: loginMutation.isPending || registerMutation.isPending,
         error: loginMutation.error || registerMutation.error,
         login,

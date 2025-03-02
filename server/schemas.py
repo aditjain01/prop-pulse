@@ -1,31 +1,38 @@
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime
 from decimal import Decimal
+
 
 class UserBase(BaseModel):
     username: str
     email: str
 
+
 class UserCreate(UserBase):
     password: str
+
 
 class User(UserBase):
     id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
+
 class ConstructionStatusBase(BaseModel):
     name: str
     description: Optional[str] = None
 
+
 class ConstructionStatusCreate(ConstructionStatusBase):
     pass
+
 
 class ConstructionStatus(ConstructionStatusBase):
     id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
 
 class PaymentSourceBase(BaseModel):
     name: str
@@ -33,13 +40,16 @@ class PaymentSourceBase(BaseModel):
     account_details: Optional[Dict[str, Any]] = None
     is_active: bool = True
 
+
 class PaymentSourceCreate(PaymentSourceBase):
     pass
+
 
 class PaymentSource(PaymentSourceBase):
     id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
 
 class PropertyBase(BaseModel):
     title: str
@@ -55,14 +65,17 @@ class PropertyBase(BaseModel):
     current_price: Decimal
     status: str = "available"
 
+
 class PropertyCreate(PropertyBase):
     pass
+
 
 class Property(PropertyBase):
     id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
+
 
 class PurchaseBase(BaseModel):
     property_id: int
@@ -74,14 +87,17 @@ class PurchaseBase(BaseModel):
     seller_info: Optional[str] = None
     remarks: Optional[str] = None
 
+
 class PurchaseCreate(PurchaseBase):
     pass
+
 
 class Purchase(PurchaseBase):
     id: int
     user_id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
 
 class LoanBase(BaseModel):
     purchase_id: int
@@ -93,13 +109,16 @@ class LoanBase(BaseModel):
     tenure_months: int
     prepayment_charges: Optional[Decimal] = None
 
+
 class LoanCreate(LoanBase):
     pass
+
 
 class Loan(LoanBase):
     id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
 
 class PaymentBase(BaseModel):
     purchase_id: int
@@ -110,14 +129,17 @@ class PaymentBase(BaseModel):
     transaction_reference: Optional[str] = None
     milestone: str
 
+
 class PaymentCreate(PaymentBase):
     pass
+
 
 class Payment(PaymentBase):
     id: int
     user_id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
 
 class LoanPaymentBase(BaseModel):
     loan_id: int
@@ -127,13 +149,16 @@ class LoanPaymentBase(BaseModel):
     transaction_reference: Optional[str] = None
     is_emi: bool = True
 
+
 class LoanPaymentCreate(LoanPaymentBase):
     pass
+
 
 class LoanPayment(LoanPaymentBase):
     id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
 
 class DocumentBase(BaseModel):
     entity_type: str
@@ -142,8 +167,10 @@ class DocumentBase(BaseModel):
     document_vector: Optional[str] = None
     doc_metadata: Optional[Dict[str, Any]] = None
 
+
 class DocumentCreate(DocumentBase):
     pass
+
 
 class Document(DocumentBase):
     id: int
@@ -152,10 +179,12 @@ class Document(DocumentBase):
     purchase_id: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
 
+
 class Token(BaseModel):
     access_token: str
     token_type: str
     user: User
+
 
 class TokenData(BaseModel):
     username: Optional[str] = None

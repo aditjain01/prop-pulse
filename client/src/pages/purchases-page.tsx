@@ -1,49 +1,48 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/hooks/use-auth";
+
+interface Property {
+  id: number;
+  title: string;
+}
+
+interface Purchase {
+  id: number;
+  property_id: number;
+  final_purchase_price: number;
+  purchase_date: string;
+}
 
 export default function PurchasesPage() {
-  const { token } = useAuth();
   const [, navigate] = useLocation();
 
   const { data: purchases, isLoading } = useQuery({
     queryKey: ["/api/purchases"],
     queryFn: async () => {
-      const response = await fetch("/api/purchases", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch("/api/purchases");
       if (!response.ok) {
         throw new Error("Failed to fetch purchases");
       }
-      return response.json();
+      return response.json() as Promise<Purchase[]>;
     },
-    enabled: !!token,
   });
 
   const { data: properties } = useQuery({
     queryKey: ["/api/properties"],
     queryFn: async () => {
-      const response = await fetch("/api/properties", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch("/api/properties");
       if (!response.ok) {
         throw new Error("Failed to fetch properties");
       }
-      return response.json();
+      return response.json() as Promise<Property[]>;
     },
-    enabled: !!token,
   });
 
   // Function to get property title by id
-  const getPropertyTitle = (propertyId) => {
+  const getPropertyTitle = (propertyId: number): string => {
     const property = properties?.find((p) => p.id === propertyId);
     return property ? property.title : "Unknown Property";
   };
@@ -68,7 +67,7 @@ export default function PurchasesPage() {
           </Button>
         </div>
 
-        {purchases?.length === 0 ? (
+        {!purchases?.length ? (
           <div className="text-center py-12">
             <h2 className="text-xl">No purchases found</h2>
             <p className="text-muted-foreground mt-2">
