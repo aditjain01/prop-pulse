@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
