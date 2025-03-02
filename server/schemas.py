@@ -1,5 +1,6 @@
-from pydantic import BaseModel, ConfigDict
-from typing import Optional, List
+
+from pydantic import BaseModel, ConfigDict, Field
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime, date
 from decimal import Decimal
 
@@ -12,6 +13,7 @@ class UserCreate(UserBase):
 
 class User(UserBase):
     id: int
+    password: str
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
@@ -44,7 +46,7 @@ class PurchaseBase(BaseModel):
     registration_date: Optional[date] = None
     possession_date: Optional[date] = None
     final_purchase_price: Decimal
-    cost_breakdown: dict
+    cost_breakdown: Dict[str, Any]
     seller_info: Optional[str] = None
     remarks: Optional[str] = None
 
@@ -98,7 +100,7 @@ class DocumentBase(BaseModel):
     entity_id: int
     file_path: str
     document_vector: Optional[str] = None
-    metadata: Optional[dict] = None
+    doc_metadata: Optional[Dict[str, Any]] = None
 
 class DocumentCreate(DocumentBase):
     pass
@@ -106,4 +108,14 @@ class DocumentCreate(DocumentBase):
 class Document(DocumentBase):
     id: int
     created_at: datetime
+    property_id: Optional[int] = None
+    purchase_id: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    user: User
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
