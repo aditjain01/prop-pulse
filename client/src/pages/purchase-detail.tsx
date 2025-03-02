@@ -1,105 +1,43 @@
-
+import { useQuery } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useQuery } from "@tanstack/react-query";
+import { LoanForm } from "@/components/loan-form";
+import { PaymentForm } from "@/components/payment-form";
+import { DocumentUpload } from "@/components/document-upload";
+import { Purchase, Loan, Payment, Document } from "@shared/schema";
+import { PlusCircle } from "lucide-react";
 
-interface Payment {
-  id: number;
-  milestone: string;
-  payment_date: string;
-  amount: number;
-  payment_mode: string;
-  source?: string;
-}
-
-interface Purchase {
-  id: number;
-  property_id: number;
-  final_purchase_price: number;
-  purchase_date: string;
-  registration_date: string | null;
-  possession_date: string | null;
-  seller_info: string | null;
-  remarks: string | null;
-}
-
-interface Loan {
-  id: number;
-  bank_name: string;
-  interest_rate: number;
-  loan_amount: number;
-  emi_amount: number;
-  tenure_months: number;
-}
-
-export default function PurchaseDetailPage() {
+export default function PurchaseDetail() {
   const { id } = useParams<{ id: string }>();
-  const purchaseId = parseInt(id || '0');
 
-  const { data: purchase, isLoading } = useQuery({
-    queryKey: [`/api/purchases/${purchaseId}`],
-    queryFn: async () => {
-      const response = await fetch(`/api/purchases/${purchaseId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch purchase");
-      }
-      return response.json() as Promise<Purchase>;
-    },
-    enabled: !!purchaseId
+  const { data: purchase } = useQuery<Purchase>({
+    queryKey: [`/api/purchases/${id}`],
   });
 
-  const { data: loans } = useQuery({
-    queryKey: [`/api/loans?purchase_id=${purchaseId}`],
-    queryFn: async () => {
-      const response = await fetch(`/api/loans?purchase_id=${purchaseId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch loans");
-      }
-      return response.json() as Promise<Loan[]>;
-    },
-    enabled: !!purchaseId
+  const { data: loans } = useQuery<Loan[]>({
+    queryKey: ["/api/loans", { purchase_id: id }],
   });
 
-  const { data: payments } = useQuery({
-    queryKey: [`/api/payments?purchase_id=${purchaseId}`],
-    queryFn: async () => {
-      const response = await fetch(`/api/payments?purchase_id=${purchaseId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch payments");
-      }
-      return response.json() as Promise<Payment[]>;
-    },
-    enabled: !!purchaseId
+  const { data: payments } = useQuery<Payment[]>({
+    queryKey: ["/api/payments", { purchase_id: id }],
   });
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <NavBar />
-        <main className="container py-6">Loading...</main>
-      </div>
-    );
-  }
+  const { data: documents } = useQuery<Document[]>({
+    queryKey: [`/api/documents/purchase/${id}`],
+  });
 
-  if (!purchase) {
-    return (
-      <div className="min-h-screen bg-background">
-        <NavBar />
-        <main className="container py-6">Purchase not found</main>
-      </div>
-    );
-  }
+  if (!purchase) return null;
 
   return (
     <div className="min-h-screen bg-background">
       <NavBar />
+      
       <main className="container py-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Purchase Details</h1>
-        </div>
+        <h1 className="text-3xl font-bold mb-6">Purchase Details</h1>
 
         <Tabs defaultValue="overview">
           <TabsList>
@@ -119,70 +57,92 @@ export default function PurchaseDetailPage() {
                 <p><span className="font-medium">Final Price:</span> ₹{Number(purchase.final_purchase_price).toLocaleString()}</p>
                 <p><span className="font-medium">Registration Date:</span> {purchase.registration_date ? new Date(purchase.registration_date).toLocaleDateString() : 'Not registered'}</p>
                 <p><span className="font-medium">Possession Date:</span> {purchase.possession_date ? new Date(purchase.possession_date).toLocaleDateString() : 'Not possessed'}</p>
-                <p><span className="font-medium">Seller Info:</span> {purchase.seller_info || 'Not available'}</p>
-                <p><span className="font-medium">Remarks:</span> {purchase.remarks || 'None'}</p>
+                <p><span className="font-medium">Seller Info:</span> {purchase.seller_info}</p>
+                <p><span className="font-medium">Remarks:</span> {purchase.remarks}</p>
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="loans">
-            {!loans?.length ? (
-              <Card>
-                <CardContent className="text-center py-6">
-                  <p>No loans recorded for this purchase.</p>
-                  <Button className="mt-4">Add Loan</Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-6 md:grid-cols-2">
-                {loans.map((loan) => (
-                  <Card key={loan.id}>
-                    <CardHeader>
-                      <CardTitle>{loan.bank_name}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p><span className="font-medium">Amount:</span> ₹{Number(loan.loan_amount).toLocaleString()}</p>
-                      <p><span className="font-medium">Interest Rate:</span> {loan.interest_rate}%</p>
-                      <p><span className="font-medium">EMI:</span> ₹{Number(loan.emi_amount).toLocaleString()}/month</p>
-                      <p><span className="font-medium">Tenure:</span> {loan.tenure_months} months</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Loans</h2>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Loan
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <LoanForm purchaseId={purchase.id} />
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {loans?.map((loan) => (
+                <Card key={loan.id}>
+                  <CardHeader>
+                    <CardTitle>{loan.bank_name}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <p><span className="font-medium">Amount:</span> ₹{Number(loan.loan_amount).toLocaleString()}</p>
+                    <p><span className="font-medium">Interest Rate:</span> {loan.interest_rate}%</p>
+                    <p><span className="font-medium">EMI:</span> ₹{Number(loan.emi_amount).toLocaleString()}</p>
+                    <p><span className="font-medium">Tenure:</span> {loan.tenure_months} months</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </TabsContent>
 
           <TabsContent value="payments">
-            {!payments?.length ? (
-              <Card>
-                <CardContent className="text-center py-6">
-                  <p>No payments recorded for this purchase.</p>
-                  <Button className="mt-4">Add Payment</Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-6 md:grid-cols-2">
-                {payments.map((payment) => (
-                  <Card key={payment.id}>
-                    <CardHeader>
-                      <CardTitle>{payment.milestone}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p><span className="font-medium">Amount:</span> ₹{Number(payment.amount).toLocaleString()}</p>
-                      <p><span className="font-medium">Date:</span> {new Date(payment.payment_date).toLocaleDateString()}</p>
-                      <p><span className="font-medium">Mode:</span> {payment.payment_mode}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Payments</h2>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Payment
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <PaymentForm purchaseId={purchase.id} />
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="space-y-4">
+              {payments?.map((payment) => (
+                <Card key={payment.id}>
+                  <CardContent className="flex items-center justify-between py-4">
+                    <div>
+                      <p className="font-medium">{payment.milestone}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(payment.payment_date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">₹{Number(payment.amount).toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">{payment.payment_mode} ({payment.source})</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </TabsContent>
 
           <TabsContent value="documents">
             <Card>
-              <CardContent className="text-center py-6">
-                <p>No documents uploaded for this purchase.</p>
-                <Button className="mt-4">Upload Document</Button>
+              <CardHeader>
+                <CardTitle>Documents</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <DocumentUpload
+                  entityType="purchase"
+                  entityId={purchase.id}
+                  documents={documents || []}
+                />
               </CardContent>
             </Card>
           </TabsContent>

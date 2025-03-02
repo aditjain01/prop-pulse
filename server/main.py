@@ -1,21 +1,9 @@
-from fastapi import FastAPI, Depends, HTTPException, status, File, UploadFile, Form
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
-from datetime import datetime, timedelta, date
-from decimal import Decimal
-from passlib.context import CryptContext
-import os
-import shutil
-from pathlib import Path
-import logging
-
+from typing import List
 from server import models, schemas
 from server.database import engine, get_db
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
@@ -31,27 +19,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Security setup
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# Helper functions for authentication
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
-
-def get_password_hash(password):
-    return pwd_context.hash(password)
-
-# Auth routes
-@app.post("/api/register", response_model=schemas.User)
-def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.username == user.username).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="Username already exists")
-
-    hashed_password = get_password_hash(user.password)
-    db_user = models.User(username=user.username, password=hashed_password, email=user.email)
-
+# User routes
+@app.post("/api/users", response_model=schemas.User)
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     try:
+        # Check if user already exists
+        db_user = db.query(models.User).filter(models.User.username == user.username).first()
+        if db_user:
+            raise HTTPException(status_code=400, detail="Username already exists")
+
+        # Create new user
+        db_user = models.User(**user.dict())
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
@@ -60,266 +38,12 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.post("/api/login", response_model=schemas.Token)
-def login(credentials: schemas.UserCreate, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.username == credentials.username).first()
-    if not user or not verify_password(credentials.password, user.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password"
-        )
-    return {"user": user}
-
-
-# Construction Status routes
-@app.get("/api/construction-statuses", response_model=List[schemas.ConstructionStatus])
-def get_construction_statuses( db: Session = Depends(get_db)):
-    statuses = db.query(models.ConstructionStatus).all()
-    return statuses
-
-@app.get("/api/construction-statuses/{status_id}", response_model=schemas.ConstructionStatus)
-def get_construction_status(status_id: int, db: Session = Depends(get_db)):
-    status = db.query(models.ConstructionStatus).filter(models.ConstructionStatus.id == status_id).first()
-    if status is None:
-        raise HTTPException(status_code=404, detail="Construction status not found")
-    return status
-
-# Payment Sources routes
-@app.post("/api/payment-sources", response_model=schemas.PaymentSource)
-def create_payment_source(payment_source: schemas.PaymentSourceCreate, db: Session = Depends(get_db)):
-    try:
-        db_payment_source = models.PaymentSource(**payment_source.dict())
-        db.add(db_payment_source)
-        db.commit()
-        db.refresh(db_payment_source)
-        return db_payment_source
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.get("/api/payment-sources", response_model=List[schemas.PaymentSource])
-def get_payment_sources(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    payment_sources = db.query(models.PaymentSource).offset(skip).limit(limit).all()
-    return payment_sources
-
-# Property routes
-@app.post("/api/properties", response_model=schemas.Property)
-def create_property(property: schemas.PropertyCreate, db: Session = Depends(get_db)):
-    try:
-        property_data = property.model_dump()
-        logger.info(f"Attempting to create property with data: {property_data}")
-
-        # Create property instance
-        db_property = models.Property(**property_data)
-        logger.info("Successfully created property instance")
-
-        try:
-            db.add(db_property)
-            logger.info("Added property to session")
-            db.commit()
-            logger.info("Committed property to database")
-            db.refresh(db_property)
-            logger.info(f"Successfully created property with id: {db_property.id}")
-            return db_property
-        except Exception as db_error:
-            logger.exception("Database error while creating property")
-            db.rollback()
-            raise HTTPException(
-                status_code=500,
-                detail=f"Database error: {str(db_error)}"
-            )
-    except Exception as e:
-        logger.exception("Error in create_property endpoint")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error creating property: {str(e)}"
-        )
-
-@app.get("/api/properties", response_model=List[schemas.Property])
-def get_properties(db: Session = Depends(get_db)):
-    try:
-        properties = db.query(models.Property).all()
-        return properties
-    except Exception as e:
-        logger.error(f"Error fetching properties: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/properties/{property_id}", response_model=schemas.Property)
-def get_property(property_id: int, db: Session = Depends(get_db)):
-    try:
-        property = db.query(models.Property).filter(models.Property.id == property_id).first()
-        if property is None:
-            raise HTTPException(status_code=404, detail="Property not found")
-        return property
-    except Exception as e:
-        logger.error(f"Error fetching property {property_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.put("/api/properties/{property_id}", response_model=schemas.Property)
-def update_property(property_id: int, property: schemas.PropertyCreate, db: Session = Depends(get_db)):
-    db_property = db.query(models.Property).filter(models.Property.id == property_id).first()
-    if db_property is None:
-        raise HTTPException(status_code=404, detail="Property not found")
-    
-    property_data = property.model_dump()
-    
-    # Calculate super_area if carpet_area, exclusive_area, and common_area are provided
-    carpet_area = property_data.get('carpet_area') or 0
-    exclusive_area = property_data.get('exclusive_area') or 0
-    common_area = property_data.get('common_area') or 0
-    
-    property_data['super_area'] = carpet_area + exclusive_area + common_area
-    
-    # Update property fields
-    for key, value in property_data.items():
-        setattr(db_property, key, value)
-    
-    try:
-        db.commit()
-        db.refresh(db_property)
-        return db_property
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.delete("/api/properties/{property_id}", status_code=204)
-def delete_property(property_id: int, db: Session = Depends(get_db)):
-    db_property = db.query(models.Property).filter(models.Property.id == property_id).first()
-    if db_property is None:
-        raise HTTPException(status_code=404, detail="Property not found")
-    
-    try:
-        db.delete(db_property)
-        db.commit()
-        return None
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-
-# Purchase routes
-@app.get("/api/purchases", response_model=List[schemas.Purchase])
-def get_purchases( db: Session = Depends(get_db)):
-    purchases = db.query(models.Purchase).all()
-    return purchases
-
-@app.get("/api/purchases/{purchase_id}", response_model=schemas.Purchase)
-def get_purchase(purchase_id: int, db: Session = Depends(get_db)):
-    purchase = db.query(models.Purchase).filter(models.Purchase.id == purchase_id).first()
-    if purchase is None:
-        raise HTTPException(status_code=404, detail="Purchase not found")
-    return purchase
-
-@app.post("/api/purchases", response_model=schemas.Purchase)
-def create_purchase(purchase: schemas.PurchaseCreate, db: Session = Depends(get_db)):
-    db_purchase = models.Purchase(**purchase.model_dump())
-    try:
-        db.add(db_purchase)
-        db.commit()
-        db.refresh(db_purchase)
-        return db_purchase
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-
-# Loan routes
-@app.get("/api/loans", response_model=List[schemas.Loan])
-def get_loans(purchase_id: Optional[int] = None, db: Session = Depends(get_db)):
-    query = db.query(models.Loan)
-    if purchase_id:
-        query = query.filter(models.Loan.purchase_id == purchase_id)
-    loans = query.all()
-    return loans
-
-@app.post("/api/loans", response_model=schemas.Loan)
-def create_loan(loan: schemas.LoanCreate, db: Session = Depends(get_db)):
-    db_loan = models.Loan(**loan.model_dump())
-    try:
-        db.add(db_loan)
-        db.commit()
-        db.refresh(db_loan)
-        return db_loan
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-
-# Payment routes
-@app.get("/api/payments", response_model=List[schemas.Payment])
-def get_payments(purchase_id: Optional[int] = None, db: Session = Depends(get_db)):
-    query = db.query(models.Payment)
-    if purchase_id:
-        query = query.filter(models.Payment.purchase_id == purchase_id)
-    payments = query.all()
-    return payments
-
-@app.post("/api/payments", response_model=schemas.Payment)
-def create_payment(payment: schemas.PaymentCreate, db: Session = Depends(get_db)):
-    db_payment = models.Payment(**payment.model_dump())
-    try:
-        db.add(db_payment)
-        db.commit()
-        db.refresh(db_payment)
-        return db_payment
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-
-# Document routes
-@app.post("/api/documents", response_model=schemas.Document)
-async def create_document(
-    entity_type: str = Form(...),
-    entity_id: int = Form(...),
-    metadata: Optional[str] = Form(None),
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db)
-):
-    # Create uploads directory if it doesn't exist
-    upload_dir = Path("uploads")
-    upload_dir.mkdir(exist_ok=True)
-    
-    # Generate a unique file path
-    file_name = f"{datetime.now().timestamp()}_{file.filename}"
-    file_path = upload_dir / file_name
-    
-    # Save the file
-    with file_path.open("wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    
-    # Create document record
-    document_data = {
-        "entity_type": entity_type,
-        "entity_id": entity_id,
-        "file_path": str(file_path),
-        "doc_metadata": {} if metadata is None else metadata
-    }
-    
-    # Set proper foreign key based on entity type
-    if entity_type == "property":
-        document_data["property_id"] = entity_id
-    elif entity_type == "purchase":
-        document_data["purchase_id"] = entity_id
-    
-    db_document = models.Document(**document_data)
-    
-    try:
-        db.add(db_document)
-        db.commit()
-        db.refresh(db_document)
-        return db_document
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.get("/api/documents/{entity_type}/{entity_id}", response_model=List[schemas.Document])
-def get_documents(
-    entity_type: str,
-    entity_id: int,
-    db: Session = Depends(get_db)
-):
-    documents = db.query(models.Document).filter(
-        models.Document.entity_type == entity_type,
-        models.Document.entity_id == entity_id
-    ).all()
-    return documents
+@app.get("/api/users/{user_id}", response_model=schemas.User)
+def get_user(user_id: int, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return db_user
 
 if __name__ == "__main__":
     import uvicorn

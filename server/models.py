@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, ForeignKey, Date, Numeric, ARRAY, Boolean
+from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, ForeignKey, Date, Numeric, ARRAY
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from server.database import Base
@@ -16,20 +16,6 @@ class User(Base):
     purchases = relationship("Purchase", back_populates="user")
     payments = relationship("Payment", back_populates="user")
 
-class PaymentSource(Base):
-    __tablename__ = "payment_sources"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    source_type = Column(String, nullable=False)  # BANK_ACCOUNT, UPI, CASH, etc.
-    account_details = Column(JSON)  # For storing bank account/UPI details
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    # Relationships
-    payments = relationship("Payment", back_populates="payment_source")
-    loan_payments = relationship("LoanPayment", back_populates="payment_source")
-
 class Property(Base):
     __tablename__ = "properties"
 
@@ -37,17 +23,17 @@ class Property(Base):
     title = Column(String, nullable=False)
     address = Column(String, nullable=False)
     property_type = Column(String, nullable=False)
-    carpet_area = Column(Numeric, nullable=True)
-    super_area = Column(Numeric, nullable=True)
-    builder_area = Column(Numeric, nullable=True)
-    floor_number = Column(Integer, nullable=True)
-    parking_details = Column(String, nullable=True)
-    amenities = Column(ARRAY(String), nullable=False, server_default='{}')
+    carpet_area = Column(Numeric)
+    super_area = Column(Numeric)
+    builder_area = Column(Numeric)
+    floor_number = Column(Integer)
+    parking_details = Column(String)
+    amenities = Column(ARRAY(String))
     initial_rate = Column(Numeric, nullable=False)
     current_price = Column(Numeric, nullable=False)
     status = Column(String, nullable=False, default='available')
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), nullable=True, onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Relationships
     purchases = relationship("Purchase", back_populates="property")
@@ -91,7 +77,6 @@ class Loan(Base):
 
     # Relationships
     purchase = relationship("Purchase", back_populates="loans")
-    loan_payments = relationship("LoanPayment", back_populates="loan")
 
 class Payment(Base):
     __tablename__ = "payments"
@@ -99,9 +84,9 @@ class Payment(Base):
     id = Column(Integer, primary_key=True, index=True)
     purchase_id = Column(Integer, ForeignKey("purchases.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    payment_source_id = Column(Integer, ForeignKey("payment_sources.id"), nullable=False)
     payment_date = Column(Date, nullable=False)
     amount = Column(Numeric, nullable=False)
+    source = Column(String, nullable=False)  # Direct or Loan
     payment_mode = Column(String, nullable=False)  # cash/check/online
     transaction_reference = Column(String)
     milestone = Column(String, nullable=False)
@@ -110,23 +95,6 @@ class Payment(Base):
     # Relationships
     purchase = relationship("Purchase", back_populates="payments")
     user = relationship("User", back_populates="payments")
-    payment_source = relationship("PaymentSource", back_populates="payments")
-
-class LoanPayment(Base):
-    __tablename__ = "loan_payments"
-
-    id = Column(Integer, primary_key=True, index=True)
-    loan_id = Column(Integer, ForeignKey("loans.id"), nullable=False)
-    payment_source_id = Column(Integer, ForeignKey("payment_sources.id"), nullable=False)
-    payment_date = Column(Date, nullable=False)
-    amount = Column(Numeric, nullable=False)
-    transaction_reference = Column(String)
-    is_emi = Column(Boolean, default=True)  # To distinguish between EMI and prepayment
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    # Relationships
-    loan = relationship("Loan", back_populates="loan_payments")
-    payment_source = relationship("PaymentSource", back_populates="loan_payments")
 
 class Document(Base):
     __tablename__ = "documents"
