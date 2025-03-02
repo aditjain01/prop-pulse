@@ -1,0 +1,227 @@
+1. Project Overview
+
+Purpose:
+A web application to track property investments by recording detailed property information, purchase cost breakdowns, multiple loans, and payment milestones. Documents related to properties and purchases are stored on the server. Although you’re the only user right now (superuser), user IDs are included on purchases and payments for future multi-user scalability.
+
+Tech Stack:
+	•	Database: PostgreSQL
+	•	Backend API: FastAPI
+	•	Frontend: React with shadcn UI components and Tailwind CSS
+	•	File Storage: Local/server storage for documents
+
+
+2. Data Model & Database Schema
+
+A. Properties Table
+	•	Fields:
+	•	property_id (PK)
+	•	title/name
+	•	address / location
+	•	Physical details: carpet_area, super_area, builder_area, etc.
+	•	Financial details: initial rate, total cost components (lease charges, fees, tax, final sale cost)
+	•	current_price (editable)
+	•	status (e.g., available, purchased)
+	•	Timestamps: created_at, updated_at
+
+B. Purchases Table
+	•	Fields:
+	•	purchase_id (PK)
+	•	property_id (FK to Properties)
+	•	user_id (for scalability)
+	•	purchase_date
+	•	final_purchase_price
+	•	cost_breakdown (could be a JSONB field capturing various financial components entered at purchase time, including the rate)
+	•	Additional details: seller info, remarks, etc.
+	•	Timestamps
+
+C. Loans Table
+	•	Fields:
+	•	loan_id (PK)
+	•	purchase_id (FK to Purchases)
+(A property purchase may have multiple loans)
+	•	bank_name
+	•	disbursement_date
+	•	interest_rate
+	•	loan_amount
+	•	Repayment details (either as individual fields or a JSONB structure)
+	•	Timestamps
+
+D. Payments Table
+	•	Fields:
+	•	payment_id (PK)
+	•	purchase_id (FK to Purchases)
+	•	user_id (for scalability)
+	•	payment_date
+	•	amount
+	•	source (enum or string: e.g., “Direct” or “Loan”)
+	•	milestone/reason (description of the payment stage such as Booking, Down Payment, EMI, etc.)
+	•	Timestamps
+
+E. Documents Table
+	•	Fields:
+	•	document_id (PK)
+	•	entity_type (indicates if the document is for a property or a purchase)
+	•	entity_id (stores the respective property_id or purchase_id)
+	•	file_path (server path or URL to the stored file)
+	•	document_vector (placeholder field for document vector storage)
+	•	metadata (JSONB field for any additional document data)
+	•	Timestamps
+
+F. (Optional) Users Table
+	•	Fields (for future scalability):
+	•	user_id (PK)
+	•	username
+	•	password_hash
+	•	email
+	•	role (e.g., admin, superuser)
+	•	Timestamps
+
+3. API Design (FastAPI)
+
+Endpoints by Resource
+
+Properties Endpoints
+	•	GET /properties – List all properties.
+	•	POST /properties – Create a new property.
+	•	GET /properties/{property_id} – Retrieve details of a specific property.
+	•	PUT /properties/{property_id} – Update property details (e.g., current price).
+	•	DELETE /properties/{property_id} – Delete a property if needed.
+
+Purchases Endpoints
+	•	GET /purchases – List all purchases (with optional filtering by user).
+	•	POST /purchases – Create a new purchase record (with cost breakdown, rate, etc.).
+	•	GET /purchases/{purchase_id} – Retrieve purchase details.
+	•	PUT /purchases/{purchase_id} – Update purchase information.
+	•	DELETE /purchases/{purchase_id} – Remove a purchase.
+
+Loans Endpoints
+	•	GET /loans – List loans (with filtering options by purchase).
+	•	POST /loans – Create a new loan entry.
+	•	GET /loans/{loan_id} – Retrieve specific loan details.
+	•	PUT /loans/{loan_id} – Update a loan record.
+	•	DELETE /loans/{loan_id} – Delete a loan.
+
+Payments Endpoints
+	•	GET /payments – List payments (filterable by purchase or user).
+	•	POST /payments – Create a new payment record.
+	•	GET /payments/{payment_id} – Retrieve a specific payment.
+	•	PUT /payments/{payment_id} – Update payment details.
+	•	DELETE /payments/{payment_id} – Delete a payment.
+
+Documents Endpoints
+	•	GET /documents – List documents (filter by entity type and entity_id).
+	•	POST /documents – Upload a document and attach it to a property or purchase.
+	•	GET /documents/{document_id} – Retrieve document metadata or the file.
+	•	DELETE /documents/{document_id} – Remove a document record.
+
+(Optional) Authentication Endpoints
+	•	POST /auth/login – User login (JWT or similar).
+	•	POST /auth/register – User registration for future multi-user support.
+
+4. Frontend Architecture (React with shadcn & Tailwind CSS)
+
+Pages & Routes
+	1.	Dashboard
+	•	Overview of properties, purchases, loans, payments, and summary metrics.
+	•	Quick links to add new entries or view pending actions.
+	2.	Property List Page
+	•	Table or card view listing all properties.
+	•	Filters/search functionality.
+	3.	Property Detail Page
+	•	Display all property details including physical & financial information.
+	•	Editable field for current price.
+	•	Section to view and upload associated documents.
+	•	Button to initiate a purchase for the property.
+	4.	Purchase Detail Page
+	•	Display cost breakdown, purchase date, and other purchase details.
+	•	Show associated user ID.
+	•	Section for uploading/viewing purchase documents.
+	•	Links to manage associated loans and payments.
+	5.	Loan Management Page (or Tab in Purchase Detail)
+	•	List existing loans linked to a purchase.
+	•	Form for adding a new loan (fields: disbursement date, interest rate, bank, loan amount, etc.).
+	6.	Payment Page
+	•	List all payments with filtering options (by purchase, date, or source).
+	•	Form to record a new payment (select source “Direct” or “Loan”, input date, amount, milestone).
+	7.	Documents Page/Modal
+	•	Integrated file upload component (accessible from property or purchase pages).
+	•	List of uploaded documents with options to view/download.
+
+Key Components
+	•	Navbar/Header:
+Navigation links (Dashboard, Properties, Purchases, Loans, Payments, Documents) and user profile (if needed).
+	•	Sidebar/Filters:
+For list pages to filter and sort records.
+	•	Reusable Form Components:
+Input fields, dropdowns, date pickers, file upload components—all styled with Tailwind CSS and shadcn.
+	•	Data Tables/Cards:
+Components to display lists of properties, purchases, loans, and payments.
+	•	Modals/Dialogs:
+For confirmation, document previews, and editing entries.
+	•	Notification/Alert Components:
+To provide user feedback on successful actions or errors.
+
+5. Workflow & Data Capture Process
+
+A. Adding a New Property
+	1.	Property Entry:
+	•	User navigates to “Add New Property.”
+	•	Enters physical details (areas, location, etc.) and initial financial details.
+	•	Optionally uploads initial documents.
+	•	Property is saved in the Properties table.
+
+B. Creating a Purchase
+	1.	Initiate Purchase:
+	•	From the Property Detail page, click “Purchase.”
+	•	Fill out the purchase form with purchase date, final purchase price, and a detailed cost breakdown (entered as structured data, possibly using a JSONB field).
+	•	Capture the rate at purchase and other negotiated details.
+	•	User ID is recorded for scalability.
+	•	Purchase record is created in the Purchases table and the property status is updated.
+
+C. Managing Loans
+	1.	Add Loan:
+	•	In the Purchase Detail view, access the loan section.
+	•	Enter loan details (bank name, disbursement date, interest rate, loan amount, etc.).
+	•	Multiple loan entries can be added to a single purchase.
+	•	Each loan is stored in the Loans table.
+
+D. Recording Payments
+	1.	Add Payment:
+	•	In the Purchase Detail page, navigate to the Payments section.
+	•	Enter payment details: date, amount, select source (“Direct” vs. “Loan”), and provide the milestone/reason.
+	•	Payment is stored in the Payments table, tagged with the purchase and user IDs.
+
+E. Document Management
+	1.	Uploading Documents:
+	•	On both Property and Purchase pages, use the file upload component.
+	•	Store the file on the server and create an entry in the Documents table with:
+	•	entity_type (property or purchase)
+	•	entity_id (the corresponding ID)
+	•	Metadata and the document vector field.
+
+F. Dashboard & Reporting
+	1.	Overview:
+	•	The dashboard aggregates data from properties, purchases, loans, and payments.
+	•	Displays summary metrics (e.g., total invested amount, upcoming payments) and provides navigation to detailed views.
+
+6. Project Milestones
+	1.	Phase 1: Requirements & Design
+	•	Finalize the data model and schema.
+	•	Define all API endpoints and frontend wireframes.
+	2.	Phase 2: Backend Development
+	•	Set up the FastAPI project.
+	•	Implement models with SQLAlchemy (or similar) for PostgreSQL.
+	•	Build and test API endpoints for properties, purchases, loans, payments, and documents.
+	•	Implement authentication endpoints (if needed later).
+	3.	Phase 3: Frontend Development
+	•	Set up the React project with shadcn and Tailwind CSS.
+	•	Build key pages: Dashboard, Property List/Detail, Purchase Detail, Loan & Payment management.
+	•	Integrate API endpoints.
+	•	Develop reusable components and file upload functionality.
+	4.	Phase 4: Integration & Testing
+	•	End-to-end testing of workflows (property addition, purchase creation, loan/payment entry, document upload).
+	•	UI/UX refinement and bug fixes.
+	5.	Phase 5: Deployment & Documentation
+	•	Deploy the backend (e.g., on a cloud platform) and the frontend.
+	•	Prepare user and developer documentation.
+	•	Set up monitoring and backup procedures.
