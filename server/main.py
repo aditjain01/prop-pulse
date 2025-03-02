@@ -4,9 +4,13 @@ from sqlalchemy.orm import Session
 from typing import List
 from server import models, schemas
 from server.database import engine, get_db
+from server.init_construction_status import init_construction_status
 
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
+
+# Initialize construction status table
+init_construction_status()
 
 app = FastAPI()
 
@@ -104,6 +108,25 @@ def get_purchase(purchase_id: int, db: Session = Depends(get_db)):
         if db_purchase is None:
             raise HTTPException(status_code=404, detail="Purchase not found")
         return db_purchase
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Construction Status routes
+@app.get("/api/construction-status", response_model=List[schemas.ConstructionStatus])
+def get_construction_statuses(db: Session = Depends(get_db)):
+    try:
+        statuses = db.query(models.ConstructionStatus).all()
+        return statuses
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/construction-status/{status_id}", response_model=schemas.ConstructionStatus)
+def get_construction_status(status_id: int, db: Session = Depends(get_db)):
+    try:
+        status = db.query(models.ConstructionStatus).filter(models.ConstructionStatus.id == status_id).first()
+        if status is None:
+            raise HTTPException(status_code=404, detail="Construction status not found")
+        return status
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

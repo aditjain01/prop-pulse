@@ -1,3 +1,4 @@
+
 from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, ForeignKey, Date, Numeric, ARRAY
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -16,6 +17,15 @@ class User(Base):
     purchases = relationship("Purchase", back_populates="user")
     payments = relationship("Payment", back_populates="user")
 
+class ConstructionStatus(Base):
+    __tablename__ = "construction_status"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    
+    # Relationships
+    properties = relationship("Property", back_populates="construction_status")
+
 class Property(Base):
     __tablename__ = "properties"
 
@@ -25,19 +35,23 @@ class Property(Base):
     property_type = Column(String, nullable=False)
     carpet_area = Column(Numeric)
     super_area = Column(Numeric)
-    builder_area = Column(Numeric)
+    exclusive_area = Column(Numeric)
+    common_area = Column(Numeric)
     floor_number = Column(Integer)
     parking_details = Column(String)
     amenities = Column(ARRAY(String))
     initial_rate = Column(Numeric, nullable=False)
-    current_price = Column(Numeric, nullable=False)
-    status = Column(String, nullable=False, default='available')
+    current_rate = Column(Numeric, nullable=False)
+    status_id = Column(Integer, ForeignKey("construction_status.id"))
+    developer = Column(String)
+    rera_id = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Relationships
     purchases = relationship("Purchase", back_populates="property")
     documents = relationship("Document", back_populates="property")
+    construction_status = relationship("ConstructionStatus", back_populates="properties")
 
 class Purchase(Base):
     __tablename__ = "purchases"
@@ -48,9 +62,16 @@ class Purchase(Base):
     purchase_date = Column(Date, nullable=False)
     registration_date = Column(Date)
     possession_date = Column(Date)
-    final_purchase_price = Column(Numeric, nullable=False)
-    cost_breakdown = Column(JSON, nullable=False)
-    seller_info = Column(String)
+    base_cost = Column(Numeric, nullable=False)
+    other_charges = Column(Numeric)
+    ifms = Column(Numeric)
+    lease_rent = Column(Numeric)
+    amc = Column(Numeric)
+    gst = Column(Numeric)
+    property_cost = Column(Numeric, nullable=False)
+    total_cost = Column(Numeric, nullable=False)
+    total_sale_cost = Column(Numeric, nullable=False)
+    seller = Column(String)
     remarks = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

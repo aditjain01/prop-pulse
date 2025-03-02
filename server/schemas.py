@@ -1,4 +1,5 @@
-from pydantic import BaseModel, ConfigDict
+
+from pydantic import BaseModel, ConfigDict, computed_field
 from typing import Optional, List
 from datetime import datetime, date
 from decimal import Decimal
@@ -15,19 +16,34 @@ class User(UserBase):
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
+class ConstructionStatusBase(BaseModel):
+    name: str
+
+class ConstructionStatus(ConstructionStatusBase):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+
 class PropertyBase(BaseModel):
     title: str
     address: str
     property_type: str
     carpet_area: Optional[Decimal] = None
-    super_area: Optional[Decimal] = None
-    builder_area: Optional[Decimal] = None
+    exclusive_area: Optional[Decimal] = None
+    common_area: Optional[Decimal] = None
     floor_number: Optional[int] = None
     parking_details: Optional[str] = None
     amenities: List[str] = []
     initial_rate: Decimal
-    current_price: Decimal
-    status: str = "available"
+    current_rate: Decimal
+    status_id: Optional[int] = None
+    developer: Optional[str] = None
+    rera_id: Optional[str] = None
+    
+    @computed_field
+    def super_area(self) -> Optional[Decimal]:
+        if self.carpet_area is not None and self.exclusive_area is not None and self.common_area is not None:
+            return self.carpet_area + self.exclusive_area + self.common_area
+        return None
 
 class PropertyCreate(PropertyBase):
     pass
@@ -43,10 +59,31 @@ class PurchaseBase(BaseModel):
     purchase_date: date
     registration_date: Optional[date] = None
     possession_date: Optional[date] = None
-    final_purchase_price: Decimal
-    cost_breakdown: dict
-    seller_info: Optional[str] = None
+    base_cost: Decimal
+    other_charges: Optional[Decimal] = None
+    ifms: Optional[Decimal] = None
+    lease_rent: Optional[Decimal] = None
+    amc: Optional[Decimal] = None
+    gst: Optional[Decimal] = None
+    seller: Optional[str] = None
     remarks: Optional[str] = None
+    
+    @computed_field
+    def property_cost(self) -> Decimal:
+        other_charges = self.other_charges or Decimal('0')
+        return self.base_cost + other_charges
+    
+    @computed_field
+    def total_cost(self) -> Decimal:
+        ifms = self.ifms or Decimal('0')
+        lease_rent = self.lease_rent or Decimal('0')
+        amc = self.amc or Decimal('0')
+        return self.property_cost + ifms + lease_rent + amc
+    
+    @computed_field
+    def total_sale_cost(self) -> Decimal:
+        gst = self.gst or Decimal('0')
+        return self.total_cost + gst
 
 class PurchaseCreate(PurchaseBase):
     pass
