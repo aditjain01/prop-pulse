@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional, List, Dict, Any, Union
-from datetime import datetime, date
+from typing import Optional, List
+from datetime import datetime
 from decimal import Decimal
 
 class UserBase(BaseModel):
@@ -61,7 +61,7 @@ class PropertyCreate(PropertyBase):
 class Property(PropertyBase):
     id: int
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
 
 class PurchaseBase(BaseModel):

@@ -8,17 +8,19 @@ from passlib.context import CryptContext
 import os
 import shutil
 from pathlib import Path
+import logging
 
 from server import models, schemas
 from server.database import engine, get_db
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-
-# Security setup
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Add CORS middleware
 app.add_middleware(
@@ -28,6 +30,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Security setup
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Helper functions for authentication
 def verify_password(plain_password, hashed_password):
@@ -101,159 +106,54 @@ def get_payment_sources(skip: int = 0, limit: int = 100, db: Session = Depends(g
 @app.post("/api/properties", response_model=schemas.Property)
 def create_property(property: schemas.PropertyCreate, db: Session = Depends(get_db)):
     try:
-        db_property = models.Property(**property.dict())
-        db.add(db_property)
-        db.commit()
-        db.refresh(db_property)
-        return db_property
+        property_data = property.model_dump()
+        logger.info(f"Attempting to create property with data: {property_data}")
+
+        # Create property instance
+        db_property = models.Property(**property_data)
+        logger.info("Successfully created property instance")
+
+        try:
+            db.add(db_property)
+            logger.info("Added property to session")
+            db.commit()
+            logger.info("Committed property to database")
+            db.refresh(db_property)
+            logger.info(f"Successfully created property with id: {db_property.id}")
+            return db_property
+        except Exception as db_error:
+            logger.exception("Database error while creating property")
+            db.rollback()
+            raise HTTPException(
+                status_code=500,
+                detail=f"Database error: {str(db_error)}"
+            )
     except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.exception("Error in create_property endpoint")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error creating property: {str(e)}"
+        )
 
 @app.get("/api/properties", response_model=List[schemas.Property])
-def get_properties(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    properties = db.query(models.Property).offset(skip).limit(limit).all()
-    return properties
+def get_properties(db: Session = Depends(get_db)):
+    try:
+        properties = db.query(models.Property).all()
+        return properties
+    except Exception as e:
+        logger.error(f"Error fetching properties: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/properties/{property_id}", response_model=schemas.Property)
 def get_property(property_id: int, db: Session = Depends(get_db)):
-    db_property = db.query(models.Property).filter(models.Property.id == property_id).first()
-    if db_property is None:
-        raise HTTPException(status_code=404, detail="Property not found")
-    return db_property
-
-# Purchase routes
-@app.post("/api/purchases", response_model=schemas.Purchase)
-def create_purchase(purchase: schemas.PurchaseCreate, db: Session = Depends(get_db)):
     try:
-        # Verify property exists
-        property = db.query(models.Property).filter(models.Property.id == purchase.property_id).first()
-        if not property:
+        property = db.query(models.Property).filter(models.Property.id == property_id).first()
+        if property is None:
             raise HTTPException(status_code=404, detail="Property not found")
-
-        db_purchase = models.Purchase(**purchase.dict())
-        db.add(db_purchase)
-        db.commit()
-        db.refresh(db_purchase)
-        return db_purchase
+        return property
     except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.get("/api/purchases/{purchase_id}", response_model=schemas.Purchase)
-def get_purchase(purchase_id: int, db: Session = Depends(get_db)):
-    purchase = db.query(models.Purchase).filter(models.Purchase.id == purchase_id).first()
-    if purchase is None:
-        raise HTTPException(status_code=404, detail="Purchase not found")
-    return purchase
-
-# Loan routes
-@app.post("/api/loans", response_model=schemas.Loan)
-def create_loan(loan: schemas.LoanCreate, db: Session = Depends(get_db)):
-    try:
-        # Verify purchase exists
-        purchase = db.query(models.Purchase).filter(models.Purchase.id == loan.purchase_id).first()
-        if not purchase:
-            raise HTTPException(status_code=404, detail="Purchase not found")
-
-        db_loan = models.Loan(**loan.dict())
-        db.add(db_loan)
-        db.commit()
-        db.refresh(db_loan)
-        return db_loan
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.get("/api/loans/{loan_id}", response_model=schemas.Loan)
-def get_loan(loan_id: int, db: Session = Depends(get_db)):
-    loan = db.query(models.Loan).filter(models.Loan.id == loan_id).first()
-    if loan is None:
-        raise HTTPException(status_code=404, detail="Loan not found")
-    return loan
-
-# Payment routes
-@app.post("/api/payments", response_model=schemas.Payment)
-def create_payment(payment: schemas.PaymentCreate, db: Session = Depends(get_db)):
-    try:
-        # Verify purchase and payment source exist
-        purchase = db.query(models.Purchase).filter(models.Purchase.id == payment.purchase_id).first()
-        if not purchase:
-            raise HTTPException(status_code=404, detail="Purchase not found")
-
-        payment_source = db.query(models.PaymentSource).filter(models.PaymentSource.id == payment.payment_source_id).first()
-        if not payment_source:
-            raise HTTPException(status_code=404, detail="Payment source not found")
-
-        db_payment = models.Payment(**payment.dict())
-        db.add(db_payment)
-        db.commit()
-        db.refresh(db_payment)
-        return db_payment
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-
-# Loan Payment routes
-@app.post("/api/loan-payments", response_model=schemas.LoanPayment)
-def create_loan_payment(loan_payment: schemas.LoanPaymentCreate, db: Session = Depends(get_db)):
-    try:
-        # Verify loan and payment source exist
-        loan = db.query(models.Loan).filter(models.Loan.id == loan_payment.loan_id).first()
-        if not loan:
-            raise HTTPException(status_code=404, detail="Loan not found")
-
-        payment_source = db.query(models.PaymentSource).filter(models.PaymentSource.id == loan_payment.payment_source_id).first()
-        if not payment_source:
-            raise HTTPException(status_code=404, detail="Payment source not found")
-
-        db_loan_payment = models.LoanPayment(**loan_payment.dict())
-        db.add(db_loan_payment)
-        db.commit()
-        db.refresh(db_loan_payment)
-        return db_loan_payment
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.get("/api/loan-payments/{loan_id}", response_model=List[schemas.LoanPayment])
-def get_loan_payments(loan_id: int, db: Session = Depends(get_db)):
-    loan_payments = db.query(models.LoanPayment).filter(models.LoanPayment.loan_id == loan_id).all()
-    return loan_payments
-
-# Property routes
-@app.get("/api/properties", response_model=List[schemas.Property])
-def get_properties( db: Session = Depends(get_db)):
-    properties = db.query(models.Property).all()
-    return properties
-
-@app.get("/api/properties/{property_id}", response_model=schemas.Property)
-def get_property(property_id: int, db: Session = Depends(get_db)):
-    property = db.query(models.Property).filter(models.Property.id == property_id).first()
-    if property is None:
-        raise HTTPException(status_code=404, detail="Property not found")
-    return property
-
-@app.post("/api/properties", response_model=schemas.Property)
-def create_property(property: schemas.PropertyCreate, db: Session = Depends(get_db)):
-    property_data = property.model_dump()
-    
-    # Calculate super_area if carpet_area, exclusive_area, and common_area are provided
-    carpet_area = property_data.get('carpet_area') or 0
-    exclusive_area = property_data.get('exclusive_area') or 0
-    common_area = property_data.get('common_area') or 0
-    
-    property_data['super_area'] = carpet_area + exclusive_area + common_area
-    
-    db_property = models.Property(**property_data)
-    try:
-        db.add(db_property)
-        db.commit()
-        db.refresh(db_property)
-        return db_property
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.error(f"Error fetching property {property_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.put("/api/properties/{property_id}", response_model=schemas.Property)
 def update_property(property_id: int, property: schemas.PropertyCreate, db: Session = Depends(get_db)):
