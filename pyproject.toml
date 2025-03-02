@@ -6,9 +6,13 @@ requires-python = ">=3.11"
 dependencies = [
     "alembic>=1.14.1",
     "fastapi>=0.115.11",
+    "passlib>=1.7.4",
     "psycopg2-binary>=2.9.10",
     "pydantic>=2.10.6",
+    "pyjwt>=2.10.1",
     "python-dotenv>=1.0.1",
+    "python-jose>=3.4.0",
+    "python-multipart>=0.0.20",
     "sqlalchemy>=2.0.38",
     "uvicorn>=0.34.0",
 ]

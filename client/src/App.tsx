@@ -9,8 +9,8 @@ import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import PropertyList from "@/pages/property-list";
 import PropertyDetail from "@/pages/property-detail";
-import PurchasesPage from "@/pages/purchases-page"; // Placeholder component
-import PurchaseDetail from "@/pages/purchase-detail"; // Placeholder component
+import PurchasesPage from "@/pages/purchases-page";
+import PurchaseDetail from "@/pages/purchase-detail";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -39,12 +39,3 @@ function App() {
 }
 
 export default App;
-
-// Placeholder components (replace with actual implementation)
-function PurchasesPage() {
-  return <div>Purchases Page</div>;
-}
-
-function PurchaseDetail() {
-  return <div>Purchase Detail Page</div>;
-}

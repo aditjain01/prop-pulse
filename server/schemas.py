@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List, Dict, Any, Union
 from datetime import datetime, date
@@ -13,7 +12,6 @@ class UserCreate(UserBase):
 
 class User(UserBase):
     id: int
-    password: str
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
@@ -29,22 +27,33 @@ class ConstructionStatus(ConstructionStatusBase):
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
+class PaymentSourceBase(BaseModel):
+    name: str
+    source_type: str  # BANK_ACCOUNT, UPI, CASH, etc.
+    account_details: Optional[Dict[str, Any]] = None
+    is_active: bool = True
+
+class PaymentSourceCreate(PaymentSourceBase):
+    pass
+
+class PaymentSource(PaymentSourceBase):
+    id: int
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
 class PropertyBase(BaseModel):
     title: str
     address: str
     property_type: str
-    developer: Optional[str] = None
     carpet_area: Optional[Decimal] = None
-    exclusive_area: Optional[Decimal] = None
-    common_area: Optional[Decimal] = None
     super_area: Optional[Decimal] = None
+    builder_area: Optional[Decimal] = None
     floor_number: Optional[int] = None
     parking_details: Optional[str] = None
     amenities: List[str] = []
     initial_rate: Decimal
-    current_rate: Decimal
-    rera_id: Optional[str] = None
-    construction_status_id: Optional[int] = None
+    current_price: Decimal
+    status: str = "available"
 
 class PropertyCreate(PropertyBase):
     pass
@@ -53,7 +62,6 @@ class Property(PropertyBase):
     id: int
     created_at: datetime
     updated_at: datetime
-    construction_status: Optional[ConstructionStatus] = None
     model_config = ConfigDict(from_attributes=True)
 
 class PurchaseBase(BaseModel):
@@ -61,13 +69,9 @@ class PurchaseBase(BaseModel):
     purchase_date: date
     registration_date: Optional[date] = None
     possession_date: Optional[date] = None
-    base_cost: Decimal
-    other_charges: Decimal = Decimal('0')
-    ifms: Decimal = Decimal('0')
-    lease_rent: Decimal = Decimal('0')
-    amc: Decimal = Decimal('0')
-    gst: Decimal = Decimal('0')
-    seller: Optional[str] = None
+    final_purchase_price: Decimal
+    cost_breakdown: Dict[str, Any]
+    seller_info: Optional[str] = None
     remarks: Optional[str] = None
 
 class PurchaseCreate(PurchaseBase):
@@ -78,18 +82,6 @@ class Purchase(PurchaseBase):
     user_id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
-    
-    @property
-    def property_cost(self) -> Decimal:
-        return self.base_cost + self.other_charges
-        
-    @property
-    def total_cost(self) -> Decimal:
-        return self.property_cost + self.ifms + self.lease_rent + self.amc
-        
-    @property
-    def total_sale_cost(self) -> Decimal:
-        return self.total_cost + self.gst
 
 class LoanBase(BaseModel):
     purchase_id: int
@@ -111,10 +103,10 @@ class Loan(LoanBase):
 
 class PaymentBase(BaseModel):
     purchase_id: int
+    payment_source_id: int
     payment_date: date
     amount: Decimal
-    source: str
-    payment_mode: str
+    payment_mode: str  # cash/check/online
     transaction_reference: Optional[str] = None
     milestone: str
 
@@ -124,6 +116,22 @@ class PaymentCreate(PaymentBase):
 class Payment(PaymentBase):
     id: int
     user_id: int
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class LoanPaymentBase(BaseModel):
+    loan_id: int
+    payment_source_id: int
+    payment_date: date
+    amount: Decimal
+    transaction_reference: Optional[str] = None
+    is_emi: bool = True
+
+class LoanPaymentCreate(LoanPaymentBase):
+    pass
+
+class LoanPayment(LoanPaymentBase):
+    id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
