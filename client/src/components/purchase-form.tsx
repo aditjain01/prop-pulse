@@ -9,66 +9,63 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocation } from "wouter";
-import { Property } from "shared/schema";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { SlideDialog } from "@/components/slide-dialog";
 import { PropertyForm } from "@/components/property-form";
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import { 
+  purchaseFormSchema, 
+  type PurchaseFormValues, 
+  type Purchase,
+  type Property,
+  initializePurchaseForm 
+} from "@/lib/schemas";
 
 type PurchaseFormProps = {
   propertyId?: number;
+  purchase?: Purchase;
   onSuccess?: () => void;
 };
 
-export function PurchaseForm({ propertyId, onSuccess }: PurchaseFormProps) {
+export function PurchaseForm({ propertyId, purchase, onSuccess }: PurchaseFormProps) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const [propertyDialogOpen, setPropertyDialogOpen] = useState(false);
   
   // Fetch properties for the dropdown
   const { data: properties } = useQuery<Property[]>({
     queryKey: ["/api/properties"],
   });
 
-  const form = useForm({
-    defaultValues: {
-      property_id: propertyId?.toString() || "",
-      purchase_date: new Date().toISOString().split('T')[0],
-      base_cost: "0",
-      other_charges: "0",
-      ifms: "0",
-      lease_rent: "0",
-      amc: "0",
-      gst: "0",
-      seller: "",
-      remarks: "",
-      registration_date: null,
-      possession_date: null,
-    },
+  const form = useForm<PurchaseFormValues>({
+    resolver: zodResolver(purchaseFormSchema),
+    defaultValues: purchase 
+      ? initializePurchaseForm(purchase)
+      : initializePurchaseForm({ property_id: propertyId } as Purchase),
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/purchases", {
+    mutationFn: async (data: PurchaseFormValues) => {
+      const endpoint = purchase ? `/api/purchases/${purchase.id}` : "/api/purchases";
+      const method = purchase ? "PUT" : "POST";
+      
+      const payload = {
         ...data,
         property_id: parseInt(data.property_id),
-        base_cost: parseFloat(data.base_cost),
-        other_charges: parseFloat(data.other_charges),
-        ifms: parseFloat(data.ifms),
-        lease_rent: parseFloat(data.lease_rent),
-        amc: parseFloat(data.amc),
-        gst: parseFloat(data.gst),
-      });
+      };
+      
+      const res = await apiRequest(method, endpoint, payload);
       return res.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/purchases"] });
       toast({
-        title: "Purchase created",
-        description: "The purchase has been recorded successfully.",
+        title: purchase ? "Purchase updated" : "Purchase created",
+        description: purchase 
+          ? "The purchase has been updated successfully." 
+          : "The purchase has been recorded successfully.",
       });
       if (onSuccess) onSuccess();
-      setLocation(`/purchases/${data.id}`);
+      if (!purchase) setLocation(`/purchases/${data.id}`);
     },
     onError: (error: Error) => {
       toast({
@@ -78,12 +75,6 @@ export function PurchaseForm({ propertyId, onSuccess }: PurchaseFormProps) {
       });
     },
   });
-
-  const handlePropertyCreated = () => {
-    setPropertyDialogOpen(false);
-    // Refresh the properties list
-    queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
-  };
 
   return (
     <Form {...form}>
@@ -96,35 +87,41 @@ export function PurchaseForm({ propertyId, onSuccess }: PurchaseFormProps) {
             <FormItem>
               <FormLabel>Property</FormLabel>
               <div className="flex space-x-2">
-                <div className="flex-1">
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
+                <Select 
+                  onValueChange={field.onChange} 
+                  defaultValue={field.value}
+                  disabled={!!propertyId}
+                >
+                  <FormControl>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select a property" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {properties?.map((property) => (
+                      <SelectItem key={property.id} value={property.id.toString()}>
+                        {property.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {!propertyId && (
+                  <SlideDialog
+                    trigger={
+                      <Button type="button" variant="outline" size="icon">
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    }
+                    title="Add Property"
                   >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a property" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {properties?.map((property) => (
-                        <SelectItem key={property.id} value={property.id.toString()}>
-                          {property.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Dialog open={propertyDialogOpen} onOpenChange={setPropertyDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="icon" type="button">
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[500px]">
-                    <PropertyForm onSuccess={handlePropertyCreated} />
-                  </DialogContent>
-                </Dialog>
+                    <PropertyForm 
+                      onSuccess={() => {
+                        queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
+                      }} 
+                    />
+                  </SlideDialog>
+                )}
               </div>
               <FormMessage />
             </FormItem>
@@ -286,7 +283,9 @@ export function PurchaseForm({ propertyId, onSuccess }: PurchaseFormProps) {
         />
 
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
-          {mutation.isPending ? "Creating Purchase..." : "Create Purchase"}
+          {mutation.isPending 
+            ? (purchase ? "Updating Purchase..." : "Creating Purchase...") 
+            : (purchase ? "Update Purchase" : "Create Purchase")}
         </Button>
       </form>
     </Form>

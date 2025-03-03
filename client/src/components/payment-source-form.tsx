@@ -9,81 +9,60 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { z } from "zod";
-import { useState } from "react";
+import { useLocation } from "wouter";
+import { 
+  paymentSourceFormSchema, 
+  type PaymentSourceFormValues, 
+  type PaymentSource,
+  initializePaymentSourceForm 
+} from "@/lib/schemas";
 
 type PaymentSourceFormProps = {
-  paymentSource?: any;
+  paymentSource?: PaymentSource;
   onSuccess?: () => void;
 };
 
-const paymentSourceSchema = z.object({
-  name: z.string().nonempty("Name is required"),
-  source_type: z.string().nonempty("Source type is required"),
-  description: z.string().optional(),
-  is_active: z.boolean().default(true),
-  
-  // Bank account fields
-  bank_name: z.string().optional(),
-  account_number: z.string().optional(),
-  ifsc_code: z.string().optional(),
-  branch: z.string().optional(),
-  
-  // Loan fields
-  lender: z.string().optional(),
-  
-  // Credit card fields
-  card_number: z.string().optional(),
-  card_expiry: z.string().optional(),
-  
-  // Digital wallet fields
-  wallet_provider: z.string().optional(),
-  wallet_identifier: z.string().optional(),
-});
-
 export function PaymentSourceForm({ paymentSource, onSuccess }: PaymentSourceFormProps) {
   const { toast } = useToast();
-  const [sourceType, setSourceType] = useState(paymentSource?.source_type || "bank_account");
+  const [, setLocation] = useLocation();
   
-  const form = useForm({
-    resolver: zodResolver(paymentSourceSchema),
-    defaultValues: paymentSource || {
-      name: "",
-      source_type: "bank_account",
-      description: "",
-      is_active: true,
-      bank_name: "",
-      account_number: "",
-      ifsc_code: "",
-      branch: "",
-      lender: "",
-      card_number: "",
-      card_expiry: "",
-      wallet_provider: "",
-      wallet_identifier: "",
-    },
+  // Fetch loans for dropdown
+  const { data: loans } = useQuery({
+    queryKey: ["/api/loans"],
   });
 
+  const form = useForm<PaymentSourceFormValues>({
+    resolver: zodResolver(paymentSourceFormSchema),
+    defaultValues: initializePaymentSourceForm(paymentSource),
+  });
+
+  // Watch the source type to conditionally render fields
+  const sourceType = form.watch("source_type");
+
   const mutation = useMutation({
-    mutationFn: async (data: any) => {
-      const endpoint = paymentSource 
-        ? `/api/payment-sources/${paymentSource.id}` 
-        : "/api/payment-sources";
-      
+    mutationFn: async (data: PaymentSourceFormValues) => {
+      const endpoint = paymentSource ? `/api/payment-sources/${paymentSource.id}` : "/api/payment-sources";
       const method = paymentSource ? "PUT" : "POST";
       
-      const res = await apiRequest(method, endpoint, data);
+      // Convert loan_id to number if present
+      const payload = {
+        ...data,
+        loan_id: data.loan_id ? parseInt(data.loan_id) : null,
+      };
+      
+      const res = await apiRequest(method, endpoint, payload);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/payment-sources"] });
-      
       toast({
         title: paymentSource ? "Payment source updated" : "Payment source created",
-        description: "The payment source has been saved successfully.",
+        description: paymentSource 
+          ? "The payment source has been updated successfully." 
+          : "The payment source has been created successfully.",
       });
-      
       if (onSuccess) onSuccess();
+      if (!paymentSource) setLocation(`/payment-sources`);
     },
     onError: (error: Error) => {
       toast({
@@ -92,11 +71,6 @@ export function PaymentSourceForm({ paymentSource, onSuccess }: PaymentSourceFor
         variant: "destructive",
       });
     },
-  });
-
-  // Fetch loans for the dropdown
-  const { data: loans } = useQuery({
-    queryKey: ["/api/loans"],
   });
 
   return (
@@ -109,7 +83,7 @@ export function PaymentSourceForm({ paymentSource, onSuccess }: PaymentSourceFor
             <FormItem>
               <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="e.g., HDFC Savings Account" />
+                <Input {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -122,13 +96,7 @@ export function PaymentSourceForm({ paymentSource, onSuccess }: PaymentSourceFor
           render={({ field }) => (
             <FormItem>
               <FormLabel>Source Type</FormLabel>
-              <Select 
-                onValueChange={(value) => {
-                  field.onChange(value);
-                  setSourceType(value);
-                }} 
-                defaultValue={field.value}
-              >
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select source type" />
@@ -137,9 +105,9 @@ export function PaymentSourceForm({ paymentSource, onSuccess }: PaymentSourceFor
                 <SelectContent>
                   <SelectItem value="bank_account">Bank Account</SelectItem>
                   <SelectItem value="loan">Loan</SelectItem>
+                  <SelectItem value="cash">Cash</SelectItem>
                   <SelectItem value="credit_card">Credit Card</SelectItem>
                   <SelectItem value="digital_wallet">Digital Wallet</SelectItem>
-                  <SelectItem value="cash">Cash</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -154,7 +122,7 @@ export function PaymentSourceForm({ paymentSource, onSuccess }: PaymentSourceFor
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea {...field} placeholder="Optional description" />
+                <Textarea {...field} rows={3} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -165,9 +133,10 @@ export function PaymentSourceForm({ paymentSource, onSuccess }: PaymentSourceFor
           control={form.control}
           name="is_active"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
-                <FormLabel>Active</FormLabel>
+                <FormLabel className="text-base">Active</FormLabel>
+                <FormMessage />
               </div>
               <FormControl>
                 <Switch
@@ -189,7 +158,21 @@ export function PaymentSourceForm({ paymentSource, onSuccess }: PaymentSourceFor
                 <FormItem>
                   <FormLabel>Bank Name</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="e.g., HDFC Bank" />
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="account_number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Account Number</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -199,12 +182,12 @@ export function PaymentSourceForm({ paymentSource, onSuccess }: PaymentSourceFor
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="account_number"
+                name="ifsc_code"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Account Number</FormLabel>
+                    <FormLabel>IFSC Code</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="XXXX XXXX XXXX" />
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -213,27 +196,56 @@ export function PaymentSourceForm({ paymentSource, onSuccess }: PaymentSourceFor
 
               <FormField
                 control={form.control}
-                name="ifsc_code"
+                name="branch"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>IFSC Code</FormLabel>
+                    <FormLabel>Branch</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="e.g., HDFC0001234" />
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+          </>
+        )}
+
+        {sourceType === "loan" && (
+          <>
+            <FormField
+              control={form.control}
+              name="loan_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Loan</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a loan" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {loans?.map((loan) => (
+                        <SelectItem key={loan.id} value={loan.id.toString()}>
+                          {loan.name} - {loan.institution}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
-              name="branch"
+              name="lender"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Branch</FormLabel>
+                  <FormLabel>Lender</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="e.g., Koramangala, Bangalore" />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -242,46 +254,16 @@ export function PaymentSourceForm({ paymentSource, onSuccess }: PaymentSourceFor
           </>
         )}
 
-        {sourceType === "loan" && (
-          <FormField
-            control={form.control}
-            name="loan_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Select Loan</FormLabel>
-                <Select 
-                  onValueChange={(value) => field.onChange(parseInt(value))} 
-                  defaultValue={field.value?.toString()}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a loan" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {loans?.map((loan) => (
-                      <SelectItem key={loan.id} value={loan.id.toString()}>
-                        {loan.name} - ₹{Number(loan.sanction_amount).toLocaleString()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-
         {sourceType === "credit_card" && (
-          <div className="grid grid-cols-2 gap-4">
+          <>
             <FormField
               control={form.control}
               name="card_number"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Card Number</FormLabel>
+                  <FormLabel>Card Number (last 4 digits)</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="XXXX XXXX XXXX XXXX" />
+                    <Input {...field} maxLength={4} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -293,7 +275,7 @@ export function PaymentSourceForm({ paymentSource, onSuccess }: PaymentSourceFor
               name="card_expiry"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Expiry Date</FormLabel>
+                  <FormLabel>Expiry Date (MM/YY)</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="MM/YY" />
                   </FormControl>
@@ -301,7 +283,7 @@ export function PaymentSourceForm({ paymentSource, onSuccess }: PaymentSourceFor
                 </FormItem>
               )}
             />
-          </div>
+          </>
         )}
 
         {sourceType === "digital_wallet" && (
@@ -313,7 +295,7 @@ export function PaymentSourceForm({ paymentSource, onSuccess }: PaymentSourceFor
                 <FormItem>
                   <FormLabel>Wallet Provider</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="e.g., PayTM, PhonePe" />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -325,9 +307,9 @@ export function PaymentSourceForm({ paymentSource, onSuccess }: PaymentSourceFor
               name="wallet_identifier"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Wallet Identifier</FormLabel>
+                  <FormLabel>Wallet Identifier (Email/Phone)</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Phone number or email" />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -338,7 +320,7 @@ export function PaymentSourceForm({ paymentSource, onSuccess }: PaymentSourceFor
 
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
           {mutation.isPending 
-            ? (paymentSource ? "Updating..." : "Creating...") 
+            ? (paymentSource ? "Updating Payment Source..." : "Creating Payment Source...") 
             : (paymentSource ? "Update Payment Source" : "Create Payment Source")}
         </Button>
       </form>

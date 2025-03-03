@@ -8,32 +8,23 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { z } from "zod";
-import { useParams } from "wouter";
+import { useLocation } from "wouter";
+import { 
+  loanFormSchema, 
+  type LoanFormValues, 
+  type Loan,
+  initializeLoanForm 
+} from "@/lib/schemas";
 
 type LoanFormProps = {
-  loan?: any;
-  purchaseId?: number;  // Optional purchase ID if coming from purchase detail
+  purchaseId?: number;
+  loan?: Loan;
   onSuccess?: () => void;
 };
 
-const loanSchema = z.object({
-  purchase_id: z.string().nonempty("Purchase is required"),
-  name: z.string().nonempty("Name is required"),
-  institution: z.string().nonempty("Institution is required"),
-  agent: z.string().optional(),
-  sanction_date: z.string().nonempty("Sanction date is required"),
-  sanction_amount: z.string().nonempty("Sanction amount is required"),
-  processing_fee: z.string().default("0"),
-  other_charges: z.string().default("0"),
-  loan_sanction_charges: z.string().default("0"),
-  interest_rate: z.string().nonempty("Interest rate is required"),
-  tenure_months: z.string().nonempty("Tenure is required"),
-  is_active: z.boolean().default(true),
-});
-
 export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   
   // Fetch purchases for dropdown
   const { data: purchases, isLoading: purchasesLoading } = useQuery({
@@ -63,65 +54,46 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
     
     return "Unknown Property";
   };
-  
-  const form = useForm({
-    resolver: zodResolver(loanSchema),
-    defaultValues: loan ? {
-      ...loan,
-      purchase_id: loan.purchase_id?.toString() || "",
-      sanction_date: loan.sanction_date ? new Date(loan.sanction_date).toISOString().split('T')[0] : "",
-      sanction_amount: loan.sanction_amount?.toString() || "0",
-      processing_fee: loan.processing_fee?.toString() || "0",
-      other_charges: loan.other_charges?.toString() || "0",
-      loan_sanction_charges: loan.loan_sanction_charges?.toString() || "0",
-      interest_rate: loan.interest_rate?.toString() || "0",
-      tenure_months: loan.tenure_months?.toString() || "0",
-    } : {
-      purchase_id: purchaseId?.toString() || "",
-      name: "",
-      institution: "",
-      agent: "",
-      sanction_date: new Date().toISOString().split('T')[0],
-      sanction_amount: "0",
-      processing_fee: "0",
-      other_charges: "0",
-      loan_sanction_charges: "0",
-      interest_rate: "0",
-      tenure_months: "0",
-      is_active: true,
-    },
+
+  const form = useForm<LoanFormValues>({
+    resolver: zodResolver(loanFormSchema),
+    defaultValues: initializeLoanForm(loan, purchaseId),
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: LoanFormValues) => {
       const endpoint = loan ? `/api/loans/${loan.id}` : "/api/loans";
       const method = loan ? "PUT" : "POST";
       
-      // Parse numeric values
-      const parsedData = {
+      const payload = {
         ...data,
         purchase_id: parseInt(data.purchase_id),
-        sanction_amount: parseFloat(data.sanction_amount),
-        processing_fee: parseFloat(data.processing_fee),
-        other_charges: parseFloat(data.other_charges),
-        loan_sanction_charges: parseFloat(data.loan_sanction_charges),
-        interest_rate: parseFloat(data.interest_rate),
-        tenure_months: parseInt(data.tenure_months),
+        sanction_amount: parseFloat(data.sanction_amount.toString()),
+        processing_fee: parseFloat(data.processing_fee.toString()),
+        other_charges: parseFloat(data.other_charges.toString()),
+        loan_sanction_charges: parseFloat(data.loan_sanction_charges.toString()),
+        interest_rate: parseFloat(data.interest_rate.toString()),
+        tenure_months: parseInt(data.tenure_months.toString()),
       };
       
-      const res = await apiRequest(method, endpoint, parsedData);
+      const res = await apiRequest(method, endpoint, payload);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/loans"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/purchases"] });
+      if (purchaseId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/purchases", purchaseId.toString(), "loans"] });
+      }
       
       toast({
         title: loan ? "Loan updated" : "Loan created",
-        description: "The loan has been saved successfully.",
+        description: loan 
+          ? "The loan has been updated successfully." 
+          : "The loan has been created successfully.",
       });
       
       if (onSuccess) onSuccess();
+      if (!loan && !purchaseId) setLocation(`/loans`);
     },
     onError: (error: Error) => {
       toast({
@@ -140,29 +112,23 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
           name="purchase_id"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Purchase</FormLabel>
+              <FormLabel>Property Purchase</FormLabel>
               <Select 
+                disabled={!!purchaseId || purchasesLoading} 
                 onValueChange={field.onChange} 
-                defaultValue={field.value}
-                disabled={!!purchaseId || !!loan}  // Disable if purchaseId is provided or editing existing loan
+                value={field.value}
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a purchase" />
+                    <SelectValue placeholder="Select a property purchase" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {purchasesLoading ? (
-                    <SelectItem value="loading" disabled>Loading purchases...</SelectItem>
-                  ) : purchases?.length ? (
-                    purchases.map((purchase) => (
-                      <SelectItem key={purchase.id} value={purchase.id.toString()}>
-                        {getPropertyName(purchase.id)} - ₹{Number(purchase.base_cost || purchase.amount || 0).toLocaleString()}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="none" disabled>No purchases available</SelectItem>
-                  )}
+                  {purchases?.map((purchase) => (
+                    <SelectItem key={purchase.id} value={purchase.id.toString()}>
+                      {getPropertyName(purchase.id)} - {new Date(purchase.purchase_date).toLocaleDateString()}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -177,42 +143,40 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
             <FormItem>
               <FormLabel>Loan Name</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="e.g., Home Loan for Property X" />
+                <Input {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="institution"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Institution</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="e.g., HDFC Bank" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <FormField
+          control={form.control}
+          name="institution"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Institution</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          <FormField
-            control={form.control}
-            name="agent"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Agent/RM</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="e.g., John Doe" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="agent"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Agent</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
@@ -235,7 +199,11 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
             <FormItem>
               <FormLabel>Sanction Amount (₹)</FormLabel>
               <FormControl>
-                <Input type="number" {...field} />
+                <Input 
+                  type="number" 
+                  {...field} 
+                  onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -250,7 +218,11 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
               <FormItem>
                 <FormLabel>Processing Fee (₹)</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} />
+                  <Input 
+                    type="number" 
+                    {...field} 
+                    onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -264,7 +236,11 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
               <FormItem>
                 <FormLabel>Other Charges (₹)</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} />
+                  <Input 
+                    type="number" 
+                    {...field} 
+                    onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -278,7 +254,11 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
               <FormItem>
                 <FormLabel>Sanction Charges (₹)</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} />
+                  <Input 
+                    type="number" 
+                    {...field} 
+                    onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -294,7 +274,12 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
               <FormItem>
                 <FormLabel>Interest Rate (%)</FormLabel>
                 <FormControl>
-                  <Input type="number" step="0.01" {...field} />
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    {...field} 
+                    onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -308,7 +293,11 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
               <FormItem>
                 <FormLabel>Tenure (months)</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} />
+                  <Input 
+                    type="number" 
+                    {...field} 
+                    onChange={e => field.onChange(parseInt(e.target.value) || 0)} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -320,9 +309,10 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
           control={form.control}
           name="is_active"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
-                <FormLabel>Active</FormLabel>
+                <FormLabel className="text-base">Active Loan</FormLabel>
+                <FormMessage />
               </div>
               <FormControl>
                 <Switch
@@ -336,7 +326,7 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
 
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
           {mutation.isPending 
-            ? (loan ? "Updating..." : "Creating...") 
+            ? (loan ? "Updating Loan..." : "Creating Loan...") 
             : (loan ? "Update Loan" : "Create Loan")}
         </Button>
       </form>

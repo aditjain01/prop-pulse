@@ -8,9 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoanForm } from "@/components/loan-form";
 import { PaymentForm } from "@/components/payment-form";
 import { DocumentUpload } from "@/components/document-upload";
-import { Purchase, Loan, Payment, Document } from "shared/schema";
 import { PlusCircle, CreditCard, Plus, Trash2, Landmark } from "lucide-react";
-import { queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -144,7 +143,10 @@ export default function PurchaseDetail() {
                   }
                   title="Add Payment"
                 >
-                  <PaymentForm purchaseId={purchase.id} onSuccess={() => queryClient.invalidateQueries({ queryKey: ["/api/purchases", id] })} />
+                  <PaymentForm 
+                    purchaseId={purchase.id} 
+                    onSuccess={() => queryClient.invalidateQueries({ queryKey: ["/api/purchases", id] })} 
+                  />
                 </SlideDialog>
               </div>
             </div>

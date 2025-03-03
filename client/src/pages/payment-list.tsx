@@ -4,7 +4,7 @@ import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { PaymentForm } from "@/components/payment-form";
-import { Plus, Trash2, Filter, Download } from "lucide-react";
+import { Plus, Trash2, Filter, Download, Pencil } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { DeleteConfirmation } from "@/components/delete-confirmation";
@@ -389,13 +389,29 @@ export default function PaymentList() {
                       <TableCell>{payment.milestone || "-"}</TableCell>
                       <TableCell>{payment.transaction_reference || "-"}</TableCell>
                       <TableCell className="text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => setPaymentToDelete(payment)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <div className="flex justify-end space-x-2">
+                          <SlideDialog
+                            trigger={
+                              <Button variant="ghost" size="icon">
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            }
+                            title="Edit Payment"
+                          >
+                            <PaymentForm 
+                              payment={payment} 
+                              onSuccess={() => queryClient.invalidateQueries({ queryKey: ["/api/payments"] })}
+                            />
+                          </SlideDialog>
+                          
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => setPaymentToDelete(payment)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

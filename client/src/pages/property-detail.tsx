@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PropertyForm } from "@/components/property-form";
 import { PurchaseForm } from "@/components/purchase-form";
 import { DocumentUpload } from "@/components/document-upload";
-import { Property, Document, Purchase } from "shared/schema";
 import { Edit, Upload } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 
