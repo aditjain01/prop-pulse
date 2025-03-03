@@ -153,7 +153,7 @@ export default function PaymentList() {
       getPropertyName(payment.purchase_id),
       new Date(payment.payment_date).toLocaleDateString(),
       payment.amount,
-      getPaymentSourceName(payment.payment_source_id),
+      getPaymentSourceName(payment.source_id),
       payment.payment_mode,
       payment.milestone || "",
       payment.transaction_reference || "",
@@ -380,7 +380,9 @@ export default function PaymentList() {
                       <TableCell>{new Date(payment.payment_date).toLocaleDateString()}</TableCell>
                       <TableCell>{getPropertyName(payment.purchase_id)}</TableCell>
                       <TableCell>₹{Number(payment.amount).toLocaleString()}</TableCell>
-                      <TableCell>{getPaymentSourceName(payment.payment_source_id)}</TableCell>
+                      <TableCell>
+                        {paymentSources?.find(s => s.id === payment.source_id)?.name || "Unknown Source"}
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline">
                           {payment.payment_mode.charAt(0).toUpperCase() + payment.payment_mode.slice(1)}

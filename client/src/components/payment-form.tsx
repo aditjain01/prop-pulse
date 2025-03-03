@@ -9,36 +9,23 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { z } from 'zod';
 import { SlideDialog } from "@/components/slide-dialog";
 import { PaymentSourceForm } from "@/components/payment-source-form";
 import { Plus, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { 
+  paymentFormSchema, 
+  type PaymentFormValues, 
+  type Payment,
+  initializePaymentForm 
+} from "@/lib/schemas";
 
 type PaymentFormProps = {
   purchaseId?: number;
-  payment?: any;
+  payment?: Payment;
   onSuccess?: () => void;
 };
-
-const paymentSchema = z.object({
-  purchase_id: z.string().nonempty("Purchase is required"),
-  payment_date: z.string(),
-  amount: z.number(),
-  payment_source_id: z.string().nonempty("Payment source is required"),
-  payment_mode: z.string(),
-  transaction_reference: z.string().optional(),
-  milestone: z.string().optional(),
-  // Invoice details
-  invoice_date: z.string().optional(),
-  invoice_number: z.string().optional(),
-  invoice_amount: z.number().optional(),
-  // Receipt details
-  receipt_date: z.string().optional(),
-  receipt_number: z.string().optional(),
-  receipt_amount: z.number().optional(),
-});
 
 export function PaymentForm({ purchaseId, payment, onSuccess }: PaymentFormProps) {
   const { toast } = useToast();
@@ -69,70 +56,38 @@ export function PaymentForm({ purchaseId, payment, onSuccess }: PaymentFormProps
     return property?.name || "Unknown Property";
   };
   
-  const form = useForm({
-    resolver: zodResolver(paymentSchema),
-    defaultValues: payment ? {
-      purchase_id: payment.purchase_id.toString(),
-      payment_date: payment.payment_date,
-      amount: payment.amount,
-      payment_source_id: payment.payment_source_id.toString(),
-      payment_mode: payment.payment_mode,
-      transaction_reference: payment.transaction_reference || "",
-      milestone: payment.milestone || "",
-      // Invoice details
-      invoice_date: payment.invoice_date || "",
-      invoice_number: payment.invoice_number || "",
-      invoice_amount: payment.invoice_amount || 0,
-      // Receipt details
-      receipt_date: payment.receipt_date || "",
-      receipt_number: payment.receipt_number || "",
-      receipt_amount: payment.receipt_amount || 0,
-    } : {
-      purchase_id: purchaseId?.toString() || "",
-      payment_date: new Date().toISOString().split('T')[0],
-      amount: 0,
-      payment_source_id: "",
-      payment_mode: "online",
-      transaction_reference: "",
-      milestone: "",
-      // Invoice details
-      invoice_date: "",
-      invoice_number: "",
-      invoice_amount: 0,
-      // Receipt details
-      receipt_date: "",
-      receipt_number: "",
-      receipt_amount: 0,
-    },
+  const form = useForm<PaymentFormValues>({
+    resolver: zodResolver(paymentFormSchema),
+    defaultValues: initializePaymentForm(payment, purchaseId),
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: PaymentFormValues) => {
       const endpoint = payment ? `/api/payments/${payment.id}` : "/api/payments";
       const method = payment ? "PUT" : "POST";
       
-      const res = await apiRequest(method, endpoint, {
+      const payload = {
         ...data,
         purchase_id: parseInt(data.purchase_id),
-        payment_source_id: parseInt(data.payment_source_id),
-        amount: parseFloat(data.amount),
-        invoice_amount: data.invoice_amount ? parseFloat(data.invoice_amount) : null,
-        receipt_amount: data.receipt_amount ? parseFloat(data.receipt_amount) : null,
-      });
+        source_id: parseInt(data.source_id),
+      };
+      
+      const res = await apiRequest(method, endpoint, payload);
       return res.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/purchases", parseInt(form.getValues().purchase_id)] });
-      
+      if (purchaseId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/purchases", purchaseId.toString()] });
+      }
       toast({
         title: payment ? "Payment updated" : "Payment recorded",
         description: payment 
           ? "The payment has been updated successfully." 
           : "The payment has been recorded successfully.",
       });
-      
       if (onSuccess) onSuccess();
+      if (!payment) navigate("/payments");
     },
     onError: (error: Error) => {
       toast({
@@ -143,42 +98,94 @@ export function PaymentForm({ purchaseId, payment, onSuccess }: PaymentFormProps
     },
   });
 
-  const handlePaymentSourceCreated = () => {
-    setPaymentSourceDialogOpen(false);
-    // Refresh the payment sources list
-    queryClient.invalidateQueries({ queryKey: ["/api/payment-sources"] });
-  };
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
-        {/* Section 1: Basic Payment Details */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Purchase Selection Field */}
+        <FormField
+          control={form.control}
+          name="purchase_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Purchase</FormLabel>
+              <Select 
+                disabled={!!purchaseId || purchasesLoading} 
+                onValueChange={field.onChange} 
+                value={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a purchase" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {purchases?.map((purchase) => (
+                    <SelectItem key={purchase.id} value={purchase.id.toString()}>
+                      {getPropertyName(purchase.id)} - ₹{Number(purchase.total_cost).toLocaleString()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="payment_date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Payment Date</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="amount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Amount (₹)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    {...field} 
+                    onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
             <FormField
               control={form.control}
-              name="purchase_id"
+              name="source_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Purchase</FormLabel>
+                  <FormLabel>Payment Source</FormLabel>
                   <Select 
+                    disabled={sourcesLoading} 
                     onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                    disabled={!!purchaseId} // Disable if purchaseId is provided
+                    value={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a purchase" />
+                        <SelectValue placeholder="Select a payment source" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {purchases?.map((purchase) => (
-                        <SelectItem key={purchase.id} value={purchase.id.toString()}>
-                          {getPropertyName(purchase.id)} - ₹{Number(purchase.base_cost).toLocaleString()}
+                      {paymentSources?.map((source) => (
+                        <SelectItem key={source.id} value={source.id.toString()}>
+                          {source.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -187,139 +194,106 @@ export function PaymentForm({ purchaseId, payment, onSuccess }: PaymentFormProps
                 </FormItem>
               )}
             />
+          </div>
+          
+          <SlideDialog
+            trigger={
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="icon" 
+                className="flex-shrink-0"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            }
+            title="Add Payment Source"
+            open={paymentSourceDialogOpen}
+            onOpenChange={setPaymentSourceDialogOpen}
+          >
+            <PaymentSourceForm 
+              onSuccess={() => {
+                setPaymentSourceDialogOpen(false);
+                queryClient.invalidateQueries({ queryKey: ["/api/payment-sources"] });
+              }} 
+            />
+          </SlideDialog>
+        </div>
 
-            <FormField
-              control={form.control}
-              name="payment_date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Date</FormLabel>
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="payment_mode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Payment Mode</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select payment mode" />
+                    </SelectTrigger>
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
+                    <SelectItem value="online">Online Transfer</SelectItem>
+                    <SelectItem value="card">Card Payment</SelectItem>
+                    <SelectItem value="upi">UPI</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount (₹)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      {...field} 
-                      onChange={e => field.onChange(parseFloat(e.target.value))} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <FormField
+            control={form.control}
+            name="transaction_reference"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Transaction Reference</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-            <FormField
-              control={form.control}
-              name="payment_source_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Source</FormLabel>
-                  <div className="flex space-x-2">
-                    <div className="flex-1">
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a payment source" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {paymentSources?.map((source) => (
-                            <SelectItem key={source.id} value={source.id.toString()}>
-                              {source.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <SlideDialog
-                      trigger={
-                        <Button variant="outline" size="icon" type="button">
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      }
-                      title="Add Payment Source"
-                      open={paymentSourceDialogOpen}
-                      onOpenChange={setPaymentSourceDialogOpen}
-                    >
-                      <PaymentSourceForm onSuccess={handlePaymentSourceCreated} />
-                    </SlideDialog>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <FormField
+          control={form.control}
+          name="milestone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Milestone</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value || ""}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select milestone" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="booking">Booking Amount</SelectItem>
+                  <SelectItem value="agreement">Agreement</SelectItem>
+                  <SelectItem value="foundation">Foundation</SelectItem>
+                  <SelectItem value="plinth">Plinth</SelectItem>
+                  <SelectItem value="slab">Slab Casting</SelectItem>
+                  <SelectItem value="brick_work">Brick Work</SelectItem>
+                  <SelectItem value="plaster">Plaster</SelectItem>
+                  <SelectItem value="flooring">Flooring</SelectItem>
+                  <SelectItem value="possession">Possession</SelectItem>
+                  <SelectItem value="registration">Registration</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-            <FormField
-              control={form.control}
-              name="payment_mode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Mode</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select payment mode" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="online">Online</SelectItem>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="cheque">Cheque</SelectItem>
-                      <SelectItem value="dd">Demand Draft</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <Separator />
 
-            <FormField
-              control={form.control}
-              name="transaction_reference"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Transaction Reference</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="milestone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Milestone</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Section 2: Invoice Details */}
         <Card>
           <CardHeader>
             <CardTitle>Invoice Details</CardTitle>
@@ -375,7 +349,6 @@ export function PaymentForm({ purchaseId, payment, onSuccess }: PaymentFormProps
           </CardContent>
         </Card>
 
-        {/* Section 3: Receipt Details */}
         <Card>
           <CardHeader>
             <CardTitle>Receipt Details</CardTitle>

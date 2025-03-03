@@ -516,18 +516,18 @@ def get_payment(payment_id: int, db: Session = Depends(get_db)):
 @app.post("/api/payments", response_model=schemas.Payment)
 def create_payment(payment: schemas.PaymentCreate, db: Session = Depends(get_db)):
     try:
-        # Validate purchase exists
+        # Check if purchase exists
         purchase = db.query(models.Purchase).filter(models.Purchase.id == payment.purchase_id).first()
         if purchase is None:
             raise HTTPException(status_code=404, detail="Purchase not found")
         
-        # Validate payment source exists
-        payment_source = db.query(models.PaymentSource).filter(models.PaymentSource.id == payment.payment_source_id).first()
+        # Check if payment source exists - updated to use source_id
+        payment_source = db.query(models.PaymentSource).filter(models.PaymentSource.id == payment.source_id).first()
         if payment_source is None:
             raise HTTPException(status_code=404, detail="Payment source not found")
         
-        # Create payment
-        db_payment = models.Payment(**payment.dict())
+        # Create payment with user_id defaulted to 1
+        db_payment = models.Payment(**payment.dict(), user_id=1)  # Default user_id to 1
         db.add(db_payment)
         db.commit()
         db.refresh(db_payment)
@@ -547,6 +547,10 @@ def update_payment(payment_id: int, payment: schemas.PaymentUpdate, db: Session 
         if db_payment is None:
             raise HTTPException(status_code=404, detail="Payment not found")
         
+        # Check if user owns this payment
+        if db_payment.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to update this payment")
+        
         # Update payment fields
         for key, value in payment.dict(exclude_unset=True).items():
             setattr(db_payment, key, value)
@@ -554,6 +558,113 @@ def update_payment(payment_id: int, payment: schemas.PaymentUpdate, db: Session 
         db.commit()
         db.refresh(db_payment)
         return db_payment
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Loan Repayment endpoints
+
+@app.get("/api/loan-repayments", response_model=List[schemas.LoanRepayment])
+def get_loan_repayments(
+    loan_id: Optional[int] = None,
+    source_id: Optional[int] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    try:
+        query = db.query(models.LoanRepayment)
+        
+        # Apply filters if provided
+        if loan_id:
+            query = query.filter(models.LoanRepayment.loan_id == loan_id)
+        if source_id:
+            query = query.filter(models.LoanRepayment.source_id == source_id)
+        if from_date:
+            query = query.filter(models.LoanRepayment.payment_date >= from_date)
+        if to_date:
+            query = query.filter(models.LoanRepayment.payment_date <= to_date)
+        
+        # Order by payment date (newest first)
+        query = query.order_by(models.LoanRepayment.payment_date.desc())
+        
+        repayments = query.all()
+        return repayments
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/loan-repayments/{repayment_id}", response_model=schemas.LoanRepayment)
+def get_loan_repayment(repayment_id: int, db: Session = Depends(get_db)):
+    try:
+        repayment = db.query(models.LoanRepayment).filter(models.LoanRepayment.id == repayment_id).first()
+        if repayment is None:
+            raise HTTPException(status_code=404, detail="Loan repayment not found")
+        return repayment
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/loan-repayments", response_model=schemas.LoanRepayment)
+def create_loan_repayment(repayment: schemas.LoanRepaymentCreate, db: Session = Depends(get_db)):
+    try:
+        # Check if loan exists
+        loan = db.query(models.Loan).filter(models.Loan.id == repayment.loan_id).first()
+        if loan is None:
+            raise HTTPException(status_code=404, detail="Loan not found")
+        
+        # Check if payment source exists
+        payment_source = db.query(models.PaymentSource).filter(models.PaymentSource.id == repayment.source_id).first()
+        if payment_source is None:
+            raise HTTPException(status_code=404, detail="Payment source not found")
+        
+        # Create loan repayment
+        db_repayment = models.LoanRepayment(**repayment.dict())
+        db.add(db_repayment)
+        db.commit()
+        db.refresh(db_repayment)
+        return db_repayment
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/loan-repayments/{repayment_id}", response_model=schemas.LoanRepayment)
+def update_loan_repayment(repayment_id: int, repayment: schemas.LoanRepaymentUpdate, db: Session = Depends(get_db)):
+    try:
+        # Check if repayment exists
+        db_repayment = db.query(models.LoanRepayment).filter(models.LoanRepayment.id == repayment_id).first()
+        if db_repayment is None:
+            raise HTTPException(status_code=404, detail="Loan repayment not found")
+        
+        # Update repayment fields
+        for key, value in repayment.dict(exclude_unset=True).items():
+            setattr(db_repayment, key, value)
+        
+        db.commit()
+        db.refresh(db_repayment)
+        return db_repayment
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/loan-repayments/{repayment_id}")
+def delete_loan_repayment(repayment_id: int, db: Session = Depends(get_db)):
+    try:
+        # Check if repayment exists
+        repayment = db.query(models.LoanRepayment).filter(models.LoanRepayment.id == repayment_id).first()
+        if repayment is None:
+            raise HTTPException(status_code=404, detail="Loan repayment not found")
+        
+        # Delete the repayment
+        db.delete(repayment)
+        db.commit()
+        return {"message": "Loan repayment deleted successfully"}
     except HTTPException:
         raise
     except Exception as e:

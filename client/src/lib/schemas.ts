@@ -96,7 +96,7 @@ export type Payment = {
   user_id: number;
   payment_date: string;
   amount: number;
-  payment_source_id: number;
+  source_id: number;
   payment_mode: string;
   transaction_reference: string | null;
   milestone: string | null;
@@ -120,6 +120,24 @@ export type Document = {
   document_vector: string | null;
   metadata: Record<string, any> | null;
   created_at: string;
+};
+
+// Add LoanRepayment type
+export type LoanRepayment = {
+  id: number;
+  loan_id: number;
+  payment_date: string;
+  principal_amount: number;
+  interest_amount: number;
+  other_fees: number;
+  penalties: number;
+  source_id: number;
+  payment_mode: string;
+  transaction_reference: string | null;
+  notes: string | null;
+  total_payment: number;
+  created_at: string;
+  updated_at: string | null;
 };
 
 // Zod schemas for form validation
@@ -207,10 +225,10 @@ export type PaymentSourceFormValues = z.infer<typeof paymentSourceFormSchema>;
 // Payment schemas
 export const paymentFormSchema = z.object({
   purchase_id: z.string().nonempty("Purchase is required"),
-  payment_date: z.string().nonempty("Payment date is required"),
-  amount: z.number().min(1, "Amount must be greater than 0"),
-  payment_source_id: z.string().nonempty("Payment source is required"),
-  payment_mode: z.string().nonempty("Payment mode is required"),
+  payment_date: z.string(),
+  amount: z.number(),
+  source_id: z.string().nonempty("Payment source is required"),
+  payment_mode: z.string(),
   transaction_reference: z.string().optional(),
   milestone: z.string().optional(),
   
@@ -236,6 +254,22 @@ export const documentFormSchema = z.object({
 });
 
 export type DocumentFormValues = z.infer<typeof documentFormSchema>;
+
+// Add LoanRepayment form schema
+export const loanRepaymentFormSchema = z.object({
+  loan_id: z.string().nonempty("Loan is required"),
+  payment_date: z.string().nonempty("Payment date is required"),
+  principal_amount: z.number().min(0, "Principal amount must be positive"),
+  interest_amount: z.number().min(0, "Interest amount must be positive"),
+  other_fees: z.number().min(0, "Other fees must be positive").default(0),
+  penalties: z.number().min(0, "Penalties must be positive").default(0),
+  source_id: z.string().nonempty("Payment source is required"),
+  payment_mode: z.string().nonempty("Payment mode is required"),
+  transaction_reference: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export type LoanRepaymentFormValues = z.infer<typeof loanRepaymentFormSchema>;
 
 // Helper functions for form initialization
 export const initializePropertyForm = (property?: Property): PropertyFormValues => {
@@ -314,7 +348,7 @@ export const initializePaymentForm = (payment?: Payment, purchaseId?: number): P
     purchase_id: payment?.purchase_id?.toString() || purchaseId?.toString() || "",
     payment_date: payment?.payment_date || new Date().toISOString().split('T')[0],
     amount: payment?.amount || 0,
-    payment_source_id: payment?.payment_source_id?.toString() || "",
+    source_id: payment?.source_id?.toString() || "",
     payment_mode: payment?.payment_mode || "online",
     transaction_reference: payment?.transaction_reference || "",
     milestone: payment?.milestone || "",
@@ -324,5 +358,20 @@ export const initializePaymentForm = (payment?: Payment, purchaseId?: number): P
     receipt_date: payment?.receipt_date || "",
     receipt_number: payment?.receipt_number || "",
     receipt_amount: payment?.receipt_amount || 0,
+  };
+};
+
+export const initializeLoanRepaymentForm = (repayment?: LoanRepayment, loanId?: number): LoanRepaymentFormValues => {
+  return {
+    loan_id: repayment?.loan_id?.toString() || loanId?.toString() || "",
+    payment_date: repayment?.payment_date || new Date().toISOString().split('T')[0],
+    principal_amount: repayment?.principal_amount || 0,
+    interest_amount: repayment?.interest_amount || 0,
+    other_fees: repayment?.other_fees || 0,
+    penalties: repayment?.penalties || 0,
+    source_id: repayment?.source_id?.toString() || "",
+    payment_mode: repayment?.payment_mode || "online",
+    transaction_reference: repayment?.transaction_reference || "",
+    notes: repayment?.notes || "",
   };
 }; 

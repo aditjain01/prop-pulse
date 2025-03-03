@@ -127,6 +127,7 @@ class Loan(Base):
         primaryjoin="Loan.purchase_id == Purchase.id",
         back_populates="loans"
     )
+    repayments = relationship("LoanRepayment", back_populates="loan")
 
 class Payment(Base):
     __tablename__ = "payments"
@@ -134,14 +135,27 @@ class Payment(Base):
     id = Column(Integer, primary_key=True, index=True)
     purchase_id = Column(Integer, ForeignKey("purchases.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    payment_date = Column(Date, nullable=False)
+    source_id = Column(Integer, ForeignKey("payment_sources.id"), nullable=False)
+    
+    # Basic payment details
+    # payment_date = Column(Date, nullable=False)
     amount = Column(Numeric, nullable=False)
-    source = Column(String, nullable=False)  # Direct or Loan
-    payment_mode = Column(String, nullable=False)  # cash/check/online
-    transaction_reference = Column(String)
-    milestone = Column(String, nullable=False)
-    payment_source_id = Column(Integer, ForeignKey("payment_sources.id"))
+    payment_mode = Column(String, nullable=False)  # cash, online, cheque, etc.
+    transaction_reference = Column(String)  # Reference number, cheque number, etc.
+    milestone = Column(String)  # What this payment is for (e.g., booking, possession)
+    
+    # Invoice details
+    invoice_date = Column(Date)
+    invoice_number = Column(String)
+    invoice_amount = Column(Numeric)
+    
+    # Receipt details
+    receipt_date = Column(Date)
+    receipt_number = Column(String)
+    receipt_amount = Column(Numeric)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
     purchase = relationship("Purchase", back_populates="payments")
@@ -204,3 +218,29 @@ class PaymentSource(Base):
     user = relationship("User", back_populates="payment_sources")
     payments = relationship("Payment", back_populates="payment_source")
     loan = relationship("Loan", back_populates="payment_sources")
+    loan_repayments = relationship("LoanRepayment", back_populates="payment_source")
+
+class LoanRepayment(Base):
+    __tablename__ = "loan_repayments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    loan_id = Column(Integer, ForeignKey("loans.id"), nullable=False)
+    payment_date = Column(Date, nullable=False)
+    principal_amount = Column(Numeric, nullable=False)
+    interest_amount = Column(Numeric, nullable=False)
+    other_fees = Column(Numeric, default=0)
+    penalties = Column(Numeric, default=0)
+    source_id = Column(Integer, ForeignKey("payment_sources.id"), nullable=False)
+    payment_mode = Column(String, nullable=False)  # cash, online, cheque, etc.
+    transaction_reference = Column(String)
+    notes = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    loan = relationship("Loan", back_populates="repayments")
+    payment_source = relationship("PaymentSource", back_populates="loan_repayments")
+    
+    @property
+    def total_payment(self):
+        return self.principal_amount + self.interest_amount + self.other_fees + self.penalties

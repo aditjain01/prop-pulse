@@ -123,7 +123,7 @@ class PaymentBase(BaseModel):
     purchase_id: int
     payment_date: date
     amount: Decimal
-    payment_source_id: int
+    source_id: int
     payment_mode: str
     transaction_reference: Optional[str] = None
     milestone: Optional[str] = None
@@ -142,7 +142,7 @@ class PaymentCreate(PaymentBase):
 class PaymentUpdate(BaseModel):
     payment_date: Optional[date] = None
     amount: Optional[Decimal] = None
-    payment_source_id: Optional[int] = None
+    source_id: Optional[int] = None
     payment_mode: Optional[str] = None
     transaction_reference: Optional[str] = None
     milestone: Optional[str] = None
@@ -157,6 +157,7 @@ class PaymentUpdate(BaseModel):
 
 class Payment(PaymentBase):
     id: int
+    user_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
     
@@ -206,4 +207,38 @@ class PaymentSource(PaymentSourceBase):
     user_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+class LoanRepaymentBase(BaseModel):
+    loan_id: int
+    payment_date: date
+    principal_amount: Decimal
+    interest_amount: Decimal
+    other_fees: Optional[Decimal] = Decimal('0')
+    penalties: Optional[Decimal] = Decimal('0')
+    source_id: int
+    payment_mode: str
+    transaction_reference: Optional[str] = None
+    notes: Optional[str] = None
+
+class LoanRepaymentCreate(LoanRepaymentBase):
+    pass
+
+class LoanRepaymentUpdate(BaseModel):
+    payment_date: Optional[date] = None
+    principal_amount: Optional[Decimal] = None
+    interest_amount: Optional[Decimal] = None
+    other_fees: Optional[Decimal] = None
+    penalties: Optional[Decimal] = None
+    source_id: Optional[int] = None
+    payment_mode: Optional[str] = None
+    transaction_reference: Optional[str] = None
+    notes: Optional[str] = None
+
+class LoanRepayment(LoanRepaymentBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    total_payment: Decimal
+    
     model_config = ConfigDict(from_attributes=True)

@@ -15,6 +15,7 @@ import NotFound from "@/pages/not-found";
 import PaymentList from "./pages/payment-list";
 import PaymentSourceList from "@/pages/payment-source-list";
 import LoanList from "@/pages/loan-list";
+import LoanRepaymentList from "@/pages/loan-repayment-list";
 
 function Router() {
   return (
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/payments" component={PaymentList} />
       <Route path="/payment-sources" component={PaymentSourceList} />
       <Route path="/loans" component={LoanList} />
+      <Route path="/loans/:id/repayments" component={LoanRepaymentList} />
       <Route component={NotFound} />
     </Switch>
   );
