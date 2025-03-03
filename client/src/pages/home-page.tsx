@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { NavBar } from "@/components/nav-bar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Property, Purchase } from "@shared/schema";
+import { Property, Purchase } from "shared/schema";
 import { BarChart, Building2, Wallet } from "lucide-react";
 
 export default function HomePage() {

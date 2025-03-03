@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel, ConfigDict, computed_field
 from typing import Optional, List
 from datetime import datetime, date
@@ -24,7 +23,7 @@ class ConstructionStatus(ConstructionStatusBase):
     model_config = ConfigDict(from_attributes=True)
 
 class PropertyBase(BaseModel):
-    title: str
+    name: str
     address: str
     property_type: str
     carpet_area: Optional[Decimal] = None
@@ -35,7 +34,7 @@ class PropertyBase(BaseModel):
     amenities: List[str] = []
     initial_rate: Decimal
     current_rate: Decimal
-    status_id: Optional[int] = None
+    # status_id: Optional[int] = None
     developer: Optional[str] = None
     rera_id: Optional[str] = None
     
@@ -86,6 +85,7 @@ class PurchaseBase(BaseModel):
         return self.total_cost + gst
 
 class PurchaseCreate(PurchaseBase):
+
     pass
 
 class Purchase(PurchaseBase):
@@ -96,38 +96,70 @@ class Purchase(PurchaseBase):
 
 class LoanBase(BaseModel):
     purchase_id: int
-    bank_name: str
-    disbursement_date: date
+    name: str
+    institution: str
+    agent: Optional[str] = None
+    sanction_date: date
+    sanction_amount: Decimal
+    processing_fee: Decimal = Decimal('0')
+    other_charges: Decimal = Decimal('0')
+    loan_sanction_charges: Decimal = Decimal('0')
     interest_rate: Decimal
-    loan_amount: Decimal
-    emi_amount: Decimal
     tenure_months: int
-    prepayment_charges: Optional[Decimal] = None
+    is_active: bool = True
 
 class LoanCreate(LoanBase):
-    pass
+    user_id: Optional[int]  = 1
 
 class Loan(LoanBase):
     id: int
+    user_id: Optional[int] = None
     created_at: datetime
+    updated_at: Optional[datetime] = None
+    
     model_config = ConfigDict(from_attributes=True)
 
 class PaymentBase(BaseModel):
     purchase_id: int
     payment_date: date
     amount: Decimal
-    source: str
+    payment_source_id: int
     payment_mode: str
     transaction_reference: Optional[str] = None
-    milestone: str
+    milestone: Optional[str] = None
+    # Invoice details
+    invoice_date: Optional[date] = None
+    invoice_number: Optional[str] = None
+    invoice_amount: Optional[Decimal] = None
+    # Receipt details
+    receipt_date: Optional[date] = None
+    receipt_number: Optional[str] = None
+    receipt_amount: Optional[Decimal] = None
 
 class PaymentCreate(PaymentBase):
     pass
 
+class PaymentUpdate(BaseModel):
+    payment_date: Optional[date] = None
+    amount: Optional[Decimal] = None
+    payment_source_id: Optional[int] = None
+    payment_mode: Optional[str] = None
+    transaction_reference: Optional[str] = None
+    milestone: Optional[str] = None
+    # Invoice details
+    invoice_date: Optional[date] = None
+    invoice_number: Optional[str] = None
+    invoice_amount: Optional[Decimal] = None
+    # Receipt details
+    receipt_date: Optional[date] = None
+    receipt_number: Optional[str] = None
+    receipt_amount: Optional[Decimal] = None
+
 class Payment(PaymentBase):
     id: int
-    user_id: int
     created_at: datetime
+    updated_at: Optional[datetime] = None
+    
     model_config = ConfigDict(from_attributes=True)
 
 class DocumentBase(BaseModel):
@@ -143,4 +175,35 @@ class DocumentCreate(DocumentBase):
 class Document(DocumentBase):
     id: int
     created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class PaymentSourceBase(BaseModel):
+    name: str
+    source_type: str
+    description: Optional[str] = None
+    is_active: bool = True
+    
+    # Optional fields based on source_type
+    bank_name: Optional[str] = None
+    account_number: Optional[str] = None
+    ifsc_code: Optional[str] = None
+    branch: Optional[str] = None
+    
+    loan_id: Optional[int] = None
+    lender: Optional[str] = None
+    
+    card_number: Optional[str] = None
+    card_expiry: Optional[str] = None
+    
+    wallet_provider: Optional[str] = None
+    wallet_identifier: Optional[str] = None
+
+class PaymentSourceCreate(PaymentSourceBase):
+    pass
+
+class PaymentSource(PaymentSourceBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)

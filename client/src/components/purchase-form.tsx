@@ -1,32 +1,46 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import { insertPurchaseSchema } from "@shared/schema";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocation } from "wouter";
+import { Property } from "shared/schema";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { PropertyForm } from "@/components/property-form";
+import { useState } from "react";
+import { Plus } from "lucide-react";
 
 type PurchaseFormProps = {
-  propertyId: number;
+  propertyId?: number;
   onSuccess?: () => void;
 };
 
 export function PurchaseForm({ propertyId, onSuccess }: PurchaseFormProps) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [propertyDialogOpen, setPropertyDialogOpen] = useState(false);
+  
+  // Fetch properties for the dropdown
+  const { data: properties } = useQuery<Property[]>({
+    queryKey: ["/api/properties"],
+  });
 
   const form = useForm({
-    resolver: zodResolver(insertPurchaseSchema),
     defaultValues: {
-      property_id: propertyId,
+      property_id: propertyId?.toString() || "",
       purchase_date: new Date().toISOString().split('T')[0],
-      final_purchase_price: "0",
-      cost_breakdown: "{}",
-      seller_info: "",
+      base_cost: "0",
+      other_charges: "0",
+      ifms: "0",
+      lease_rent: "0",
+      amc: "0",
+      gst: "0",
+      seller: "",
       remarks: "",
       registration_date: null,
       possession_date: null,
@@ -37,7 +51,13 @@ export function PurchaseForm({ propertyId, onSuccess }: PurchaseFormProps) {
     mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/purchases", {
         ...data,
-        cost_breakdown: JSON.parse(data.cost_breakdown || "{}"),
+        property_id: parseInt(data.property_id),
+        base_cost: parseFloat(data.base_cost),
+        other_charges: parseFloat(data.other_charges),
+        ifms: parseFloat(data.ifms),
+        lease_rent: parseFloat(data.lease_rent),
+        amc: parseFloat(data.amc),
+        gst: parseFloat(data.gst),
       });
       return res.json();
     },
@@ -59,9 +79,58 @@ export function PurchaseForm({ propertyId, onSuccess }: PurchaseFormProps) {
     },
   });
 
+  const handlePropertyCreated = () => {
+    setPropertyDialogOpen(false);
+    // Refresh the properties list
+    queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+        {/* Property Selection Field */}
+        <FormField
+          control={form.control}
+          name="property_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Property</FormLabel>
+              <div className="flex space-x-2">
+                <div className="flex-1">
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a property" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {properties?.map((property) => (
+                        <SelectItem key={property.id} value={property.id.toString()}>
+                          {property.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Dialog open={propertyDialogOpen} onOpenChange={setPropertyDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="icon" type="button">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[500px]">
+                    <PropertyForm onSuccess={handlePropertyCreated} />
+                  </DialogContent>
+                </Dialog>
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="purchase_date"
@@ -78,10 +147,10 @@ export function PurchaseForm({ propertyId, onSuccess }: PurchaseFormProps) {
 
         <FormField
           control={form.control}
-          name="final_purchase_price"
+          name="base_cost"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Final Purchase Price (₹)</FormLabel>
+              <FormLabel>Base Cost (₹)</FormLabel>
               <FormControl>
                 <Input type="number" {...field} />
               </FormControl>
@@ -92,16 +161,68 @@ export function PurchaseForm({ propertyId, onSuccess }: PurchaseFormProps) {
 
         <FormField
           control={form.control}
-          name="cost_breakdown"
+          name="other_charges"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Cost Breakdown (JSON)</FormLabel>
+              <FormLabel>Other Charges (₹)</FormLabel>
               <FormControl>
-                <Textarea 
-                  {...field} 
-                  placeholder='{"base_price": "1000000", "registration": "50000", "stamp_duty": "30000"}'
-                  rows={4}
-                />
+                <Input type="number" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="ifms"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>IFMS (₹)</FormLabel>
+              <FormControl>
+                <Input type="number" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="lease_rent"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Lease Rent (₹)</FormLabel>
+              <FormControl>
+                <Input type="number" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="amc"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>AMC (₹)</FormLabel>
+              <FormControl>
+                <Input type="number" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="gst"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>GST (₹)</FormLabel>
+              <FormControl>
+                <Input type="number" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -138,7 +259,7 @@ export function PurchaseForm({ propertyId, onSuccess }: PurchaseFormProps) {
 
         <FormField
           control={form.control}
-          name="seller_info"
+          name="seller"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Seller Information</FormLabel>

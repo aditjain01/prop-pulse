@@ -9,17 +9,25 @@ import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import PropertyList from "@/pages/property-list";
 import PropertyDetail from "@/pages/property-detail";
+import PurchaseList from "@/pages/purchase-list";
 import PurchaseDetail from "@/pages/purchase-detail";
 import NotFound from "@/pages/not-found";
+import PaymentList from "./pages/payment-list";
+import PaymentSourceList from "@/pages/payment-source-list";
+import LoanList from "@/pages/loan-list";
 
 function Router() {
   return (
     <Switch>
-      <ProtectedRoute path="/" component={HomePage} />
-      <ProtectedRoute path="/properties" component={PropertyList} />
-      <ProtectedRoute path="/properties/:id" component={PropertyDetail} />
-      <ProtectedRoute path="/purchases/:id" component={PurchaseDetail} />
+      <Route path="/" component={HomePage} />
+      <Route path="/properties" component={PropertyList} />
+      <Route path="/properties/:id" component={PropertyDetail} />
+      <Route path="/purchases" component={PurchaseList} />
+      <Route path="/purchases/:id" component={PurchaseDetail} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/payments" component={PaymentList} />
+      <Route path="/payment-sources" component={PaymentSourceList} />
+      <Route path="/loans" component={LoanList} />
       <Route component={NotFound} />
     </Switch>
   );

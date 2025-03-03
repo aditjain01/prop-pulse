@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Building2, LogOut } from "lucide-react";
+import { Building2, LogOut, Home, CreditCard, Landmark, DollarSign } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 
@@ -7,20 +7,42 @@ export function NavBar() {
   const { user, logoutMutation } = useAuth();
 
   return (
-    <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="bg-background border-b">
       <div className="container flex h-14 items-center">
-        <div className="mr-4 flex">
-          <Link href="/" className="flex items-center space-x-2">
-            <Building2 className="h-6 w-6" />
-            <span className="font-bold">Properties Central</span>
-          </Link>
-        </div>
+        <Link href="/" className="font-bold text-lg mr-6">Property Manager</Link>
         
-        <div className="flex items-center space-x-4 flex-1">
-          <Link href="/properties">
-            <Button variant="ghost">Properties</Button>
+        <nav className="flex items-center space-x-4 lg:space-x-6">
+          <Link href="/properties" className="text-sm font-medium transition-colors hover:text-primary">
+            <div className="flex items-center">
+              <Building2 className="mr-1 h-4 w-4" />
+              Properties
+            </div>
           </Link>
-        </div>
+          <Link href="/purchases" className="text-sm font-medium transition-colors hover:text-primary">
+            <div className="flex items-center">
+              <Home className="mr-1 h-4 w-4" />
+              Purchases
+            </div>
+          </Link>
+          <Link href="/payments" className="text-sm font-medium transition-colors hover:text-primary">
+            <div className="flex items-center">
+              <DollarSign className="mr-1 h-4 w-4" />
+              Payments
+            </div>
+          </Link>
+          <Link href="/payment-sources" className="text-sm font-medium transition-colors hover:text-primary">
+            <div className="flex items-center">
+              <CreditCard className="mr-1 h-4 w-4" />
+              Payment Sources
+            </div>
+          </Link>
+          <Link href="/loans" className="text-sm font-medium transition-colors hover:text-primary">
+            <div className="flex items-center">
+              <Landmark className="mr-1 h-4 w-4" />
+              Loans
+            </div>
+          </Link>
+        </nav>
 
         <div className="flex items-center space-x-4">
           <span className="text-sm text-muted-foreground">
@@ -36,6 +58,6 @@ export function NavBar() {
           </Button>
         </div>
       </div>
-    </nav>
+    </header>
   );
 }

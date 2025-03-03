@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { insertUserSchema } from "@shared/schema";
+import { z } from 'zod';
+
+const insertUserSchema = z.object({
+  username: z.string().nonempty(),
+  password: z.string().nonempty(),
+  email: z.string().email(),
+});
 import { Building2 } from "lucide-react";
 
 export default function AuthPage() {

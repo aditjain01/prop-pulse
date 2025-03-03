@@ -1,5 +1,4 @@
-
-from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, ForeignKey, Date, Numeric, ARRAY
+from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, ForeignKey, Date, Numeric, ARRAY, Boolean, and_, or_, text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from server.database import Base
@@ -16,6 +15,8 @@ class User(Base):
     # Relationships
     purchases = relationship("Purchase", back_populates="user")
     payments = relationship("Payment", back_populates="user")
+    payment_sources = relationship("PaymentSource", back_populates="user")
+    loans = relationship("Loan", back_populates="user")
 
 class ConstructionStatus(Base):
     __tablename__ = "construction_status"
@@ -24,13 +25,13 @@ class ConstructionStatus(Base):
     name = Column(String, unique=True, nullable=False)
     
     # Relationships
-    properties = relationship("Property", back_populates="construction_status")
+    # properties = relationship("Property", back_populates="construction_status")
 
 class Property(Base):
     __tablename__ = "properties"
 
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, nullable=False)
+    name = Column(String, nullable=False)
     address = Column(String, nullable=False)
     property_type = Column(String, nullable=False)
     carpet_area = Column(Numeric)
@@ -42,7 +43,7 @@ class Property(Base):
     amenities = Column(ARRAY(String))
     initial_rate = Column(Numeric, nullable=False)
     current_rate = Column(Numeric, nullable=False)
-    status_id = Column(Integer, ForeignKey("construction_status.id"))
+    # status_id = Column(Integer, ForeignKey("construction_status.id"))
     developer = Column(String)
     rera_id = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -51,7 +52,7 @@ class Property(Base):
     # Relationships
     purchases = relationship("Purchase", back_populates="property")
     documents = relationship("Document", back_populates="property")
-    construction_status = relationship("ConstructionStatus", back_populates="properties")
+    # construction_status = relationship("ConstructionStatus", back_populates="properties")
 
 class Purchase(Base):
     __tablename__ = "purchases"
@@ -78,26 +79,54 @@ class Purchase(Base):
     # Relationships
     property = relationship("Property", back_populates="purchases")
     user = relationship("User", back_populates="purchases")
-    loans = relationship("Loan", back_populates="purchase")
     payments = relationship("Payment", back_populates="purchase")
     documents = relationship("Document", back_populates="purchase")
+    loans = relationship(
+        "Loan",
+        primaryjoin="Purchase.id == Loan.purchase_id",
+        back_populates="purchase"
+    )
 
 class Loan(Base):
     __tablename__ = "loans"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     purchase_id = Column(Integer, ForeignKey("purchases.id"), nullable=False)
-    bank_name = Column(String, nullable=False)
-    disbursement_date = Column(Date, nullable=False)
-    interest_rate = Column(Numeric, nullable=False)
-    loan_amount = Column(Numeric, nullable=False)
-    emi_amount = Column(Numeric, nullable=False)
-    tenure_months = Column(Integer, nullable=False)
-    prepayment_charges = Column(Numeric)
+    
+    # Basic loan information
+    name = Column(String, nullable=False)  # Descriptive name for the loan
+    institution = Column(String, nullable=False)  # Bank or financial institution
+    agent = Column(String)  # Loan agent or relationship manager
+    
+    # Dates
+    sanction_date = Column(Date, nullable=False)
+    
+    # Financial details
+    sanction_amount = Column(Numeric(precision=15, scale=2), nullable=False)
+    processing_fee = Column(Numeric(precision=15, scale=2), default=0)
+    other_charges = Column(Numeric(precision=15, scale=2), default=0)
+    loan_sanction_charges = Column(Numeric(precision=15, scale=2), default=0)
+    
+    # Terms
+    interest_rate = Column(Numeric(precision=5, scale=2), nullable=False)  # Annual interest rate
+    tenure_months = Column(Integer, nullable=False)  # Loan tenure in months
+    
+    # Status
+    is_active = Column(Boolean, default=True)
+    
+    # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
-    purchase = relationship("Purchase", back_populates="loans")
+    user = relationship("User", back_populates="loans")
+    payment_sources = relationship("PaymentSource", back_populates="loan")
+    purchase = relationship(
+        "Purchase",
+        primaryjoin="Loan.purchase_id == Purchase.id",
+        back_populates="loans"
+    )
 
 class Payment(Base):
     __tablename__ = "payments"
@@ -111,11 +140,13 @@ class Payment(Base):
     payment_mode = Column(String, nullable=False)  # cash/check/online
     transaction_reference = Column(String)
     milestone = Column(String, nullable=False)
+    payment_source_id = Column(Integer, ForeignKey("payment_sources.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
     purchase = relationship("Purchase", back_populates="payments")
     user = relationship("User", back_populates="payments")
+    payment_source = relationship("PaymentSource", back_populates="payments")
 
 class Document(Base):
     __tablename__ = "documents"
@@ -135,3 +166,41 @@ class Document(Base):
     # Relationships
     property = relationship("Property", back_populates="documents")
     purchase = relationship("Purchase", back_populates="documents")
+
+class PaymentSource(Base):
+    __tablename__ = "payment_sources"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    name = Column(String, nullable=False)  # Descriptive name (e.g., "HDFC Savings", "Home Loan")
+    source_type = Column(String, nullable=False)  # bank_account, loan, cash, credit_card, digital_wallet
+    
+    # Common fields
+    description = Column(String)
+    is_active = Column(Boolean, default=True)
+    
+    # Bank account specific
+    bank_name = Column(String)
+    account_number = Column(String)  # Stored masked or encrypted
+    ifsc_code = Column(String)
+    branch = Column(String)
+    
+    # Loan specific
+    loan_id = Column(Integer, ForeignKey("loans.id"), nullable=True)
+    lender = Column(String)  # Bank or individual name
+    
+    # Credit card specific
+    card_number = Column(String)  # Stored masked
+    card_expiry = Column(String)
+    
+    # Digital wallet specific
+    wallet_provider = Column(String)
+    wallet_identifier = Column(String)  # Email or phone linked
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    user = relationship("User", back_populates="payment_sources")
+    payments = relationship("Payment", back_populates="payment_source")
+    loan = relationship("Loan", back_populates="payment_sources")
