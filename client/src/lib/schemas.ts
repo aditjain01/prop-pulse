@@ -59,6 +59,7 @@ export type Loan = {
   agent: string | null;
   sanction_date: string;
   sanction_amount: number;
+  total_disbursed_amount: number;
   processing_fee: number;
   other_charges: number;
   loan_sanction_charges: number;
@@ -187,6 +188,7 @@ export const loanFormSchema = z.object({
   agent: z.string().optional(),
   sanction_date: z.string().nonempty("Sanction date is required"),
   sanction_amount: z.number().min(1, "Amount must be greater than 0"),
+  total_disbursed_amount: z.number().default(0),
   processing_fee: z.number().default(0),
   other_charges: z.number().default(0),
   loan_sanction_charges: z.number().default(0),
@@ -271,20 +273,44 @@ export const loanRepaymentFormSchema = z.object({
 
 export type LoanRepaymentFormValues = z.infer<typeof loanRepaymentFormSchema>;
 
+// Add consistent Update types for all entities
+export type PropertyUpdate = Partial<Omit<Property, 'id' | 'created_at' | 'updated_at'>>;
+export type PurchaseUpdate = Partial<Omit<Purchase, 'id' | 'created_at' | 'updated_at'>>;
+export type LoanUpdate = Partial<Omit<Loan, 'id' | 'created_at' | 'updated_at'>>;
+export type PaymentSourceUpdate = Partial<Omit<PaymentSource, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
+export type PaymentUpdate = Partial<Omit<Payment, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
+export type LoanRepaymentUpdate = Partial<Omit<LoanRepayment, 'id' | 'created_at' | 'updated_at'>>;
+
+// Update schemas for form validation
+export const propertyUpdateSchema = propertyFormSchema.partial();
+export const purchaseUpdateSchema = purchaseFormSchema.partial();
+export const loanUpdateSchema = loanFormSchema.partial();
+export const paymentSourceUpdateSchema = paymentSourceFormSchema.partial();
+export const paymentUpdateSchema = paymentFormSchema.partial();
+export const loanRepaymentUpdateSchema = loanRepaymentFormSchema.partial();
+
+// Types for the update schemas
+export type PropertyUpdateValues = z.infer<typeof propertyUpdateSchema>;
+export type PurchaseUpdateValues = z.infer<typeof purchaseUpdateSchema>;
+export type LoanUpdateValues = z.infer<typeof loanUpdateSchema>;
+export type PaymentSourceUpdateValues = z.infer<typeof paymentSourceUpdateSchema>;
+export type PaymentUpdateValues = z.infer<typeof paymentUpdateSchema>;
+export type LoanRepaymentUpdateValues = z.infer<typeof loanRepaymentUpdateSchema>;
+
 // Helper functions for form initialization
 export const initializePropertyForm = (property?: Property): PropertyFormValues => {
   return {
     name: property?.name || "",
     address: property?.address || "",
     property_type: property?.property_type || "",
-    carpet_area: property?.carpet_area?.toString() || "",
-    exclusive_area: property?.exclusive_area?.toString() || "",
-    common_area: property?.common_area?.toString() || "",
-    floor_number: property?.floor_number?.toString() || "",
+    carpet_area: property?.carpet_area !== null ? property.carpet_area.toString() : "",
+    exclusive_area: property?.exclusive_area !== null ? property.exclusive_area.toString() : "",
+    common_area: property?.common_area !== null ? property.common_area.toString() : "",
+    floor_number: property?.floor_number !== null ? property.floor_number.toString() : "",
     parking_details: property?.parking_details || "",
     amenities: property?.amenities || [],
-    initial_rate: property?.initial_rate?.toString() || "0",
-    current_rate: property?.current_rate?.toString() || "0",
+    initial_rate: property?.initial_rate !== undefined ? property.initial_rate.toString() : "0",
+    current_rate: property?.current_rate !== undefined ? property.current_rate.toString() : "0",
     developer: property?.developer || "",
     rera_id: property?.rera_id || "",
   };
@@ -315,6 +341,7 @@ export const initializeLoanForm = (loan?: Loan, purchaseId?: number): LoanFormVa
     agent: loan?.agent || "",
     sanction_date: loan?.sanction_date || new Date().toISOString().split('T')[0],
     sanction_amount: loan?.sanction_amount || 0,
+    total_disbursed_amount: loan?.total_disbursed_amount || 0,
     processing_fee: loan?.processing_fee || 0,
     other_charges: loan?.other_charges || 0,
     loan_sanction_charges: loan?.loan_sanction_charges || 0,
@@ -365,10 +392,10 @@ export const initializeLoanRepaymentForm = (repayment?: LoanRepayment, loanId?: 
   return {
     loan_id: repayment?.loan_id?.toString() || loanId?.toString() || "",
     payment_date: repayment?.payment_date || new Date().toISOString().split('T')[0],
-    principal_amount: repayment?.principal_amount || 0,
-    interest_amount: repayment?.interest_amount || 0,
-    other_fees: repayment?.other_fees || 0,
-    penalties: repayment?.penalties || 0,
+    principal_amount: repayment?.principal_amount !== undefined ? Number(repayment.principal_amount) : 0,
+    interest_amount: repayment?.interest_amount !== undefined ? Number(repayment.interest_amount) : 0,
+    other_fees: repayment?.other_fees !== undefined ? Number(repayment.other_fees) : 0,
+    penalties: repayment?.penalties !== undefined ? Number(repayment.penalties) : 0,
     source_id: repayment?.source_id?.toString() || "",
     payment_mode: repayment?.payment_mode || "online",
     transaction_reference: repayment?.transaction_reference || "",

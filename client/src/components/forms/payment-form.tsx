@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { SlideDialog } from "@/components/slide-dialog";
-import { PaymentSourceForm } from "@/components/payment-source-form";
+import { PaymentSourceForm } from "@/components/forms/payment-source-form";
 import { Plus, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -184,7 +184,7 @@ export function PaymentForm({ purchaseId, payment, onSuccess }: PaymentFormProps
                     </FormControl>
                     <SelectContent>
                       {paymentSources?.map((source) => (
-                        <SelectItem key={source.id} value={source.id.toString()}>
+                        <SelectItem key={source.id} value={source.id ? source.id.toString() : "none"}>
                           {source.name}
                         </SelectItem>
                       ))}
@@ -291,6 +291,7 @@ export function PaymentForm({ purchaseId, payment, onSuccess }: PaymentFormProps
             </FormItem>
           )}
         />
+        
 
         <Separator />
 

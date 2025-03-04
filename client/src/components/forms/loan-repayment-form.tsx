@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SlideDialog } from "@/components/slide-dialog";
-import { PaymentSourceForm } from "@/components/payment-source-form";
+import { PaymentSourceForm } from "@/components/forms/payment-source-form";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -45,31 +45,36 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
   const form = useForm<LoanRepaymentFormValues>({
     resolver: zodResolver(loanRepaymentFormSchema),
     defaultValues: initializeLoanRepaymentForm(repayment, loanId),
+    mode: "onChange",
   });
 
   // Calculate total payment
-  const principalAmount = form.watch("principal_amount") || 0;
-  const interestAmount = form.watch("interest_amount") || 0;
-  const otherFees = form.watch("other_fees") || 0;
-  const penalties = form.watch("penalties") || 0;
+  const principalAmount = Number(form.watch("principal_amount")) || 0;
+  const interestAmount = Number(form.watch("interest_amount")) || 0;
+  const otherFees = Number(form.watch("other_fees")) || 0;
+  const penalties = Number(form.watch("penalties")) || 0;
   const totalPayment = principalAmount + interestAmount + otherFees + penalties;
 
   const mutation = useMutation({
     mutationFn: async (data: LoanRepaymentFormValues) => {
-      const endpoint = repayment ? `/api/loan-repayments/${repayment.id}` : "/api/loan-repayments";
+      const endpoint = repayment ? `/api/repayments/${repayment.id}` : "/api/repayments";
       const method = repayment ? "PUT" : "POST";
       
       const payload = {
         ...data,
         loan_id: parseInt(data.loan_id),
         source_id: parseInt(data.source_id),
+        principal_amount: Number(data.principal_amount),
+        interest_amount: Number(data.interest_amount),
+        other_fees: Number(data.other_fees),
+        penalties: Number(data.penalties),
       };
       
       const res = await apiRequest(method, endpoint, payload);
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/loan-repayments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/repayments"] });
       if (loanId) {
         queryClient.invalidateQueries({ queryKey: ["/api/loans", loanId.toString()] });
       }
@@ -80,7 +85,7 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
           : "The loan repayment has been recorded successfully.",
       });
       if (onSuccess) onSuccess();
-      if (!repayment) navigate("/loan-repayments");
+      if (!repayment) navigate("/repayments");
     },
     onError: (error: Error) => {
       toast({
@@ -93,7 +98,17 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+      <form onSubmit={form.handleSubmit((data) => {
+        // Ensure all numeric values are properly parsed
+        const formattedData = {
+          ...data,
+          principal_amount: Number(data.principal_amount),
+          interest_amount: Number(data.interest_amount),
+          other_fees: Number(data.other_fees),
+          penalties: Number(data.penalties),
+        };
+        mutation.mutate(formattedData);
+      })} className="space-y-4">
         <FormField
           control={form.control}
           name="loan_id"
@@ -103,7 +118,7 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
               <Select 
                 disabled={!!loanId || loansLoading} 
                 onValueChange={field.onChange} 
-                value={field.value}
+                value={field.value || ""} // Ensure value is not undefined
               >
                 <FormControl>
                   <SelectTrigger>
@@ -172,7 +187,7 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
                 <Select 
                   disabled={sourcesLoading} 
                   onValueChange={field.onChange} 
-                  value={field.value}
+                  value={field.value || ""} // Ensure value is not undefined
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -209,6 +224,7 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
                       <Input 
                         type="number" 
                         {...field} 
+                        value={field.value}
                         onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
                       />
                     </FormControl>
@@ -227,6 +243,7 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
                       <Input 
                         type="number" 
                         {...field} 
+                        value={field.value}
                         onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
                       />
                     </FormControl>
@@ -247,6 +264,7 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
                       <Input 
                         type="number" 
                         {...field} 
+                        value={field.value}
                         onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
                       />
                     </FormControl>
@@ -265,6 +283,7 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
                       <Input 
                         type="number" 
                         {...field} 
+                        value={field.value}
                         onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
                       />
                     </FormControl>
@@ -288,7 +307,7 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Payment Mode</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || ""}> // Ensure value is not undefined
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select payment mode" />

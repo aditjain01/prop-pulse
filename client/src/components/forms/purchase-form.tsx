@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocation } from "wouter";
 import { SlideDialog } from "@/components/slide-dialog";
-import { PropertyForm } from "@/components/property-form";
+import { PropertyForm } from "@/components/forms/property-form";
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { 

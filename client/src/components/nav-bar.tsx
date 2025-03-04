@@ -42,6 +42,12 @@ export function NavBar() {
               Loans
             </div>
           </Link>
+          <Link href="/repayments" className="text-sm font-medium transition-colors hover:text-primary">
+            <div className="flex items-center">
+              <DollarSign className="mr-1 h-4 w-4" />
+              Repayments
+            </div>
+          </Link>
         </nav>
 
         <div className="flex items-center space-x-4">

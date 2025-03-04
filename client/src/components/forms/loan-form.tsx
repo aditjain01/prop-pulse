@@ -76,8 +76,16 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
         tenure_months: parseInt(data.tenure_months.toString()),
       };
       
-      const res = await apiRequest(method, endpoint, payload);
-      return res.json();
+      // When updating, only send changed fields
+      const finalPayload = loan ? 
+        Object.fromEntries(
+          Object.entries(payload).filter(([key, value]) => 
+            JSON.stringify(loan[key as keyof typeof loan]) !== JSON.stringify(value)
+          )
+        ) : 
+        payload;
+      
+      return apiRequest(method, endpoint, finalPayload);
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/loans"] });
@@ -198,6 +206,24 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Sanction Amount (₹)</FormLabel>
+              <FormControl>
+                <Input 
+                  type="number" 
+                  {...field} 
+                  onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="total_disbursed_amount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Total Disbursed Amount (₹)</FormLabel>
               <FormControl>
                 <Input 
                   type="number" 
