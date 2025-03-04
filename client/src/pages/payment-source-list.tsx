@@ -4,7 +4,7 @@ import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { PaymentSourceForm } from "@/components/payment-source-form";
+import { PaymentSourceForm } from "@/components/forms/payment-source-form";
 import { Plus, CreditCard, Wallet, Building, Landmark, Banknote, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";

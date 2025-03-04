@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { PaymentForm } from "@/components/payment-form";
+import { PaymentForm } from "@/components/forms/payment-form";
 import { Plus, Trash2, Filter, Download, Pencil } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -200,7 +200,7 @@ export default function PaymentList() {
           </div>
           
           <div className="flex items-center space-x-2">
-            <Popover>
+            {/* <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline">
                   <Filter className="mr-2 h-4 w-4" />
@@ -328,7 +328,7 @@ export default function PaymentList() {
                   </div>
                 </div>
               </PopoverContent>
-            </Popover>
+            </Popover> */}
             
             <Button variant="outline" onClick={exportPaymentsCSV}>
               <Download className="mr-2 h-4 w-4" />

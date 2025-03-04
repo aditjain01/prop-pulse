@@ -320,8 +320,8 @@ export const initializePurchaseForm = (purchase?: Purchase): PurchaseFormValues 
   return {
     property_id: purchase?.property_id?.toString() || "",
     purchase_date: purchase?.purchase_date || new Date().toISOString().split('T')[0],
-    registration_date: purchase?.registration_date || "",
-    possession_date: purchase?.possession_date || "",
+    registration_date: purchase?.registration_date || new Date().toISOString().split('T')[0],
+    possession_date: purchase?.possession_date || new Date().toISOString().split('T')[0],
     base_cost: purchase?.base_cost?.toString() || "0",
     other_charges: purchase?.other_charges?.toString() || "0",
     ifms: purchase?.ifms?.toString() || "0",
@@ -379,10 +379,10 @@ export const initializePaymentForm = (payment?: Payment, purchaseId?: number): P
     payment_mode: payment?.payment_mode || "online",
     transaction_reference: payment?.transaction_reference || "",
     milestone: payment?.milestone || "",
-    invoice_date: payment?.invoice_date || "",
+    invoice_date: payment?.invoice_date || new Date().toISOString().split('T')[0],
     invoice_number: payment?.invoice_number || "",
     invoice_amount: payment?.invoice_amount || 0,
-    receipt_date: payment?.receipt_date || "",
+    receipt_date: payment?.receipt_date || new Date().toISOString().split('T')[0],
     receipt_number: payment?.receipt_number || "",
     receipt_amount: payment?.receipt_amount || 0,
   };

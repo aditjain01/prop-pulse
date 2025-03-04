@@ -5,9 +5,9 @@ import { useToast } from "@/hooks/use-toast";
 import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
 import { SlideDialog } from "@/components/slide-dialog";
-import { LoanRepaymentForm } from "@/components/loan-repayment-form";
+import { LoanRepaymentForm } from "@/components/forms/loan-repayment-form";
 import { DeleteConfirmation } from "@/components/delete-confirmation";
-import { Pencil, Trash2, Plus, Calendar, CreditCard } from "lucide-react";
+import { Pencil, Trash2, Plus, Calendar, CreditCard, Filter } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -16,20 +16,39 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { type LoanRepayment } from "@/lib/schemas";
 
-export default function LoanRepaymentList() {
+type RepaymentListProps = {
+  initialLoanIdFilter?: string;
+};
+
+export default function RepaymentList({ initialLoanIdFilter }: RepaymentListProps) {
   const { toast } = useToast();
   const [repaymentToDelete, setRepaymentToDelete] = useState<LoanRepayment | null>(null);
+  const [loanIdFilter, setLoanIdFilter] = useState(initialLoanIdFilter || "all");
   
-  // Fetch loan repayments
-  const { data: repayments, isLoading } = useQuery<LoanRepayment[]>({
-    queryKey: ["/api/loan-repayments"],
-  });
-  
-  // Fetch loans to get loan names
+  // Fetch loans for filter dropdown
   const { data: loans } = useQuery({
     queryKey: ["/api/loans"],
+  });
+  
+  // Fetch loan repayments with optional loan_id filter
+  const { data: repayments, isLoading } = useQuery<LoanRepayment[]>({
+    queryKey: ["/api/repayments", { loan_id: loanIdFilter }],
+    queryFn: async () => {
+      const url = loanIdFilter !== "all" 
+        ? `/api/repayments?loan_id=${loanIdFilter}` 
+        : "/api/repayments";
+      const res = await apiRequest("GET", url);
+      return res.json();
+    },
   });
   
   // Fetch payment sources to get source names
@@ -49,14 +68,19 @@ export default function LoanRepaymentList() {
     return source ? source.name : "Unknown Source";
   };
   
+  // Handle loan filter change
+  const handleLoanFilterChange = (loanId: string) => {
+    setLoanIdFilter(loanId);
+  };
+  
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/loan-repayments/${id}`);
+      const res = await apiRequest("DELETE", `/api/repayments/${id}`);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/loan-repayments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/repayments"] });
       toast({
         title: "Repayment deleted",
         description: "The loan repayment has been deleted successfully.",
@@ -80,17 +104,39 @@ export default function LoanRepaymentList() {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Loan Repayments</h1>
           
-          <SlideDialog
-            trigger={
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Repayment
-              </Button>
-            }
-            title="Add Loan Repayment"
-          >
-            <LoanRepaymentForm />
-          </SlideDialog>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select 
+                value={loanIdFilter} 
+                onValueChange={handleLoanFilterChange}
+              >
+                <SelectTrigger className="w-[250px]">
+                  <SelectValue placeholder="Filter by loan" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Loans</SelectItem>
+                  {loans?.map((loan) => (
+                    <SelectItem key={loan.id} value={loan.id.toString()}>
+                      {loan.name} - {loan.institution}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <SlideDialog
+              trigger={
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Repayment
+                </Button>
+              }
+              title="Add Loan Repayment"
+            >
+              <LoanRepaymentForm loanId={loanIdFilter !== "all" ? parseInt(loanIdFilter) : undefined} />
+            </SlideDialog>
+          </div>
         </div>
         
         {isLoading ? (
@@ -148,7 +194,8 @@ export default function LoanRepaymentList() {
                         >
                           <LoanRepaymentForm 
                             repayment={repayment} 
-                            onSuccess={() => queryClient.invalidateQueries({ queryKey: ["/api/loan-repayments"] })}
+                            loanId={repayment.loan_id}
+                            onSuccess={() => queryClient.invalidateQueries({ queryKey: ["/api/repayments"] })}
                           />
                         </SlideDialog>
                         
@@ -167,9 +214,32 @@ export default function LoanRepaymentList() {
             </Table>
           </div>
         ) : (
-          <div className="flex flex-col items-center">
-            <p>No repayments found.</p>
+          <div className="flex flex-col items-center justify-center h-64 border rounded-md bg-muted/20">
+            <p className="text-muted-foreground mb-4">No loan repayments found</p>
+            <SlideDialog
+              trigger={
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Your First Repayment
+                </Button>
+              }
+              title="Add Loan Repayment"
+            >
+              <LoanRepaymentForm loanId={loanIdFilter !== "all" ? parseInt(loanIdFilter) : undefined} />
+            </SlideDialog>
           </div>
+        )}
+        
+        {/* Delete confirmation dialog */}
+        {repaymentToDelete && (
+          <DeleteConfirmation
+            title="Delete Loan Repayment"
+            description="Are you sure you want to delete this loan repayment? This action cannot be undone."
+            onConfirm={() => deleteMutation.mutate(repaymentToDelete.id)}
+            onCancel={() => setRepaymentToDelete(null)}
+            isOpen={!!repaymentToDelete}
+            isDeleting={deleteMutation.isPending}
+          />
         )}
       </main>
     </div>
