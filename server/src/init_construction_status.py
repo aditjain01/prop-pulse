@@ -1,8 +1,8 @@
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from server.models import ConstructionStatus, Base
-from server.database import SQLALCHEMY_DATABASE_URL
+from server.src.models import ConstructionStatus, Base
+from server.src.database import SQLALCHEMY_DATABASE_URL
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

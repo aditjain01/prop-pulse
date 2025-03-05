@@ -2,26 +2,27 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict
-from server import models, schemas
-from server.database import engine, get_db
-from server.init_construction_status import init_construction_status
+from server.src import models, schemas
+from server.src.database import engine, get_db
+from server.src.init_construction_status import init_construction_status
 from fastapi import Query
 from sqlalchemy import func
 
-from server.routes.properties import router as properties_router
-from server.routes.purchases import router as purchases_router
-from server.routes.loans import router as loans_router
-from server.routes.repayments import router as repayments_router
-from server.routes.payments import router as payments_router
+from server.src.routes.properties import router as properties_router
+from server.src.routes.purchases import router as purchases_router
+from server.src.routes.loans import router as loans_router
+from server.src.routes.repayments import router as repayments_router
+from server.src.routes.payments import router as payments_router
 
 app = FastAPI()
 
 # Create database tables and initialize construction status on app startup
 @app.on_event("startup")
 def startup_db_client():
+    print("Creating database tables...")
     models.Base.metadata.create_all(bind=engine)
+    print("Database tables created successfully!")
     init_construction_status()
-
 
 
 # Mount the router to the main app
@@ -77,83 +78,6 @@ def get_construction_status(status_id: int, db: Session = Depends(get_db)) -> sc
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# Payment Source routes
-@app.post("/api/payment-sources", response_model=schemas.PaymentSource)
-def create_payment_source(payment_source: schemas.PaymentSourceCreate, db: Session = Depends(get_db)) -> schemas.PaymentSource:
-    try:
-        db_payment_source = models.PaymentSource(**payment_source.dict(), user_id=1)  # Replace with actual user ID
-        db.add(db_payment_source)
-        db.commit()
-        db.refresh(db_payment_source)
-        return db_payment_source
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.get("/api/payment-sources", response_model=List[schemas.PaymentSource])
-def get_payment_sources(db: Session = Depends(get_db)) -> List[schemas.PaymentSource]:
-    try:
-        payment_sources = db.query(models.PaymentSource).filter(models.PaymentSource.user_id == 1).all()  # Replace with actual user ID
-        return payment_sources
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/payment-sources/{source_id}", response_model=schemas.PaymentSource)
-def get_payment_source(source_id: int, db: Session = Depends(get_db)) -> schemas.PaymentSource:
-    try:
-        payment_source = db.query(models.PaymentSource).filter(models.PaymentSource.id == source_id).first()
-        if payment_source is None:
-            raise HTTPException(status_code=404, detail="Payment source not found")
-        return payment_source
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.put("/api/payment-sources/{source_id}", response_model=schemas.PaymentSource)
-def update_payment_source(source_id: int, payment_source: schemas.PaymentSourceUpdate, db: Session = Depends(get_db)) -> schemas.PaymentSource:
-    try:
-        db_payment_source = db.query(models.PaymentSource).filter(models.PaymentSource.id == source_id).first()
-        if db_payment_source is None:
-            raise HTTPException(status_code=404, detail="Payment source not found")
-        
-        # Update payment source fields
-        for key, value in payment_source.dict(exclude_unset=True).items():
-            setattr(db_payment_source, key, value)
-        
-        db.commit()
-        db.refresh(db_payment_source)
-        return db_payment_source
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.delete("/api/payment-sources/{payment_source_id}")
-def delete_payment_source(payment_source_id: int, db: Session = Depends(get_db)):
-    try:
-        # Check if payment source exists
-        payment_source = db.query(models.PaymentSource).filter(models.PaymentSource.id == payment_source_id).first()
-        if payment_source is None:
-            raise HTTPException(status_code=404, detail="Payment source not found")
-        
-        # Check if payment source is used in payments
-        payments = db.query(models.Payment).filter(models.Payment.source_id == payment_source_id).all()
-        if payments:
-            raise HTTPException(
-                status_code=400, 
-                detail="Cannot delete payment source that is used in payments"
-            )
-        
-        # Delete the payment source
-        db.delete(payment_source)
-        db.commit()
-        return {"message": "Payment source deleted successfully"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/acquisition-cost/summary", response_model=List[schemas.AcquisitionCostSummary])
