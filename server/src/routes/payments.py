@@ -3,8 +3,8 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict
-from server.src import models, schemas
-from server.src.database import engine, get_db
+from src import models, schemas
+from src.database import engine, get_db
 
 # Create a router instance
 router = APIRouter(prefix="/api/payments", tags=["payments"])

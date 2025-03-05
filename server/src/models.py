@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, ForeignKey, Date, Numeric, ARRAY, Boolean, and_, or_, text, Computed
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from server.src.database import Base
+from src.database import Base
 
 class User(Base):
     __tablename__ = "users"

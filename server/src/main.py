@@ -2,17 +2,17 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict
-from server.src import models, schemas
-from server.src.database import engine, get_db
-from server.src.init_construction_status import init_construction_status
+from src import models, schemas
+from src.database import engine, get_db
+from src.init_construction_status import init_construction_status
 from fastapi import Query
 from sqlalchemy import func
 
-from server.src.routes.properties import router as properties_router
-from server.src.routes.purchases import router as purchases_router
-from server.src.routes.loans import router as loans_router
-from server.src.routes.repayments import router as repayments_router
-from server.src.routes.payments import router as payments_router
+from src.routes.properties import router as properties_router
+from src.routes.purchases import router as purchases_router
+from src.routes.loans import router as loans_router
+from src.routes.repayments import router as repayments_router
+from src.routes.payments import router as payments_router
 
 app = FastAPI()
 

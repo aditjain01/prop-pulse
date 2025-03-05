@@ -85,7 +85,8 @@ Pipfile.lock
 poetry.lock
 
 # Environment variables
-.env
+.env*
+!.env.example
 .venv
 env/
 venv/
