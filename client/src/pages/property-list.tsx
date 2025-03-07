@@ -4,22 +4,24 @@ import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api/api";
 import { useToast } from "@/hooks/use-toast";
 import { DeleteConfirmation } from "@/components/delete-confirmation";
 import { SlideDialog } from "@/components/slide-dialog";
 import { PropertyForm } from "@/components/forms/property-form";
 import { Plus, Trash2, ChevronLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DocumentUpload } from "@/components/document-upload";
 import { PurchaseForm } from "@/components/forms/purchase-form";
-import { type Property, type Purchase, type Document as PropertyDocument } from "@/lib/schemas";
+import { type Property, type Purchase } from "@/lib/schemas";
 import { PropertyDetail } from "@/components/details/property-detail";
 
 export default function PropertyList() {
   const { toast } = useToast();
   const [propertyToDelete, setPropertyToDelete] = useState<Property | null>(null);
   const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null);
+  const [showPropertyDetail, setShowPropertyDetail] = useState(false);
+  const [showPropertyForm, setShowPropertyForm] = useState(false);
   
   const { data: properties, isLoading } = useQuery<Property[]>({
     queryKey: ["/api/properties"],
@@ -31,20 +33,9 @@ export default function PropertyList() {
     enabled: !!selectedPropertyId,
   });
 
-  // Fetch documents for selected property
-  const { data: documents } = useQuery<PropertyDocument[]>({
-    queryKey: [`/api/documents/property/${selectedPropertyId}`],
-    enabled: !!selectedPropertyId,
-  });
-
   // Fetch purchases for selected property
   const { data: purchases } = useQuery<Purchase[]>({
     queryKey: [`/api/purchases`, { property_id: selectedPropertyId }],
-    queryFn: async ({ queryKey }) => {
-      const [_, params] = queryKey;
-      const res = await apiRequest("GET", `/api/purchases?property_id=${params.property_id}`);
-      return res.json();
-    },
     enabled: !!selectedPropertyId,
   });
 
@@ -78,6 +69,7 @@ export default function PropertyList() {
   // Function to view property details
   const handleViewDetails = (propertyId: number) => {
     setSelectedPropertyId(propertyId);
+    setShowPropertyDetail(true);
   };
 
   if (isLoading) {
@@ -106,7 +98,7 @@ export default function PropertyList() {
           <Tabs defaultValue="details">
             <TabsList>
               <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="documents">Documents</TabsTrigger>
+              <TabsTrigger value="purchases">Purchases</TabsTrigger>
             </TabsList>
 
             <TabsContent value="details">
@@ -155,8 +147,10 @@ export default function PropertyList() {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
 
-              <Card className="mt-4">
+            <TabsContent value="purchases">
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0">
                   <CardTitle>Purchase History</CardTitle>
                   <SlideDialog
@@ -199,21 +193,6 @@ export default function PropertyList() {
                   ) : (
                     <p className="text-muted-foreground">No purchases recorded for this property.</p>
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="documents">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Documents</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <DocumentUpload
-                    entityType="property"
-                    entityId={selectedPropertyId}
-                    documents={documents || []}
-                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -281,23 +260,17 @@ export default function PropertyList() {
       </main>
 
       {/* Detail dialog */}
-      {selectedPropertyId && (
-        <SlideDialog
-          trigger={<></>}
-          title="Property Details"
-          open={!!selectedPropertyId}
-          onOpenChange={(open) => !open && setSelectedPropertyId(null)}
-        >
+      <SlideDialog
+        trigger={<></>}
+        title="Property Details"
+      >
+        {showPropertyDetail && selectedPropertyId && (
           <PropertyDetail 
             propertyId={selectedPropertyId}
-            onDelete={() => {
-              setPropertyToDelete(properties?.find(p => p.id === selectedPropertyId) || null);
-              setSelectedPropertyId(null);
-            }}
-            onClose={() => setSelectedPropertyId(null)}
+            onClose={() => setShowPropertyDetail(false)}
           />
-        </SlideDialog>
-      )}
+        )}
+      </SlideDialog>
 
       {/* Delete confirmation */}
       <DeleteConfirmation

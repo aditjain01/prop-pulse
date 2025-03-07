@@ -1,7 +1,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from '@/lib/api/api';
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,7 @@ type PurchaseFormProps = {
 export function PurchaseForm({ propertyId, purchase, onSuccess }: PurchaseFormProps) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [showPropertyForm, setShowPropertyForm] = useState(false);
   
   // Fetch properties for the dropdown
   const { data: properties } = useQuery<Property[]>({
@@ -58,12 +60,17 @@ export function PurchaseForm({ propertyId, purchase, onSuccess }: PurchaseFormPr
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/purchases"] });
+      if (propertyId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/purchases`, { property_id: propertyId }] });
+      }
+      
       toast({
         title: purchase ? "Purchase updated" : "Purchase created",
         description: purchase 
           ? "The purchase has been updated successfully." 
           : "The purchase has been recorded successfully.",
       });
+      
       if (onSuccess) onSuccess();
       if (!purchase) setLocation(`/purchases/${data.id}`);
     },
@@ -105,7 +112,6 @@ export function PurchaseForm({ propertyId, purchase, onSuccess }: PurchaseFormPr
                     ))}
                   </SelectContent>
                 </Select>
-                
                 {!propertyId && (
                   <SlideDialog
                     trigger={
@@ -114,10 +120,13 @@ export function PurchaseForm({ propertyId, purchase, onSuccess }: PurchaseFormPr
                       </Button>
                     }
                     title="Add Property"
+                    open={showPropertyForm}
+                    onOpenChange={setShowPropertyForm}
                   >
                     <PropertyForm 
                       onSuccess={() => {
                         queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
+                        setShowPropertyForm(false);
                       }} 
                     />
                   </SlideDialog>

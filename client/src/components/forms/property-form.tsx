@@ -1,16 +1,18 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api/api";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { z } from "zod";
+import { type Property } from "@/lib/schemas";
 
 type PropertyFormProps = {
-  property?: any;
+  property?: Property;
   onSuccess?: () => void;
 };
 
@@ -29,9 +31,11 @@ const propertySchema = z.object({
   rera_id: z.string().optional(),
 });
 
+type PropertyFormData = z.infer<typeof propertySchema>;
+
 export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
   const { toast } = useToast();
-  const form = useForm({
+  const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertySchema),
     defaultValues: property ? {
       ...property,
@@ -58,10 +62,7 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: any) => {
-      console.log("Submitting property data:", data);
-      console.log("Is update operation:", !!property);
-      
+    mutationFn: async (data: PropertyFormData) => {
       // Parse numeric fields
       const parsedData = {
         ...data,
@@ -79,8 +80,6 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
         : "/api/properties";
       
       const method = property ? "PUT" : "POST";
-      
-      console.log(`Making ${method} request to ${endpoint}`);
       
       const res = await apiRequest(method, endpoint, parsedData);
       return res.json();

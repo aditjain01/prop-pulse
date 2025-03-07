@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { DetailView } from "@/components/detail-view";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api/api";
 import { SlideDialog } from "@/components/slide-dialog";
 import { PropertyForm } from "@/components/forms/property-form";
 import { useState } from "react";
@@ -8,10 +8,11 @@ import { DeleteConfirmation } from "@/components/delete-confirmation";
 import { DocumentUpload } from "@/components/document-upload";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { type Property } from "@/lib/schemas";
 
 type PropertyDetailProps = {
   propertyId: number;
-  onEdit?: (property: any) => void;
+  onEdit?: (property: Property) => void;
   onDelete?: () => void;
   onClose?: () => void;
 };
@@ -20,7 +21,7 @@ export function PropertyDetail({ propertyId, onEdit, onDelete, onClose }: Proper
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  const { data: property, isLoading } = useQuery({
+  const { data: property, isLoading } = useQuery<Property>({
     queryKey: [`/api/properties/${propertyId}`],
   });
 

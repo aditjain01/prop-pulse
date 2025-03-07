@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import { apiRequest } from '@/lib/api/api';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { FileUp, Trash2, FileText } from "lucide-react";

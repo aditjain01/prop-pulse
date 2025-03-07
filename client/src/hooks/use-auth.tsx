@@ -4,8 +4,10 @@ import {
   useMutation,
   UseMutationResult,
 } from "@tanstack/react-query";
-import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
+import { apiRequest } from '@/lib/api/api';
+import { queryClient, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { type SelectUser, type InsertUser } from "@/lib/schemas";
 
 type AuthContextType = {
   user: SelectUser | null;

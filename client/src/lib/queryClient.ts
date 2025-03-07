@@ -1,50 +1,28 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-
-async function throwIfResNotOk(res: Response) {
-  if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
-  }
-}
-
-export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
-  // Ensure we're using a relative URL that will be proxied by Vite
-  const apiUrl =  url.startsWith('http') ? new URL(url).pathname : url;
-  
-  const res = await fetch(apiUrl, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
-
-  await throwIfResNotOk(res);
-  return res;
-}
+import { apiRequest } from './api/api';
 
 type UnauthorizedBehavior = "returnNull" | "throw";
 
-export const getQueryFn: <T>(options: {
+export const getQueryFn = <T>({ on401: unauthorizedBehavior }: {
   on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
+}): QueryFunction<T> =>
   async ({ queryKey }) => {
-    // Ensure we're using a relative URL that will be proxied by Vite
     const url = queryKey[0] as string;
-    // If URL starts with http:// or https://, convert it to a relative URL
-    // const apiUrl = url.startsWith('http') ? new URL(url).pathname : url;
-
-    const res = await apiRequest("GET", url, undefined);
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+    const params = queryKey[1] as Record<string, any> | undefined;
+    
+    // If we have params, append them to the URL
+    const urlWithParams = params 
+      ? `${url}?${new URLSearchParams(params as Record<string, string>)}`
+      : url;
+    
+    const res = await apiRequest("GET", urlWithParams);
+    const data = await res.json();
+    
+    if (res.status === 401 && unauthorizedBehavior === "returnNull") {
       return null;
     }
-
-    return await res.json();
+    
+    return data;
   };
 
 export const queryClient = new QueryClient({
@@ -53,7 +31,7 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
+      staleTime: 1000 * 60 * 5, // 5 minutes
       retry: false,
     },
     mutations: {
