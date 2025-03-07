@@ -1,13 +1,9 @@
 from fastapi import APIRouter
-from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict
-from src import models, schemas
-from src.database import engine, get_db
-from src.init_construction_status import init_construction_status
-from fastapi import Query
-from sqlalchemy import func
+from typing import List, Optional
+from src import schemas
+from src.database import get_db, models
 from src.routes.payment_sources import create_payment_source
 
 # Create a router instance

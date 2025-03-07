@@ -1,18 +1,10 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict
-from src import models, schemas
-from src.database import engine, get_db
-from src.init_construction_status import init_construction_status
-from fastapi import Query
+from src import schemas, routes
+from src.database import engine, get_db, models, init_construction_status
 from sqlalchemy import func
-
-from src.routes.properties import router as properties_router
-from src.routes.purchases import router as purchases_router
-from src.routes.loans import router as loans_router
-from src.routes.repayments import router as repayments_router
-from src.routes.payments import router as payments_router
 
 app = FastAPI()
 
@@ -26,11 +18,12 @@ def startup_db_client():
 
 
 # Mount the router to the main app
-app.include_router(properties_router)
-app.include_router(purchases_router)
-app.include_router(loans_router)
-app.include_router(payments_router)
-app.include_router(repayments_router)
+app.include_router(routes.properties_router)
+app.include_router(routes.purchases_router)
+app.include_router(routes.loans_router)
+app.include_router(routes.payments_router)
+app.include_router(routes.repayments_router)
+app.include_router(routes.payment_sources_router)
 
 
 # # Error handling middleware

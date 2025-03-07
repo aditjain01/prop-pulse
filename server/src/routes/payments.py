@@ -1,10 +1,9 @@
 from fastapi import APIRouter
-from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict
-from src import models, schemas
-from src.database import engine, get_db
+from typing import List, Optional
+from src import schemas
+from src.database import get_db, models
 
 # Create a router instance
 router = APIRouter(prefix="/api/payments", tags=["payments"])

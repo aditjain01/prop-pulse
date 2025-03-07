@@ -1,0 +1,65 @@
+volumes:
+  prop-pulse-data:
+    driver: local
+
+services:
+  prop-pulse-postgres:
+    image: postgres:16
+
+    # ports:
+    #   - "5433:5432"
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - prop-pulse-data:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready -U postgres
+      start_period: 10s
+      timeout: 1s
+      retries: 5
+      interval: 5s
+  
+  prop-pulse-backend:
+    build: 
+        context: ./server
+        dockerfile: Dockerfile
+    image: prop-pulse-backend:exp # exp for dev, $IMAGE_TAG for prod
+    
+    ports:
+      - "8001:8000" # for dev only, we dont want to map this port on prod, just expose
+    depends_on:
+      prop-pulse-postgres:
+          condition: service_healthy
+    # env_file:
+    #   - ./server/.env.docker
+    environment:
+        - DATABASE_URL=postgresql://postgres:postgres@prop-pulse-postgres:5432/postgres
+
+  prop-pulse-ui:
+    build:
+        context: ./client
+        dockerfile: Dockerfile
+    image: prop-pulse-ui:exp # exp for dev, $IMAGE_TAG for prod
+
+    ports:
+      - "5174:5173" # 5173 for dev, 80 for prod
+    depends_on:
+        # prop-pulse-backend
+        #     condition: service_healthy
+        prop-pulse-postgres:
+            condition: service_healthy
+    environment:
+        - VITE_BACKEND_URL=http://prop-pulse-backend:8000
+  
+  # nginx:
+  #   image: nginx:alpine
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+  #   depends_on:
+  #     - prop-pulse-backend
+  #     - prop-pulse-ui
+  #   restart: always

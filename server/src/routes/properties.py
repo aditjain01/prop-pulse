@@ -1,19 +1,15 @@
-from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict
-from src import models, schemas
-from src.database import engine, get_db
-from src.init_construction_status import init_construction_status
-from fastapi import Query
-from sqlalchemy import func
+from typing import List
+from src import schemas
+from src.database import get_db, models
 from fastapi import APIRouter
 
 # Create a router instance
 router = APIRouter(prefix="/api/properties", tags=["properties"])
 
 # Property routes
-@router.post("", response_model=schemas.Property)
+@router.post("/", response_model=schemas.Property)
 def create_property(property: schemas.PropertyCreate, db: Session = Depends(get_db)) -> schemas.Property:
     try:
         db_property = models.Property(**property.dict())
@@ -25,7 +21,7 @@ def create_property(property: schemas.PropertyCreate, db: Session = Depends(get_
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("", response_model=List[schemas.Property])
+@router.get("/", response_model=List[schemas.Property])
 def get_properties(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) -> List[schemas.Property]:
     try:
         properties = db.query(models.Property).offset(skip).limit(limit).all()

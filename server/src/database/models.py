@@ -1,7 +1,7 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, ForeignKey, Date, Numeric, ARRAY, Boolean, and_, or_, text, Computed
+from sqlalchemy import Column, Integer, String, DateTime, JSON, ForeignKey, Date, Numeric, ARRAY, Boolean, Computed
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from src.database import Base
+from .base import Base
 
 class User(Base):
     __tablename__ = "users"
@@ -34,15 +34,20 @@ class Property(Base):
     name = Column(String, nullable=False)
     address = Column(String, nullable=False)
     property_type = Column(String, nullable=False)
+
     carpet_area = Column(Numeric)
-    super_area = Column(Numeric)
     exclusive_area = Column(Numeric)
     common_area = Column(Numeric)
+    super_area = Column(Numeric, Computed("carpet_area + exclusive_area + common_area"), nullable=False)
     floor_number = Column(Integer)
+
     parking_details = Column(String)
     amenities = Column(ARRAY(String))
+
     initial_rate = Column(Numeric, nullable=False)
     current_rate = Column(Numeric, nullable=False)
+    current_price = Column(Numeric, Computed("current_rate * super_area"), nullable=False)
+
     # status_id = Column(Integer, ForeignKey("construction_status.id"))
     developer = Column(String)
     rera_id = Column(String)
