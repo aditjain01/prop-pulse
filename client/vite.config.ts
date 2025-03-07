@@ -8,22 +8,18 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// This will handle development proxying to your FastAPI backend
-const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
+// This will handle development proxying to our FastAPI backend
+const backendUrl = process.env.VITE_BACKEND_URL || 'http://localhost:8000';
+if (!backendUrl) {
+  console.error("Error: BACKEND_URL environment variable is not set");
+} else {
+  console.log(`Backend URL configured as: ${backendUrl}`);
+}
 
 export default defineConfig({
   plugins: [
     react(),
-    runtimeErrorOverlay(),
-    // themePlugin(),
-    ...(process.env.NODE_ENV !== "production" &&
-      process.env.REPL_ID !== undefined
-      ? [
-        await import("@replit/vite-plugin-cartographer").then((m) =>
-          m.cartographer(),
-        ),
-      ]
-      : []),
+    // runtimeErrorOverlay(),
   ],
   resolve: {
     alias: {
@@ -33,11 +29,13 @@ export default defineConfig({
   },
   // Configuring the dev server to proxy API requests to FastAPI
   server: {
+    host: true,
     proxy: {
       '/api': {
         target: backendUrl,
         changeOrigin: true,
         secure: false,
+        rewrite: (path) => path, // Don't modify the path
       }
     }
   },

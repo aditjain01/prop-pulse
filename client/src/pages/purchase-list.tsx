@@ -16,6 +16,7 @@ import { DocumentUpload } from "@/components/document-upload";
 import { LoanForm } from "@/components/forms/loan-form";
 import { Badge } from "@/components/ui/badge";
 import {AcquisitionCostCard} from "@/components/acquisition-cost"; 
+
 export default function PurchaseList() {
   const { toast } = useToast();
   const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);

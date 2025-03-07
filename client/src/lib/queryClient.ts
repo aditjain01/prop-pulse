@@ -12,7 +12,10 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
+  // Ensure we're using a relative URL that will be proxied by Vite
+  const apiUrl =  url.startsWith('http') ? new URL(url).pathname : url;
+  
+  const res = await fetch(apiUrl, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
@@ -24,20 +27,23 @@ export async function apiRequest(
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
+
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-    });
+    // Ensure we're using a relative URL that will be proxied by Vite
+    const url = queryKey[0] as string;
+    // If URL starts with http:// or https://, convert it to a relative URL
+    // const apiUrl = url.startsWith('http') ? new URL(url).pathname : url;
+
+    const res = await apiRequest("GET", url, undefined);
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;
     }
 
-    await throwIfResNotOk(res);
     return await res.json();
   };
 

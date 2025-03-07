@@ -1,4 +1,4 @@
-# Stage 1: Build
+# Single stage build and run
 FROM node:18-alpine AS build
 
 # Set the working directory
@@ -10,20 +10,27 @@ COPY ./package*.json ./
 # Install dependencies
 RUN npm install
 
+EXPOSE 5173
+
 # Copy the rest of the application code
 COPY ./ .
 
-# Build the application
-RUN npm run build
+# Copy .env.docker file first (will be used for build)
+RUN mv ./.env.docker ./.env
 
-# Stage 2: Run
-FROM nginx:alpine
+# Build the application with environment variables from .env.docker
+CMD ["npm", "run", "dev"]
 
-# Copy the built application from the previous stage
-COPY --from=build /app/dist /usr/share/nginx/html
+# # Stage 2: Run
+# FROM nginx:alpine as runner
 
-# Expose the port that Nginx will run on
-EXPOSE 80
+# # Copy the built application from the previous stage
+# COPY --from=build /app/dist /usr/share/nginx/html
 
-# Start Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# # Expose the port that Nginx will run on
+# EXPOSE 80
+
+# # # Copy custom Nginx configuration and Start Nginx
+# RUN rm /etc/nginx/conf.d/default.conf
+# COPY nginx.conf /etc/nginx/conf.d/default.conf
+# CMD ["nginx", "-g", "daemon off;"]

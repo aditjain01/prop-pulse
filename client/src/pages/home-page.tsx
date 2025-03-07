@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { NavBar } from "@/components/nav-bar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Building2, Wallet } from "lucide-react";
+import { Property } from "@/lib/schemas";
+import { Purchase } from "@/lib/schemas";
 
 export default function HomePage() {
   const { data: properties } = useQuery<Property[]>({
@@ -12,8 +14,8 @@ export default function HomePage() {
     queryKey: ["/api/purchases"],
   });
 
-  const totalValue = properties?.reduce((sum, p) => sum + Number(p.current_price), 0) || 0;
-  const totalInvestment = purchases?.reduce((sum, p) => sum + Number(p.final_purchase_price), 0) || 0;
+  const totalValue = properties?.reduce((sum, p) => sum + Number(p.current_rate), 0) || 0;
+  const totalInvestment = purchases?.reduce((sum, p) => sum + Number(p.initial_rate), 0) || 0;
 
   return (
     <div className="min-h-screen bg-background">

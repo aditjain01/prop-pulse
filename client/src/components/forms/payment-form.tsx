@@ -34,7 +34,7 @@ export function PaymentForm({ purchaseId, payment, onSuccess }: PaymentFormProps
   
   // Fetch purchases for dropdown
   const { data: purchases, isLoading: purchasesLoading } = useQuery({
-    queryKey: ["/api/purchases"],
+    queryKey: ["/api/purchases/"],
   });
   
   // Fetch properties to display property names with purchases
@@ -78,7 +78,7 @@ export function PaymentForm({ purchaseId, payment, onSuccess }: PaymentFormProps
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
       if (purchaseId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/purchases", purchaseId.toString()] });
+        queryClient.invalidateQueries({ queryKey: ["/api/purchases/", purchaseId.toString()] });
       }
       toast({
         title: payment ? "Payment updated" : "Payment recorded",
