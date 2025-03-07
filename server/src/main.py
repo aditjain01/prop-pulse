@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict
 from src import schemas, routes
-from src.database import engine, get_db, models, init_construction_status
+from src.database import engine, get_db, models, init_construction_status, init_views
 from sqlalchemy import func
 
 app = FastAPI()
@@ -15,6 +15,7 @@ def startup_db_client():
     models.Base.metadata.create_all(bind=engine)
     print("Database tables created successfully!")
     init_construction_status()
+    init_views()
 
 
 # Mount the router to the main app
