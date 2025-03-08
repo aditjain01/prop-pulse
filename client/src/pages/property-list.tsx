@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DeleteConfirmation } from "@/components/delete-confirmation";
 import { SlideDialog } from "@/components/slide-dialog";
 import { PropertyForm } from "@/components/forms/property-form";
-import { Plus, Trash2, ChevronLeft } from "lucide-react";
+import { Plus, Trash2, ChevronLeft, Pencil } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PurchaseForm } from "@/components/forms/purchase-form";
 import { type Property, type Purchase } from "@/lib/schemas";
@@ -230,13 +230,13 @@ export default function PropertyList() {
               <Card key={property.id} className="overflow-hidden">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-lg font-medium">{property.name}</CardTitle>
-                  <Button 
+                 {/* <Button 
                     variant="ghost" 
                     size="icon"
                     onClick={() => handleDelete(property)}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  </Button> */}
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">{property.address}</p>

@@ -339,7 +339,7 @@ export default function PurchaseList() {
           onClose={() => setPurchaseToDelete(null)}
           onConfirm={() => deleteMutation.mutate(purchaseToDelete!.id)}
           title="Delete Purchase"
-          description={`Are you sure you want to delete this purchase? This action cannot be undone.`}
+          description={`Are you sure you want to delete this purchase? This action cannot be undone. Any associated loans and payments will also be deleted.`}
         />
 
         <DeleteConfirmation
