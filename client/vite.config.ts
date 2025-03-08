@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // This will handle development proxying to our FastAPI backend
-const backendUrl = process.env.VITE_BACKEND_URL || 'http://localhost:8000';
+const backendUrl = process.env.VITE_BACKEND_URL || 'http://prop-pulse-backend:8000';
 if (!backendUrl) {
   console.error("Error: BACKEND_URL environment variable is not set");
 } else {
@@ -36,6 +36,7 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path, // Don't modify the path
+        followRedirects: true,
       }
     }
   },

@@ -15,6 +15,7 @@ import PaymentSourceList from "@/pages/payment-source-list";
 import LoanList from "@/pages/loan-list";
 import RepaymentList from "@/pages/repayment-list";
 import {PurchaseDetail} from "@/components/details/purchase-detail";
+
 function Router() {
   return (
     <Switch>
