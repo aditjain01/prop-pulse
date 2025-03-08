@@ -8,12 +8,12 @@ from .purchases import router as purchases_router
 # from .documents import router as documents_router
 
 __all__ = [
-    "loans_router", 
-    "payment_sources_router", 
-    "repayments_router", 
-    "properties_router", 
-    "payments_router", 
-    "users_router", 
+    "loans_router",
     "payment_sources_router",
-    "purchases_router"
+    "repayments_router",
+    "properties_router",
+    "payments_router",
+    "users_router",
+    "payment_sources_router",
+    "purchases_router",
 ]

@@ -11,24 +11,27 @@ class LoanBase(BaseModel):
     agent: Optional[str] = None
     sanction_date: date
     sanction_amount: Decimal
-    total_disbursed_amount: Decimal = Decimal('0')
-    processing_fee: Decimal = Decimal('0')
-    other_charges: Decimal = Decimal('0')
-    loan_sanction_charges: Decimal = Decimal('0')
+    total_disbursed_amount: Decimal = Decimal("0")
+    processing_fee: Decimal = Decimal("0")
+    other_charges: Decimal = Decimal("0")
+    loan_sanction_charges: Decimal = Decimal("0")
     interest_rate: Decimal
     tenure_months: int
     is_active: bool = True
 
+
 class LoanCreate(LoanBase):
-    user_id: Optional[int]  = 1
+    user_id: Optional[int] = 1
+
 
 class Loan(LoanBase):
     id: int
     user_id: Optional[int] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
+
 
 class LoanUpdate(BaseModel):
     purchase_id: Optional[int] = None
@@ -43,4 +46,3 @@ class LoanUpdate(BaseModel):
     interest_rate: Optional[float] = None
     tenure_months: Optional[int] = None
     is_active: Optional[bool] = None
-

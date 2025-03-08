@@ -1,16 +1,70 @@
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
+from .models import ConstructionStatus, User
 from .base import SQLALCHEMY_DATABASE_URL
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
+def init_construction_status():
+    db = SessionLocal()
+
+    # Create construction status options
+    statuses = [
+        "Pre-Development",
+        "RERA Approved",
+        "Under Construction",
+        "Super Structure Ready",
+        "Interiors",
+        "Ready to Move",
+        "Completed",
+    ]
+
+    # Check if there are already entries in the construction_status table
+    existing_count = db.query(ConstructionStatus).count()
+
+    if existing_count == 0:
+        for status in statuses:
+            db_status = ConstructionStatus(name=status)
+            db.add(db_status)
+        db.commit()
+        print("Construction status table initialized successfully.")
+    else:
+        print("Construction status table already has data, skipping initialization.")
+
+    db.close()
+
+
+def init_example_user():
+    db = SessionLocal()
+
+    # Check if example user already exists
+    existing_user = db.query(User).filter(User.id == 1).first()
+
+    if not existing_user:
+        # Create example user
+        example_user = User(
+            username="example_user",
+            password="securepassword123",  # In production, this should be hashed
+            email="example@example.com",
+        )
+        db.add(example_user)
+        db.commit()
+        print("Example user created successfully.")
+    else:
+        print("Example user already exists, skipping creation.")
+
+    db.close()
+
+
 def init_views():
     db = SessionLocal()
-    
+
     try:
         # Create acquisition_cost_details view
-        db.execute(text("""
+        db.execute(
+            text("""
         CREATE OR REPLACE VIEW acquisition_cost_details AS
         --- These are payments from me (to either Builder or Bank)
         SELECT 
@@ -46,10 +100,12 @@ def init_views():
         FROM payments AS p
         JOIN payment_sources AS s ON p.source_id = s.id
         WHERE s.source_type <> 'loan';
-        """))
-        
+        """)
+        )
+
         # Create acquisition_cost_summary view
-        db.execute(text("""
+        db.execute(
+            text("""
         CREATE OR REPLACE VIEW acquisition_cost_summary AS
         WITH combined AS (
             SELECT 
@@ -95,10 +151,12 @@ def init_views():
         LEFT JOIN combined ON combined.purchase_id = pu.id
         LEFT JOIN properties AS pr ON pu.property_id = pr.id
         GROUP BY pu.id, pu.user_id, pr.name;
-        """))
-        
+        """)
+        )
+
         # Create purchase_payment_details view
-        db.execute(text("""
+        db.execute(
+            text("""
         CREATE OR REPLACE VIEW purchase_payment_details AS
         --- These are payments to the Builder (from any source)
         SELECT
@@ -118,10 +176,12 @@ def init_views():
             pu.user_id,
             pr.name,
             p.payment_date;
-        """))
-        
+        """)
+        )
+
         # Create purchase_summary view
-        db.execute(text("""
+        db.execute(
+            text("""
         CREATE OR REPLACE VIEW purchase_summary AS
         SELECT
             pu.user_id,
@@ -145,10 +205,12 @@ def init_views():
             pu.user_id,
             pu.id,
             pr.name;
-        """))
-        
+        """)
+        )
+
         # Create loan_repayment_details view
-        db.execute(text("""
+        db.execute(
+            text("""
         CREATE OR REPLACE VIEW loan_repayment_details AS
         SELECT
             l.user_id,
@@ -172,10 +234,12 @@ def init_views():
             l.user_id,
             l.id,
             r.payment_date;
-        """))
-        
+        """)
+        )
+
         # Create loan_repayment_summary view
-        db.execute(text("""
+        db.execute(
+            text("""
         CREATE OR REPLACE VIEW loan_repayment_summary AS
         SELECT
             l.user_id,
@@ -199,8 +263,9 @@ def init_views():
         JOIN properties AS pr ON p.property_id = pr.id
         GROUP BY
             l.user_id, l.id, l.name, pr.name;
-        """))
-        
+        """)
+        )
+
         db.commit()
         print("Database views created successfully.")
     except Exception as e:
@@ -209,5 +274,7 @@ def init_views():
     finally:
         db.close()
 
+
 if __name__ == "__main__":
-    init_views() 
+    init_construction_status()
+    init_example_user()

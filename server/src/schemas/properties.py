@@ -3,6 +3,7 @@ from typing import Optional, List
 from datetime import datetime
 from decimal import Decimal
 
+
 class PropertyBase(BaseModel):
     name: str
     address: str
@@ -21,15 +22,17 @@ class PropertyBase(BaseModel):
     # status_id: Optional[int] = None
     developer: Optional[str] = None
     rera_id: Optional[str] = None
-    
+
     # @computed_field
     # def super_area(self) -> Optional[Decimal]:
     #     if self.carpet_area is not None and self.exclusive_area is not None and self.common_area is not None:
     #         return self.carpet_area + self.exclusive_area + self.common_area
     #     return None
 
+
 class PropertyCreate(PropertyBase):
     pass
+
 
 class Property(PropertyBase):
     id: int
@@ -38,6 +41,7 @@ class Property(PropertyBase):
     super_area: Optional[Decimal] = None
     current_price: Optional[Decimal] = None
     model_config = ConfigDict(from_attributes=True)
+
 
 class PropertyUpdate(BaseModel):
     name: Optional[str] = None

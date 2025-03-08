@@ -10,8 +10,10 @@ class DocumentBase(BaseModel):
     document_vector: Optional[str] = None
     metadata: Optional[dict] = None
 
+
 class DocumentCreate(DocumentBase):
     pass
+
 
 class Document(DocumentBase):
     id: int

@@ -21,22 +21,26 @@ class PaymentBase(BaseModel):
     receipt_number: Optional[str] = None
     receipt_amount: Optional[Decimal] = None
 
+
 class PaymentCreate(PaymentBase):
     pass
+
 
 class Payment(PaymentBase):
     id: int
     user_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
+
 
 class PaymentUpdate(PaymentBase):
     payment_date: Optional[date] = None
     amount: Optional[Decimal] = None
     source_id: Optional[int] = None
     payment_mode: Optional[str] = None
+
 
 # class PaymentUpdate(BaseModel):
 #     purchase_id: Optional[int] = None
@@ -52,4 +56,3 @@ class PaymentUpdate(PaymentBase):
 #     receipt_date: Optional[date] = None
 #     receipt_number: Optional[str] = None
 #     notes: Optional[str] = None
-
