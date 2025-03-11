@@ -1,61 +1,64 @@
----
 name: Feature Request
-about: Suggest a new feature for the project
-title: "[Feature] - "
-labels: enhancement
-assignees: ''
----
-
+description: Suggest a new feature for the project
+title: "[Feature]: "
+labels: ["enhancement"]
+# projects: []
+# assignees: []
 body:
   - type: markdown
     attributes:
       value: |
-        ## Description
-        Provide a detailed description of the feature request.
+        Thanks for taking the time to suggest a new feature!
   - type: textarea
     id: description
     attributes:
-      label: "Feature Description"
-      description: "Describe the feature in detail."
-      placeholder: "Enter detailed description of the feature..."
+      label: Feature Description
+      description: Provide a detailed description of the feature you're suggesting.
+      placeholder: Describe what you'd like to see implemented...
     validations:
       required: true
-  - type: markdown
-    attributes:
-      value: |
-        ## Proposed Implementation
-        Outline your proposed implementation for this feature.
   - type: textarea
     id: proposed_implementation
     attributes:
-      label: "Proposed Implementation"
-      description: "Describe how you propose to implement this feature."
-      placeholder: "Enter implementation details here..."
+      label: Proposed Implementation
+      description: If you have ideas on how this could be implemented, please share them.
+      placeholder: I think this could be implemented by...
     validations:
       required: false
-  - type: markdown
-    attributes:
-      value: |
-        ## Acceptance Criteria
-        List the acceptance criteria for this feature.
   - type: textarea
     id: acceptance_criteria
     attributes:
-      label: "Acceptance Criteria"
-      description: "List what criteria must be met for this feature to be considered complete."
-      placeholder: "Enter acceptance criteria..."
+      label: Acceptance Criteria
+      description: What criteria must be met for this feature to be considered complete?
+      placeholder: The feature should...
     validations:
       required: true
-  - type: markdown
+  - type: dropdown
+    id: priority
     attributes:
-      value: |
-        ## Additional Context
-        Provide any other context, screenshots, or links that might help clarify this feature request.
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Low (Nice to have)
+        - Medium
+        - High (Would significantly improve my workflow)
+      default: 1
+    validations:
+      required: true
   - type: textarea
     id: additional_context
     attributes:
-      label: "Additional Context"
-      description: "Include any other context or information you'd like to share."
-      placeholder: "Enter additional context..."
+      label: Additional Context
+      description: Add any other context, screenshots, or examples about the feature request here.
+      placeholder: More details...
     validations:
       required: false
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Before Submitting
+      options:
+        - label: I have searched for similar feature requests and confirmed this is not a duplicate
+          required: true
+        - label: I have provided all the necessary information to understand this feature request
+          required: true
