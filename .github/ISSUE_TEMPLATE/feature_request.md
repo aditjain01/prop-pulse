@@ -1,9 +1,9 @@
+---
 name: Feature Request
 description: Suggest a new feature for the project
 title: "[Feature]: "
 labels: ["enhancement"]
-# projects: []
-# assignees: []
+---
 body:
   - type: markdown
     attributes:
