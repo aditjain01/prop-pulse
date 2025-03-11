@@ -19,18 +19,19 @@ COPY ./ .
 RUN mv ./.env.docker ./.env
 
 # Build the application with environment variables from .env.docker
-CMD ["npm", "run", "dev"]
+# CMD ["npm", "run", "dev"]
 
-# # Stage 2: Run
-# FROM nginx:alpine as runner
+# Stage 2: Run
+FROM nginx:alpine as runner
 
-# # Copy the built application from the previous stage
-# COPY --from=build /app/dist /usr/share/nginx/html
+# Copy the built application from the previous stage
+COPY --from=build /app/dist /usr/share/nginx/html
 
-# # Expose the port that Nginx will run on
-# EXPOSE 80
+# Expose the port that Nginx will run on
+EXPOSE 80
 
-# # # Copy custom Nginx configuration and Start Nginx
+# # Copy custom Nginx configuration and Start Nginx
 # RUN rm /etc/nginx/conf.d/default.conf
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
-# CMD ["nginx", "-g", "daemon off;"]
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+CMD ["nginx", "-g", "daemon off;"]

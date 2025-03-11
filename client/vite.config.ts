@@ -32,7 +32,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: backendUrl,
+        target: process.env.VITE_BACKEND_URL || 'http://prop-pulse-backend:8000',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path, // Don't modify the path
