@@ -6,10 +6,11 @@ from src.database import get_db, models
 from fastapi import APIRouter
 
 # Create a router instance
-router = APIRouter(prefix="/api/repayments", tags=["repayments"])
+router = APIRouter(prefix="/repayments", tags=["repayments"])
 
 
 # Updated Loan Repayment endpoints with new route structure
+@router.post("", response_model=schemas.LoanRepayment, include_in_schema=False)
 @router.post("/", response_model=schemas.LoanRepayment)
 def create_loan_repayment(
     repayment: schemas.LoanRepaymentCreate, db: Session = Depends(get_db)
@@ -48,7 +49,7 @@ def create_loan_repayment(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
+@router.get("", response_model=List[schemas.LoanRepayment], include_in_schema=False)
 @router.get("/", response_model=List[schemas.LoanRepayment])
 def get_loan_repayments(
     loan_id: Optional[int] = None,
@@ -78,8 +79,8 @@ def get_loan_repayments(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@router.get("/{repayment_id}", response_model=schemas.LoanRepayment)
+@router.get("/{repayment_id}", response_model=schemas.LoanRepayment, include_in_schema=False)
+@router.get("/{repayment_id}/", response_model=schemas.LoanRepayment)
 def get_loan_repayment(
     repayment_id: int, db: Session = Depends(get_db)
 ) -> schemas.LoanRepayment:
@@ -97,8 +98,8 @@ def get_loan_repayment(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@router.put("/{repayment_id}", response_model=schemas.LoanRepayment)
+@router.put("/{repayment_id}", response_model=schemas.LoanRepayment, include_in_schema=False)
+@router.put("/{repayment_id}/", response_model=schemas.LoanRepayment)
 def update_loan_repayment(
     repayment_id: int,
     repayment: schemas.LoanRepaymentUpdate,
@@ -151,8 +152,8 @@ def update_loan_repayment(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@router.delete("/{repayment_id}")
+@router.delete("/{repayment_id}", include_in_schema=False)
+@router.delete("/{repayment_id}/")
 def delete_loan_repayment(repayment_id: int, db: Session = Depends(get_db)):
     try:
         # Check if repayment exists

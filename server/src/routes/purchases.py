@@ -6,10 +6,11 @@ from src import schemas
 from src.database import get_db, models
 
 # Create a router instance
-router = APIRouter(prefix="/api/purchases", tags=["purchases"])
+router = APIRouter(prefix="/purchases", tags=["purchases"])
 
 
 # Purchase routes
+@router.post("", response_model=schemas.Purchase, include_in_schema=False)
 @router.post("/", response_model=schemas.Purchase)
 def create_purchase(
     purchase: schemas.PurchaseCreate, db: Session = Depends(get_db)
@@ -26,6 +27,7 @@ def create_purchase(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.get("", response_model=List[schemas.Purchase], include_in_schema=False)
 @router.get("/", response_model=List[schemas.Purchase])
 def get_purchases(
     property_id: Optional[int] = None,
@@ -46,7 +48,8 @@ def get_purchases(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{purchase_id}", response_model=schemas.Purchase)
+@router.get("/{purchase_id}", response_model=schemas.Purchase, include_in_schema=False)
+@router.get("/{purchase_id}/", response_model=schemas.Purchase)
 def get_purchase(purchase_id: int, db: Session = Depends(get_db)) -> schemas.Purchase:
     try:
         db_purchase = (
@@ -58,8 +61,8 @@ def get_purchase(purchase_id: int, db: Session = Depends(get_db)) -> schemas.Pur
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@router.put("/{purchase_id}", response_model=schemas.Purchase)
+@router.put("/{purchase_id}", response_model=schemas.Purchase, include_in_schema=False)
+@router.put("/{purchase_id}/", response_model=schemas.Purchase)
 def update_purchase(
     purchase_id: int,
     purchase_update: schemas.PurchaseCreate,
@@ -88,8 +91,8 @@ def update_purchase(
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
-
-@router.delete("/{purchase_id}")
+@router.delete("/{purchase_id}", include_in_schema=False)
+@router.delete("/{purchase_id}/")
 def delete_purchase(purchase_id: int, db: Session = Depends(get_db)):
     try:
         # Check if purchase exists

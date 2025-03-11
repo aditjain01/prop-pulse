@@ -6,10 +6,11 @@ from src.database import get_db, models
 from fastapi import APIRouter
 
 # Create a router instance
-router = APIRouter(prefix="/api/properties", tags=["properties"])
+router = APIRouter(prefix="/properties", tags=["properties"])
 
 
 # Property routes
+@router.post("", response_model=schemas.Property, include_in_schema=False)
 @router.post("/", response_model=schemas.Property)
 def create_property(
     property: schemas.PropertyCreate, db: Session = Depends(get_db)
@@ -25,6 +26,7 @@ def create_property(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.get("", response_model=List[schemas.Property], include_in_schema=False)
 @router.get("/", response_model=List[schemas.Property])
 def get_properties(
     skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
@@ -36,7 +38,8 @@ def get_properties(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{property_id}", response_model=schemas.Property)
+@router.get("/{property_id}", response_model=schemas.Property, include_in_schema=False)
+@router.get("/{property_id}/", response_model=schemas.Property)
 def get_property(property_id: int, db: Session = Depends(get_db)) -> schemas.Property:
     try:
         db_property = (
@@ -49,7 +52,8 @@ def get_property(property_id: int, db: Session = Depends(get_db)) -> schemas.Pro
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.put("/{property_id}", response_model=schemas.Property)
+@router.put("/{property_id}", response_model=schemas.Property, include_in_schema=False)
+@router.put("/{property_id}/", response_model=schemas.Property)
 def update_property(
     property_id: int,
     property_update: schemas.PropertyCreate,
@@ -79,7 +83,8 @@ def update_property(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.delete("/{property_id}")
+@router.delete("/{property_id}", include_in_schema=False)
+@router.delete("/{property_id}/")
 def delete_property(property_id: int, db: Session = Depends(get_db)):
     try:
         # Check if property exists

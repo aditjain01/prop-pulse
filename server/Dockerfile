@@ -8,7 +8,7 @@ WORKDIR /server
 # Install the application dependencies.
 COPY pyproject.toml uv.lock* ./
 
-RUN uv sync --frozen --no-cache
+RUN uv sync --frozen --no-cache --no-dev
 
 # Copy the rest of your application code.
 COPY . .

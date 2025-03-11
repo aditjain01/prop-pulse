@@ -7,10 +7,11 @@ from src.database import get_db, models
 from src.routes.payment_sources import create_payment_source
 
 # Create a router instance
-router = APIRouter(prefix="/api/loans", tags=["loans"])
+router = APIRouter(prefix="/loans", tags=["loans"])
 
 
 # Loan routes
+@router.post("", response_model=schemas.Loan, include_in_schema=False)
 @router.post("/", response_model=schemas.Loan)
 def create_loan(
     loan: schemas.LoanCreate, db: Session = Depends(get_db)
@@ -44,7 +45,7 @@ def create_loan(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# Get all loans with optional filtering
+@router.get("", response_model=schemas.Loan, include_in_schema=False)
 @router.get("/", response_model=List[schemas.Loan])
 def get_loans(
     purchase_id: Optional[int] = None, db: Session = Depends(get_db)
@@ -80,8 +81,8 @@ def get_loans(
 # def get_loans_by_purchase(purchase_id: int, db: Session = Depends(get_db)):
 #     return get_loans(purchase_id=purchase_id, db=db)
 
-
-@router.get("/{loan_id}", response_model=schemas.Loan)
+@router.get("/{loan_id}", response_model=schemas.Loan, include_in_schema=False)
+@router.get("/{loan_id}/", response_model=schemas.Loan)
 def get_loan(loan_id: int, db: Session = Depends(get_db)) -> schemas.Loan:
     try:
         loan = db.query(models.Loan).filter(models.Loan.id == loan_id).first()
@@ -93,8 +94,8 @@ def get_loan(loan_id: int, db: Session = Depends(get_db)) -> schemas.Loan:
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@router.put("/{loan_id}", response_model=schemas.Loan)
+@router.put("/{loan_id}", response_model=schemas.Loan, include_in_schema=False)
+@router.put("/{loan_id}/", response_model=schemas.Loan)
 def update_loan(
     loan_id: int, loan_update: schemas.LoanCreate, db: Session = Depends(get_db)
 ) -> schemas.Loan:
@@ -133,7 +134,8 @@ def update_loan(
 
 
 # Delete Loan
-@router.delete("/{loan_id}")
+@router.delete("/{loan_id}", include_in_schema=False)
+@router.delete("/{loan_id}/")
 def delete_loan(loan_id: int, db: Session = Depends(get_db)):
     try:
         # Check if loan exists

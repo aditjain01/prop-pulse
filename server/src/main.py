@@ -51,7 +51,8 @@ def health_check():
 
 
 # Construction Status routes
-@app.get("/api/construction-status", response_model=List[schemas.ConstructionStatus])
+@app.get("/construction-status", response_model=List[schemas.ConstructionStatus], include_in_schema=False)
+@app.get("/construction-status/", response_model=List[schemas.ConstructionStatus])
 def get_construction_statuses(
     db: Session = Depends(get_db),
 ) -> List[schemas.ConstructionStatus]:
@@ -61,10 +62,8 @@ def get_construction_statuses(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@app.get(
-    "/api/construction-status/{status_id}", response_model=schemas.ConstructionStatus
-)
+@app.get("/construction-status/{status_id}", response_model=schemas.ConstructionStatus, include_in_schema=False)
+@app.get("/construction-status/{status_id}/", response_model=schemas.ConstructionStatus)
 def get_construction_status(
     status_id: int, db: Session = Depends(get_db)
 ) -> schemas.ConstructionStatus:
@@ -81,9 +80,8 @@ def get_construction_status(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get(
-    "/api/acquisition-cost/summary", response_model=List[schemas.AcquisitionCostSummary]
-)
+@app.get("/acquisition-cost/summary", response_model=List[schemas.AcquisitionCostSummary], include_in_schema=False)
+@app.get("/acquisition-cost/summary/", response_model=List[schemas.AcquisitionCostSummary])
 def get_acquisition_cost_summary(
     user_id: Optional[int] = None,
     purchase_id: Optional[int] = None,
@@ -106,10 +104,8 @@ def get_acquisition_cost_summary(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@app.get(
-    "/api/acquisition-cost/details", response_model=List[schemas.AcquisitionCostDetails]
-)
+@app.get("/acquisition-cost/details", response_model=List[schemas.AcquisitionCostDetails], include_in_schema=False)
+@app.get("/acquisition-cost/details/", response_model=List[schemas.AcquisitionCostDetails])
 def get_acquisition_cost_details(
     user_id: Optional[int] = None,
     purchase_id: Optional[int] = None,
@@ -148,11 +144,8 @@ def get_acquisition_cost_details(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@app.get(
-    "/api/loan-repayment-details/summary",
-    response_model=List[schemas.LoanRepaymentSummary],
-)
+@app.get("/loan-repayment-details/summary", response_model=List[schemas.LoanRepaymentSummary], include_in_schema=False)
+@app.get("/loan-repayment-details/summary/", response_model=List[schemas.LoanRepaymentSummary])
 def get_loan_repayment_summary(
     user_id: int,
     loan_name: Optional[str] = None,
@@ -212,8 +205,8 @@ def get_loan_repayment_summary(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@app.get("/api/loans/summary/", response_model=List[schemas.LoanSummary])
+@app.get("/loans/summary", response_model=List[schemas.LoanSummary], include_in_schema=False)
+@app.get("/loans/summary/", response_model=List[schemas.LoanSummary])
 def get_loan_summary(
     user_id: Optional[int] = None,
     loan_id: Optional[int] = None,
@@ -238,7 +231,8 @@ def get_loan_summary(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/loans/summary/enhanced", response_model=List[Dict])
+@app.get("/loans/summary/enhanced", response_model=List[Dict], include_in_schema=False)
+@app.get("/loans/summary/enhanced/", response_model=List[Dict])
 def get_enhanced_loan_summary(
     user_id: Optional[int] = None,
     loan_id: Optional[int] = None,

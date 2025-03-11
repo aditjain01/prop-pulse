@@ -4,10 +4,11 @@ from typing import List
 from src import schemas
 from src.database import get_db, models
 
-router = APIRouter(prefix="/api/payment-sources", tags=["payment-sources"])
+router = APIRouter(prefix="/payment-sources", tags=["payment-sources"])
 
 
 # Payment Source routes
+@router.post("", response_model=schemas.PaymentSource, include_in_schema=False)
 @router.post("/", response_model=schemas.PaymentSource)
 def create_payment_source(
     payment_source: schemas.PaymentSourceCreate, db: Session = Depends(get_db)
@@ -24,7 +25,7 @@ def create_payment_source(
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
-
+@router.get("", response_model=List[schemas.PaymentSource], include_in_schema=False)
 @router.get("/", response_model=List[schemas.PaymentSource])
 def get_payment_sources(db: Session = Depends(get_db)) -> List[schemas.PaymentSource]:
     try:
@@ -38,7 +39,8 @@ def get_payment_sources(db: Session = Depends(get_db)) -> List[schemas.PaymentSo
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{source_id}", response_model=schemas.PaymentSource)
+@router.get("/{source_id}", response_model=schemas.PaymentSource, include_in_schema=False)
+@router.get("/{source_id}/", response_model=schemas.PaymentSource)
 def get_payment_source(
     source_id: int, db: Session = Depends(get_db)
 ) -> schemas.PaymentSource:
@@ -56,8 +58,8 @@ def get_payment_source(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@router.put("/{source_id}", response_model=schemas.PaymentSource)
+@router.put("/{source_id}", response_model=schemas.PaymentSource, include_in_schema=False)
+@router.put("/{source_id}/", response_model=schemas.PaymentSource)
 def update_payment_source(
     source_id: int,
     payment_source: schemas.PaymentSourceUpdate,
@@ -84,13 +86,14 @@ def update_payment_source(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.delete("/{payment_source_id}")
-def delete_payment_source(payment_source_id: int, db: Session = Depends(get_db)):
+@router.delete("/{source_id}", include_in_schema=False)
+@router.delete("/{source_id}/")
+def delete_payment_source(source_id: int, db: Session = Depends(get_db)):
     try:
         # Check if payment source exists
         payment_source = (
             db.query(models.PaymentSource)
-            .filter(models.PaymentSource.id == payment_source_id)
+            .filter(models.PaymentSource.id == source_id)
             .first()
         )
         if payment_source is None:
@@ -99,7 +102,7 @@ def delete_payment_source(payment_source_id: int, db: Session = Depends(get_db))
         # Check if payment source is used in payments
         payments = (
             db.query(models.Payment)
-            .filter(models.Payment.source_id == payment_source_id)
+            .filter(models.Payment.source_id == source_id)
             .all()
         )
         if payments:

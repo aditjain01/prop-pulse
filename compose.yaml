@@ -9,12 +9,10 @@ networks:
 services:
   prop-pulse-postgres:
     image: postgres:16
-
     volumes:
       - prop-pulse-data:/var/lib/postgresql/data
     networks:
       - prop-pulse-network 
-
     deploy:
       replicas: 1
       resources:
@@ -29,19 +27,16 @@ services:
         delay: 5s
         max_attempts: 3
         window: 120s
-
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-
     healthcheck:
       test: pg_isready -U postgres
       start_period: 10s
       timeout: 1s
       retries: 5
       interval: 5s
-
     logging:
       driver: "json-file"
       options:
@@ -53,10 +48,8 @@ services:
       context: ./server
       dockerfile: Dockerfile
     image: prop-pulse-backend:exp # exp for dev, $IMAGE_TAG for prod
-
     networks:
       - prop-pulse-network
-
     deploy:
       replicas: 2
       resources:
@@ -71,40 +64,32 @@ services:
         delay: 5s
         max_attempts: 3
         window: 120s
-
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@prop-pulse-postgres:5432/postgres
-
     depends_on:
       prop-pulse-postgres:
         condition: service_healthy
-    
     # healthcheck:
     #   test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
     #   interval: 10s
     #   timeout: 5s
     #   retries: 3
-    #   start_period: 10s
-    
+    #   start_period: 10s   
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  prop-pulse-ui:
-
+  prop-pulse-nginx:
     build:
       context: ./client
       dockerfile: Dockerfile
     image: prop-pulse-ui:exp # exp for dev, $IMAGE_TAG for prod
-    
     networks:
       - prop-pulse-network
-
     ports:
-      - "5174:5173" # 5173 for dev, 80 for prod
-      
+      - "80:80"
     deploy:
       replicas: 1
       resources:
@@ -116,39 +101,12 @@ services:
           memory: 512M
       restart_policy:
         condition: on-failure
-
     environment:
       - VITE_BACKEND_URL=http://prop-pulse-backend:8000
     depends_on:
       - prop-pulse-backend
-
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-  prop-pulse-nginx:
-    image: prop-pulse-ui:nginx # exp for dev, $IMAGE_TAG for prod
-    networks:
-      - prop-pulse-network
-    ports:
-      - "8080:80"
-
-    deploy:
-      replicas: 1
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1024M
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-      restart_policy:
-        condition: on-failure
-
-    depends_on:
-      - prop-pulse-backend
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"

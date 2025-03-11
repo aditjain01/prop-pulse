@@ -6,10 +6,11 @@ from src import schemas
 from src.database import get_db, models
 
 # Create a router instance
-router = APIRouter(prefix="/api/payments", tags=["payments"])
+router = APIRouter(prefix="/payments", tags=["payments"])
 
 
 # Create a new payment
+@router.post("", response_model=schemas.Payment, include_in_schema=False)
 @router.post("/", response_model=schemas.Payment)
 def create_payment(
     payment: schemas.PaymentCreate, db: Session = Depends(get_db)
@@ -68,6 +69,7 @@ def create_payment(
 
 
 # Get all payments with optional filters
+@router.get("", response_model=List[schemas.Payment], include_in_schema=False)
 @router.get("/", response_model=List[schemas.Payment])
 def get_payments(
     purchase_id: Optional[int] = None,
@@ -105,7 +107,8 @@ def get_payments(
 
 
 # Get a specific payment by ID
-@router.get("/{payment_id}", response_model=schemas.Payment)
+@router.get("/{payment_id}", response_model=schemas.Payment, include_in_schema=False)
+@router.get("/{payment_id}/", response_model=schemas.Payment)
 def get_payment(payment_id: int, db: Session = Depends(get_db)) -> schemas.Payment:
     try:
         payment = (
@@ -121,7 +124,8 @@ def get_payment(payment_id: int, db: Session = Depends(get_db)) -> schemas.Payme
 
 
 # Update a payment
-@router.put("/{payment_id}", response_model=schemas.Payment)
+@router.put("/{payment_id}", response_model=schemas.Payment, include_in_schema=False)
+@router.put("/{payment_id}/", response_model=schemas.Payment)
 def update_payment(
     payment_id: int, payment: schemas.PaymentUpdate, db: Session = Depends(get_db)
 ) -> schemas.Payment:
@@ -152,7 +156,8 @@ def update_payment(
 
 
 # Delete Payment
-@router.delete("/{payment_id}")
+@router.delete("/{payment_id}", include_in_schema=False)
+@router.delete("/{payment_id}/")
 def delete_payment(payment_id: int, db: Session = Depends(get_db)):
     try:
         # Check if payment exists
