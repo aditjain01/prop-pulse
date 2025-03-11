@@ -1,9 +1,12 @@
 ---
 name: Feature Request
-description: Suggest a new feature for the project
+about: Suggest a new feature for the project
 title: "[Feature]: "
-labels: ["enhancement"]
+labels: enhancement
+assignees: aditjain01
+
 ---
+
 body:
   - type: markdown
     attributes:
