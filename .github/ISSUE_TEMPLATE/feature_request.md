@@ -1,4 +1,3 @@
----
 name: Feature Request
 about: Suggest a new feature for the project
 title: "[Feature]: "
@@ -63,4 +62,3 @@ body:
           required: true
         - label: I have provided all the necessary information to understand this feature request
           required: true
----
