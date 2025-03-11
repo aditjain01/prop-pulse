@@ -1,15 +1,9 @@
-Issue Title
-
-Assignees: 
-Labels: 
-Milestone: 
-Projects: 
-
 ---
 name: Feature Request
 about: Suggest a new feature for the project
 title: "[Feature] - "
 labels: enhancement
+assignees: ''
 ---
 
 body:
@@ -24,6 +18,8 @@ body:
       label: "Feature Description"
       description: "Describe the feature in detail."
       placeholder: "Enter detailed description of the feature..."
+    validations:
+      required: true
   - type: markdown
     attributes:
       value: |
@@ -35,6 +31,8 @@ body:
       label: "Proposed Implementation"
       description: "Describe how you propose to implement this feature."
       placeholder: "Enter implementation details here..."
+    validations:
+      required: false
   - type: markdown
     attributes:
       value: |
@@ -46,6 +44,8 @@ body:
       label: "Acceptance Criteria"
       description: "List what criteria must be met for this feature to be considered complete."
       placeholder: "Enter acceptance criteria..."
+    validations:
+      required: true
   - type: markdown
     attributes:
       value: |
@@ -57,3 +57,5 @@ body:
       label: "Additional Context"
       description: "Include any other context or information you'd like to share."
       placeholder: "Enter additional context..."
+    validations:
+      required: false
