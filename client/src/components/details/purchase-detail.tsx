@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { DetailView } from "@/components/detail-view";
 import { SlideDialog } from "@/components/slide-dialog";
 import { PurchaseForm } from "@/components/forms/purchase-form";
@@ -8,6 +8,7 @@ import { DocumentUpload } from "@/components/document-upload";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 type PurchaseDetailProps = {
   purchaseId: number;
@@ -43,16 +44,6 @@ export function PurchaseDetail({ purchaseId, onEdit, onDelete, onClose }: Purcha
   const handleDelete = () => {
     setShowDeleteDialog(true);
   };
-
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return "N/A";
-    try {
-      return format(new Date(dateString), "PPP");
-    } catch (error) {
-      return dateString;
-    }
-  };
-
 
   return (
     <>

@@ -8,13 +8,6 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// This will handle development proxying to our FastAPI backend
-const backendUrl = process.env.VITE_BACKEND_URL || 'http://prop-pulse-backend:8000';
-if (!backendUrl) {
-  console.error("Error: BACKEND_URL environment variable is not set");
-} else {
-  console.log(`Backend URL configured as: ${backendUrl}`);
-}
 
 export default defineConfig({
   plugins: [
@@ -32,7 +25,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: process.env.VITE_BACKEND_URL || 'http://prop-pulse-backend:8000',
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, ''),// NOTE: Update from (path) => path

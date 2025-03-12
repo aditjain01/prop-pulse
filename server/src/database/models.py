@@ -89,30 +89,35 @@ class Purchase(Base):
     id = Column(Integer, primary_key=True, index=True)
     property_id = Column(Integer, ForeignKey("properties.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    purchase_date = Column(Date, nullable=False)
-    registration_date = Column(Date)
-    possession_date = Column(Date)
+
     base_cost = Column(Numeric, nullable=False)
     other_charges = Column(Numeric)
     ifms = Column(Numeric)
     lease_rent = Column(Numeric)
     amc = Column(Numeric)
     gst = Column(Numeric)
-    property_cost = Column(Numeric, nullable=False)
-    total_cost = Column(Numeric, nullable=False)
-    total_sale_cost = Column(Numeric, nullable=False)
+
+    property_cost = Column(Numeric,Computed("base_cost + other_charges"), nullable=False)
+    total_cost = Column(Numeric,Computed("base_cost + other_charges + ifms + lease_rent + amc "), nullable=False)
+    total_sale_cost = Column(Numeric, Computed("base_cost+ other_charges + ifms + lease_rent + amc + gst"), nullable=False)
+
+    purchase_date = Column(Date, nullable=False)
+    registration_date = Column(Date)
+    possession_date = Column(Date)
+
     seller = Column(String)
     remarks = Column(String)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
     property = relationship("Property", back_populates="purchases")
     user = relationship("User", back_populates="purchases")
-    payments = relationship("Payment", back_populates="purchase")
+    # payments = relationship("Payment", back_populates="purchase")
     documents = relationship("Document", back_populates="purchase")
-    loans = relationship(
-        "Loan", primaryjoin="Purchase.id == Loan.purchase_id", back_populates="purchase"
-    )
+    loans = relationship("Loan", primaryjoin="Purchase.id == Loan.purchase_id", back_populates="purchase")
+    invoices = relationship("Invoice", back_populates="purchase")
 
 
 class Loan(Base):
@@ -132,19 +137,17 @@ class Loan(Base):
 
     # Financial details
     sanction_amount = Column(Numeric(precision=15, scale=2), nullable=False)
-    total_disbursed_amount = Column(Numeric(precision=15, scale=2), default=0)
     processing_fee = Column(Numeric(precision=15, scale=2), default=0)
     other_charges = Column(Numeric(precision=15, scale=2), default=0)
     loan_sanction_charges = Column(Numeric(precision=15, scale=2), default=0)
 
     # Terms
-    interest_rate = Column(
-        Numeric(precision=5, scale=2), nullable=False
-    )  # Annual interest rate
+    interest_rate = Column(Numeric(precision=5, scale=2), nullable=False)  # Annual interest rate
     tenure_months = Column(Integer, nullable=False)  # Loan tenure in months
 
     # Status
     is_active = Column(Boolean, default=True)
+    total_disbursed_amount = Column(Numeric(precision=15, scale=2), default=0)
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -153,46 +156,71 @@ class Loan(Base):
     # Relationships
     user = relationship("User", back_populates="loans")
     payment_sources = relationship("PaymentSource", back_populates="loan")
-    purchase = relationship(
-        "Purchase",
-        primaryjoin="Loan.purchase_id == Purchase.id",
-        back_populates="loans",
-    )
+    purchase = relationship("Purchase", primaryjoin="Loan.purchase_id == Purchase.id",back_populates="loans")
     repayments = relationship("LoanRepayment", back_populates="loan")
+
+
+class Invoice(Base):
+    __tablename__ = "invoices"
+
+    id = Column(Integer, primary_key=True, index=True)
+    purchase_id = Column(Integer, ForeignKey("purchases.id"), nullable=False)
+    
+    # Invoice details
+    invoice_number = Column(String, nullable=False)
+    invoice_date = Column(Date, nullable=False)
+    due_date = Column(Date, nullable=True)
+    amount = Column(Numeric, nullable=False)
+    
+    # Invoice status
+    status = Column(String, nullable=False, default="pending")  # pending, paid, partially_paid, cancelled
+    
+    # Invoice metadata
+    milestone = Column(String)  # What this invoice is for (e.g., booking, possession)
+    description = Column(String)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Computed fields
+    paid_amount = Column(Numeric, default=0)
+    
+    # Relationships
+    purchase = relationship("Purchase", back_populates="invoices")
+    payments = relationship("Payment", back_populates="invoice")
 
 
 class Payment(Base):
     __tablename__ = "payments"
 
     id = Column(Integer, primary_key=True, index=True)
-    purchase_id = Column(Integer, ForeignKey("purchases.id"), nullable=False)
+    # purchase_id = Column(Integer, ForeignKey("purchases.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     source_id = Column(Integer, ForeignKey("payment_sources.id"), nullable=False)
+    invoice_id = Column(Integer, ForeignKey("invoices.id"), nullable=False)
 
     # Basic payment details
     payment_date = Column(Date, nullable=False)
     amount = Column(Numeric, nullable=False)
     payment_mode = Column(String, nullable=False)  # cash, online, cheque, etc.
     transaction_reference = Column(String)  # Reference number, cheque number, etc.
-    milestone = Column(String)  # What this payment is for (e.g., booking, possession)
-
-    # Invoice details
-    invoice_date = Column(Date)
-    invoice_number = Column(String)
-    invoice_amount = Column(Numeric)
-
+    
     # Receipt details
     receipt_date = Column(Date)
     receipt_number = Column(String)
-    receipt_amount = Column(Numeric)
+    
+    # Notes
+    notes = Column(String)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
-    purchase = relationship("Purchase", back_populates="payments")
+    # purchase = relationship("Purchase", back_populates="payments")
     user = relationship("User", back_populates="payments")
     payment_source = relationship("PaymentSource", back_populates="payments")
+    invoice = relationship("Invoice", back_populates="payments")
 
 
 class Document(Base):

@@ -5,6 +5,7 @@ from .properties import router as properties_router
 from .payments import router as payments_router
 from .users import router as users_router
 from .purchases import router as purchases_router
+from .invoices import router as invoices_router
 # from .documents import router as documents_router
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "users_router",
     "payment_sources_router",
     "purchases_router",
+    "invoices_router",
 ]

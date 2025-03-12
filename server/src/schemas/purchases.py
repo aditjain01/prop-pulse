@@ -21,22 +21,6 @@ class PurchaseBase(BaseModel):
     seller: Optional[str] = None
     remarks: Optional[str] = None
 
-    @computed_field
-    def property_cost(self) -> Decimal:
-        other_charges = self.other_charges or Decimal("0")
-        return self.base_cost + other_charges
-
-    @computed_field
-    def total_cost(self) -> Decimal:
-        ifms = self.ifms or Decimal("0")
-        lease_rent = self.lease_rent or Decimal("0")
-        amc = self.amc or Decimal("0")
-        return self.property_cost + ifms + lease_rent + amc
-
-    @computed_field
-    def total_sale_cost(self) -> Decimal:
-        gst = self.gst or Decimal("0")
-        return self.total_cost + gst
 
 
 class PurchaseCreate(PurchaseBase):
@@ -53,18 +37,19 @@ class Purchase(PurchaseBase):
 
 class PurchaseUpdate(BaseModel):
     property_id: Optional[int] = None
+
     purchase_date: Optional[date] = None
     registration_date: Optional[date] = None
     possession_date: Optional[date] = None
+
     base_cost: Optional[float] = None
     other_charges: Optional[float] = None
     ifms: Optional[float] = None
     lease_rent: Optional[float] = None
+    # stamp_duty: Optional[float] = None
+    # legal_charges: Optional[float] = None
     amc: Optional[float] = None
     gst: Optional[float] = None
-    stamp_duty: Optional[float] = None
-    registration_charges: Optional[float] = None
-    legal_charges: Optional[float] = None
-    brokerage: Optional[float] = None
-    notes: Optional[str] = None
-    construction_status_id: Optional[int] = None
+
+    seller: Optional[str] = None
+    remarks: Optional[str] = None

@@ -93,24 +93,20 @@ export type PaymentSource = {
 
 export type Payment = {
   id: number;
-  purchase_id: number;
+  invoice_id: number;
   user_id: number;
   payment_date: string;
   amount: number;
   source_id: number;
   payment_mode: string;
   transaction_reference: string | null;
-  milestone: string | null;
-  invoice_date: string | null;
-  invoice_number: string | null;
-  invoice_amount: number | null;
   receipt_date: string | null;
   receipt_number: string | null;
-  receipt_amount: number | null;
+  notes: string | null;
   created_at: string;
   updated_at: string | null;
   payment_source?: PaymentSource; // For joined queries
-  purchase?: Purchase; // For joined queries
+  invoice?: Invoice; // For joined queries
 };
 
 export type Document = {
@@ -226,23 +222,17 @@ export type PaymentSourceFormValues = z.infer<typeof paymentSourceFormSchema>;
 
 // Payment schemas
 export const paymentFormSchema = z.object({
-  purchase_id: z.string().nonempty("Purchase is required"),
+  invoice_id: z.string().nonempty("Invoice is required"),
   payment_date: z.string(),
   amount: z.number(),
   source_id: z.string().nonempty("Payment source is required"),
   payment_mode: z.string(),
   transaction_reference: z.string().optional(),
-  milestone: z.string().optional(),
-  
-  // Invoice details
-  invoice_date: z.string().optional(),
-  invoice_number: z.string().optional(),
-  invoice_amount: z.number().optional(),
   
   // Receipt details
   receipt_date: z.string().optional(),
   receipt_number: z.string().optional(),
-  receipt_amount: z.number().optional(),
+  notes: z.string().optional(),
 });
 
 export type PaymentFormValues = z.infer<typeof paymentFormSchema>;
@@ -370,21 +360,17 @@ export const initializePaymentSourceForm = (source?: PaymentSource): PaymentSour
   };
 };
 
-export const initializePaymentForm = (payment?: Payment, purchaseId?: number): PaymentFormValues => {
+export const initializePaymentForm = (payment?: Payment, invoiceId?: number): PaymentFormValues => {
   return {
-    purchase_id: payment?.purchase_id?.toString() || purchaseId?.toString() || "",
+    invoice_id: payment?.invoice_id?.toString() || invoiceId?.toString() || "",
     payment_date: payment?.payment_date || new Date().toISOString().split('T')[0],
     amount: payment?.amount || 0,
     source_id: payment?.source_id?.toString() || "",
     payment_mode: payment?.payment_mode || "online",
     transaction_reference: payment?.transaction_reference || "",
-    milestone: payment?.milestone || "",
-    invoice_date: payment?.invoice_date || new Date().toISOString().split('T')[0],
-    invoice_number: payment?.invoice_number || "",
-    invoice_amount: payment?.invoice_amount || 0,
-    receipt_date: payment?.receipt_date || new Date().toISOString().split('T')[0],
+    receipt_date: payment?.receipt_date || "",
     receipt_number: payment?.receipt_number || "",
-    receipt_amount: payment?.receipt_amount || 0,
+    notes: payment?.notes || "",
   };
 };
 

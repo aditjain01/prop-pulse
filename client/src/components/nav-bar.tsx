@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Building2, LogOut, Home, CreditCard, Landmark, DollarSign } from "lucide-react";
+import { Building2, LogOut, Home, CreditCard, Landmark, DollarSign, FileText } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 
@@ -22,6 +22,12 @@ export function NavBar() {
             <div className="flex items-center">
               <Home className="mr-1 h-4 w-4" />
               Purchases
+            </div>
+          </Link>
+          <Link href="/invoices" className="text-sm font-medium transition-colors hover:text-primary">
+            <div className="flex items-center">
+              <FileText className="mr-1 h-4 w-4" />
+              Invoices
             </div>
           </Link>
           <Link href="/payments" className="text-sm font-medium transition-colors hover:text-primary">
