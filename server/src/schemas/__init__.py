@@ -12,7 +12,6 @@ from .dashboard import (
     AcquisitionCostSummary,
     AcquisitionCostDetails,
     LoanSummary,
-    InvoiceSummary,
 )
 from .construction_status import ConstructionStatus
 from .purchases import Purchase, PurchaseCreate, PurchaseUpdate

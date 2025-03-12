@@ -16,15 +16,6 @@ def create_payment(
     payment: schemas.PaymentCreate, db: Session = Depends(get_db)
 ) -> schemas.Payment:
     try:
-        # Check if purchase exists
-        purchase = (
-            db.query(models.Purchase)
-            .filter(models.Purchase.id == payment.purchase_id)
-            .first()
-        )
-        if purchase is None:
-            raise HTTPException(status_code=404, detail="Purchase not found")
-
         # Check if invoice exists
         invoice = (
             db.query(models.Invoice)
@@ -33,19 +24,18 @@ def create_payment(
         )
         if invoice is None:
             raise HTTPException(status_code=404, detail="Invoice not found")
-        payments = (
+        
+        invoice_payments = (
             db.query(models.Payment)
             .filter(models.Payment.invoice_id == payment.invoice_id)
             .all()
         )
-        # Check if payment amount is not greater than the invoice's balance amount
-        if payment.amount > invoice.balance_amount:
+        if payment.amount > invoice.amount - sum(p.amount for p in invoice_payments):
             raise HTTPException(
                 status_code=400,
                 detail="Payment amount exceeds invoice's balance amount",
             )
 
-        # Check if payment source exists
         payment_source = (
             db.query(models.PaymentSource)
             .filter(models.PaymentSource.id == payment.source_id)
@@ -62,22 +52,16 @@ def create_payment(
                 .first()
             )
             if loan:
-                loan.total_disbursed_amount += payment.amount
+                loan_payments = db.query(models.Payment).filter(models.Payment.source_id == payment_source.id).all() 
+                if payment.amount > loan.total_disbursed_amount - sum(p.amount for p in loan_payments):    
+                   raise HTTPException(status_code=400, detail="Payment amount exceeds loan's disbursed amount")    
+                # loan.total_disbursed_amount += payment.amount
             else:
                 raise HTTPException(status_code=404, detail="Loan not found")
 
         # Create payment with user_id defaulted to 1
         db_payment = models.Payment(**payment.dict(), user_id=1)
         db.add(db_payment)
-        
-        # Update invoice paid_amount
-        invoice.paid_amount += payment.amount
-        
-        # Update invoice status if fully paid
-        if invoice.paid_amount >= invoice.amount:
-            invoice.status = "paid"
-        elif invoice.paid_amount > 0:
-            invoice.status = "partially_paid"
         
         db.commit()
         db.refresh(db_payment)
