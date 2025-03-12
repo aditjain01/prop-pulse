@@ -4,11 +4,12 @@ import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { PaymentForm } from "@/components/forms/payment-form";
-import { Plus, Trash2, Filter, Download, Pencil } from "lucide-react";
+import { Plus, Trash2, Filter, Download, Pencil, FileText } from "lucide-react";
 import { apiRequest } from '@/lib/api/api';
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { DeleteConfirmation } from "@/components/delete-confirmation";
+import { Link, useLocation } from "wouter";
 import {
   Table,
   TableBody,
@@ -36,14 +37,16 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { SlideDialog } from "@/components/slide-dialog";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 export default function PaymentList() {
   const { toast } = useToast();
   const [paymentToDelete, setPaymentToDelete] = useState(null);
+  const [paymentToEdit, setPaymentToEdit] = useState(null);
+  const [, navigate] = useLocation();
   const [filters, setFilters] = useState({
-    purchase_id: "",
+    invoice_id: "",
     payment_source_id: "",
-    milestone: "",
     payment_mode: "",
     from_date: "",
     to_date: "",
@@ -64,14 +67,19 @@ export default function PaymentList() {
     },
   });
   
-  // Fetch purchases for filter dropdown
-  const { data: purchases } = useQuery({
-    queryKey: ["/api/purchases"],
+  // Fetch invoices for filter dropdown
+  const { data: invoices } = useQuery({
+    queryKey: ["/api/invoices"],
   });
   
   // Fetch payment sources for filter dropdown
   const { data: paymentSources } = useQuery({
     queryKey: ["/api/payment-sources"],
+  });
+  
+  // Fetch purchases for property names
+  const { data: purchases } = useQuery({
+    queryKey: ["/api/purchases"],
   });
   
   // Fetch properties to get property names
@@ -86,6 +94,7 @@ export default function PaymentList() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       toast({
         title: "Payment deleted",
         description: "The payment has been deleted successfully.",
@@ -101,345 +110,328 @@ export default function PaymentList() {
     },
   });
   
-  // Function to get property name for a purchase
-  const getPropertyName = (purchaseId) => {
-    if (!purchaseId) return "Unknown Property";
+  // Helper function to get invoice details
+  const getInvoiceDetails = (invoiceId: number) => {
+    const invoice = invoices?.find(i => i.id === invoiceId);
+    if (!invoice) return { number: "Unknown", property: "Unknown" };
     
-    const purchase = purchases?.find(p => p.id === purchaseId);
-    if (!purchase) return "Unknown Property";
+    const purchase = purchases?.find(p => p.id === invoice.purchase_id);
+    if (!purchase) return { number: invoice.invoice_number, property: "Unknown" };
     
-    // If purchase has property object directly
-    if (purchase.property && purchase.property.name) {
-      return purchase.property.name;
-    }
-    
-    // If purchase only has property_id
-    if (purchase.property_id) {
-      const property = properties?.find(p => p.id === purchase.property_id);
-      return property ? property.name : "Unknown Property";
-    }
-    
-    return "Unknown Property";
+    const property = properties?.find(p => p.id === purchase.property_id);
+    return { 
+      number: invoice.invoice_number, 
+      property: property?.name || "Unknown Property" 
+    };
   };
   
-  // Function to get payment source name
-  const getPaymentSourceName = (sourceId) => {
-    if (!sourceId) return "Unknown Source";
-    
+  // Helper function to get payment source name
+  const getPaymentSourceName = (sourceId: number) => {
     const source = paymentSources?.find(s => s.id === sourceId);
-    return source ? source.name : "Unknown Source";
+    return source?.name || "Unknown Source";
   };
   
-  // Function to export payments as CSV
   const exportPaymentsCSV = () => {
-    if (!payments || payments.length === 0) {
-      toast({
-        title: "No data to export",
-        description: "There are no payments matching your filters.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!payments || payments.length === 0) return;
     
-    // Create CSV header
     const headers = [
-      "ID", "Property", "Date", "Amount", "Source", "Mode", 
-      "Milestone", "Reference", "Invoice Date", "Invoice Number", 
-      "Invoice Amount", "Receipt Date", "Receipt Number", "Receipt Amount"
+      "Date",
+      "Invoice",
+      "Property",
+      "Amount",
+      "Payment Mode",
+      "Source",
+      "Reference"
     ];
     
-    // Create CSV rows
-    const rows = payments.map(payment => [
-      payment.id,
-      getPropertyName(payment.purchase_id),
-      new Date(payment.payment_date).toLocaleDateString(),
-      payment.amount,
-      getPaymentSourceName(payment.source_id),
-      payment.payment_mode,
-      payment.milestone || "",
-      payment.transaction_reference || "",
-      payment.invoice_date ? new Date(payment.invoice_date).toLocaleDateString() : "",
-      payment.invoice_number || "",
-      payment.invoice_amount || "",
-      payment.receipt_date ? new Date(payment.receipt_date).toLocaleDateString() : "",
-      payment.receipt_number || "",
-      payment.receipt_amount || ""
-    ]);
+    const rows = payments.map(payment => {
+      const invoiceDetails = getInvoiceDetails(payment.invoice_id);
+      return [
+        formatDate(payment.payment_date),
+        invoiceDetails.number,
+        invoiceDetails.property,
+        payment.amount,
+        payment.payment_mode,
+        getPaymentSourceName(payment.source_id),
+        payment.transaction_reference || ""
+      ];
+    });
     
-    // Combine header and rows
     const csvContent = [
       headers.join(","),
       ...rows.map(row => row.join(","))
     ].join("\n");
     
-    // Create download link
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `payments_export_${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute("download", "payments.csv");
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
   
-  // Calculate total amount
-  const totalAmount = payments?.reduce((sum, payment) => sum + Number(payment.amount), 0) || 0;
-
   return (
     <div className="min-h-screen bg-background">
       <NavBar />
-      
       <main className="container py-6">
         <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">Payments</h1>
-            <p className="text-muted-foreground">
-              {payments?.length || 0} payments, total: ₹{totalAmount.toLocaleString()}
-            </p>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            {/* <Popover>
+          <h1 className="text-3xl font-bold">Payments</h1>
+          <div className="flex gap-2">
+            <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline">
-                  <Filter className="mr-2 h-4 w-4" />
+                <Button variant="outline" size="sm">
+                  <Filter className="h-4 w-4 mr-2" />
                   Filter
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-80">
-                <div className="space-y-4">
-                  <h4 className="font-medium">Filter Payments</h4>
-                  
+                <div className="grid gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="property">Property</Label>
-                    <Select 
-                      onValueChange={(value) => setFilters({...filters, purchase_id: value})}
-                      value={filters.purchase_id}
-                    >
-                      <SelectTrigger id="property">
-                        <SelectValue placeholder="All properties" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">All properties</SelectItem>
-                        {purchases?.map((purchase) => (
-                          <SelectItem key={purchase.id} value={purchase.id.toString()}>
-                            {getPropertyName(purchase.id)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <h4 className="font-medium leading-none">Filter Payments</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Filter payments by invoice, source, or date
+                    </p>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="source">Payment Source</Label>
-                    <Select 
-                      onValueChange={(value) => setFilters({...filters, payment_source_id: value})}
-                      value={filters.payment_source_id}
-                    >
-                      <SelectTrigger id="source">
-                        <SelectValue placeholder="All sources" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">All sources</SelectItem>
-                        {paymentSources?.map((source) => (
-                          <SelectItem key={source.id} value={source.id.toString()}>
-                            {source.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="milestone">Milestone</Label>
-                    <Select 
-                      onValueChange={(value) => setFilters({...filters, milestone: value})}
-                      value={filters.milestone}
-                    >
-                      <SelectTrigger id="milestone">
-                        <SelectValue placeholder="All milestones" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">All milestones</SelectItem>
-                        <SelectItem value="Booking">Booking</SelectItem>
-                        <SelectItem value="Down Payment">Down Payment</SelectItem>
-                        <SelectItem value="EMI">EMI</SelectItem>
-                        <SelectItem value="Registration">Registration</SelectItem>
-                        <SelectItem value="Possession">Possession</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="mode">Payment Mode</Label>
-                    <Select 
-                      onValueChange={(value) => setFilters({...filters, payment_mode: value})}
-                      value={filters.payment_mode}
-                    >
-                      <SelectTrigger id="mode">
-                        <SelectValue placeholder="All modes" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">All modes</SelectItem>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="check">Check</SelectItem>
-                        <SelectItem value="online">Online</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="from_date">From Date</Label>
-                      <Input 
-                        id="from_date" 
-                        type="date" 
+                  <div className="grid gap-2">
+                    <div className="grid grid-cols-3 items-center gap-4">
+                      <Label htmlFor="invoice">Invoice</Label>
+                      <Select
+                        value={filters.invoice_id}
+                        onValueChange={(value) => setFilters({...filters, invoice_id: value})}
+                      >
+                        <SelectTrigger className="col-span-2">
+                          <SelectValue placeholder="All invoices" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">All invoices</SelectItem>
+                          {invoices?.map(invoice => {
+                            const details = getInvoiceDetails(invoice.id);
+                            return (
+                              <SelectItem key={invoice.id} value={invoice.id.toString()}>
+                                {details.property} - #{details.number}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-3 items-center gap-4">
+                      <Label htmlFor="source">Source</Label>
+                      <Select
+                        value={filters.payment_source_id}
+                        onValueChange={(value) => setFilters({...filters, payment_source_id: value})}
+                      >
+                        <SelectTrigger className="col-span-2">
+                          <SelectValue placeholder="All sources" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">All sources</SelectItem>
+                          {paymentSources?.map(source => (
+                            <SelectItem key={source.id} value={source.id.toString()}>
+                              {source.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-3 items-center gap-4">
+                      <Label htmlFor="mode">Payment Mode</Label>
+                      <Select
+                        value={filters.payment_mode}
+                        onValueChange={(value) => setFilters({...filters, payment_mode: value})}
+                      >
+                        <SelectTrigger className="col-span-2">
+                          <SelectValue placeholder="All modes" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">All modes</SelectItem>
+                          <SelectItem value="cash">Cash</SelectItem>
+                          <SelectItem value="online">Online Transfer</SelectItem>
+                          <SelectItem value="cheque">Cheque</SelectItem>
+                          <SelectItem value="card">Credit/Debit Card</SelectItem>
+                          <SelectItem value="upi">UPI</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-3 items-center gap-4">
+                      <Label htmlFor="from-date">From Date</Label>
+                      <Input
+                        id="from-date"
+                        type="date"
+                        className="col-span-2"
                         value={filters.from_date}
                         onChange={(e) => setFilters({...filters, from_date: e.target.value})}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="to_date">To Date</Label>
-                      <Input 
-                        id="to_date" 
-                        type="date" 
+                    <div className="grid grid-cols-3 items-center gap-4">
+                      <Label htmlFor="to-date">To Date</Label>
+                      <Input
+                        id="to-date"
+                        type="date"
+                        className="col-span-2"
                         value={filters.to_date}
                         onChange={(e) => setFilters({...filters, to_date: e.target.value})}
                       />
                     </div>
                   </div>
-                  
-                  <div className="flex justify-between">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setFilters({
-                        purchase_id: "",
-                        payment_source_id: "",
-                        milestone: "",
-                        payment_mode: "",
-                        from_date: "",
-                        to_date: "",
-                      })}
-                    >
-                      Reset
-                    </Button>
-                    <Button onClick={() => document.body.click()}>Apply Filters</Button>
-                  </div>
+                  <Button onClick={() => setFilters({
+                    invoice_id: "",
+                    payment_source_id: "",
+                    payment_mode: "",
+                    from_date: "",
+                    to_date: "",
+                  })}>
+                    Reset Filters
+                  </Button>
                 </div>
               </PopoverContent>
-            </Popover> */}
+            </Popover>
             
-            <Button variant="outline" onClick={exportPaymentsCSV}>
-              <Download className="mr-2 h-4 w-4" />
-              Export CSV
+            <Button variant="outline" size="sm" onClick={exportPaymentsCSV}>
+              <Download className="h-4 w-4 mr-2" />
+              Export
             </Button>
             
-            <SlideDialog
-              trigger={
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Payment
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Payment
                 </Button>
-              }
-              title="Add Payment"
-            >
-              <PaymentForm 
-                purchaseId={parseInt(filters.purchase_id) || undefined} 
-                onSuccess={() => queryClient.invalidateQueries({ queryKey: ["/api/payments"] })}
-              />
-            </SlideDialog>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px]">
+                <PaymentForm />
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
-
-        <Card>
-          <CardContent className="p-0">
+        
+        {paymentsLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <p>Loading payments...</p>
+          </div>
+        ) : !payments || payments.length === 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>No Payments Found</CardTitle>
+              <CardDescription>
+                {Object.values(filters).some(v => v) 
+                  ? "Try adjusting your filters or create a new payment."
+                  : "Get started by creating your first payment."}
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        ) : (
+          <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
+                  <TableHead>Invoice</TableHead>
                   <TableHead>Property</TableHead>
                   <TableHead>Amount</TableHead>
-                  <TableHead>Source</TableHead>
                   <TableHead>Mode</TableHead>
-                  <TableHead>Milestone</TableHead>
+                  <TableHead>Source</TableHead>
                   <TableHead>Reference</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paymentsLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-10">
-                      Loading payments...
-                    </TableCell>
-                  </TableRow>
-                ) : payments?.length ? (
-                  payments.map((payment) => (
+                {payments.map(payment => {
+                  const invoiceDetails = getInvoiceDetails(payment.invoice_id);
+                  return (
                     <TableRow key={payment.id}>
-                      <TableCell>{new Date(payment.payment_date).toLocaleDateString()}</TableCell>
-                      <TableCell>{getPropertyName(payment.purchase_id)}</TableCell>
-                      <TableCell>₹{Number(payment.amount).toLocaleString()}</TableCell>
+                      <TableCell>{formatDate(payment.payment_date)}</TableCell>
                       <TableCell>
-                        {paymentSources?.find(s => s.id === payment.source_id)?.name || "Unknown Source"}
+                        <Link href={`/invoices/${payment.invoice_id}`} className="text-blue-500 hover:underline flex items-center">
+                          <FileText className="h-3 w-3 mr-1" />
+                          #{invoiceDetails.number}
+                        </Link>
                       </TableCell>
+                      <TableCell>{invoiceDetails.property}</TableCell>
+                      <TableCell>{formatCurrency(payment.amount)}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">
-                          {payment.payment_mode.charAt(0).toUpperCase() + payment.payment_mode.slice(1)}
-                        </Badge>
+                        <Badge variant="outline">{payment.payment_mode}</Badge>
                       </TableCell>
-                      <TableCell>{payment.milestone || "-"}</TableCell>
+                      <TableCell>{getPaymentSourceName(payment.source_id)}</TableCell>
                       <TableCell>{payment.transaction_reference || "-"}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
-                          <SlideDialog
-                            trigger={
-                              <Button variant="ghost" size="icon">
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            }
-                            title="Edit Payment"
-                          >
-                            <PaymentForm 
-                              payment={payment} 
-                              onSuccess={() => queryClient.invalidateQueries({ queryKey: ["/api/payments"] })}
-                            />
-                          </SlideDialog>
-                          
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => setPaymentToDelete(payment)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="h-4 w-4"
+                              >
+                                <circle cx="12" cy="12" r="1" />
+                                <circle cx="12" cy="5" r="1" />
+                                <circle cx="12" cy="19" r="1" />
+                              </svg>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem 
+                              onSelect={() => navigate(`/payments/${payment.id}`)}
+                            >
+                              <FileText className="h-4 w-4 mr-2" />
+                              View Details
+                            </DropdownMenuItem>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => {
+                                  e.preventDefault();
+                                  setPaymentToEdit(payment);
+                                }}>
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                              </DialogTrigger>
+                              <DialogContent className="sm:max-w-[600px]">
+                                <PaymentForm payment={paymentToEdit} onSuccess={() => setPaymentToEdit(null)} />
+                              </DialogContent>
+                            </Dialog>
+                            <DropdownMenuItem 
+                              className="text-red-600"
+                              onSelect={() => setPaymentToDelete(payment)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-10">
-                      <p className="text-muted-foreground">No payments found.</p>
-                      {Object.values(filters).some(Boolean) && (
-                        <p className="text-sm mt-2">Try adjusting your filters or create a new payment.</p>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )}
+                  );
+                })}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+          </div>
+        )}
       </main>
-
+      
+      {/* Delete confirmation dialog */}
       <DeleteConfirmation
         isOpen={!!paymentToDelete}
         onClose={() => setPaymentToDelete(null)}
-        onConfirm={() => deleteMutation.mutate(paymentToDelete.id)}
+        onConfirm={() => {
+          if (paymentToDelete) {
+            deleteMutation.mutate(paymentToDelete.id);
+          }
+        }}
         title="Delete Payment"
-        description={`Are you sure you want to delete this payment of ₹${paymentToDelete ? Number(paymentToDelete.amount).toLocaleString() : 0}? This action cannot be undone.`}
+        description="Are you sure you want to delete this payment? This action cannot be undone."
+        isDeleting={deleteMutation.isPending}
       />
     </div>
   );

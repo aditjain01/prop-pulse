@@ -11,6 +11,7 @@ import PropertyList from "@/pages/property-list";
 import PurchaseList from "@/pages/purchase-list";
 import NotFound from "@/pages/not-found";
 import PaymentList from "./pages/payment-list";
+import PaymentDetailPage from "./pages/payment-detail";
 import PaymentSourceList from "@/pages/payment-source-list";
 import LoanList from "@/pages/loan-list";
 import RepaymentList from "@/pages/repayment-list";
@@ -29,6 +30,7 @@ function Router() {
       </Route>
       <Route path="/auth" component={AuthPage} />
       <Route path="/payments" component={PaymentList} />
+      <Route path="/payments/:id" component={PaymentDetailPage} />
       <Route path="/payment-sources" component={PaymentSourceList} />
       <Route path="/loans" component={LoanList} />
       <Route path="/repayments" component={RepaymentList} />
