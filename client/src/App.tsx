@@ -14,6 +14,8 @@ import PaymentList from "./pages/payment-list";
 import PaymentSourceList from "@/pages/payment-source-list";
 import LoanList from "@/pages/loan-list";
 import RepaymentList from "@/pages/repayment-list";
+import InvoiceList from "@/pages/invoice-list";
+import InvoiceDetailPage from "@/pages/invoice-detail";
 import {PurchaseDetail} from "@/components/details/purchase-detail";
 
 function Router() {
@@ -30,6 +32,8 @@ function Router() {
       <Route path="/payment-sources" component={PaymentSourceList} />
       <Route path="/loans" component={LoanList} />
       <Route path="/repayments" component={RepaymentList} />
+      <Route path="/invoices" component={InvoiceList} />
+      <Route path="/invoices/:id" component={InvoiceDetailPage} />
       <Route component={NotFound} />
     </Switch>
   );
