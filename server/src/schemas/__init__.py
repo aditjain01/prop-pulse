@@ -4,6 +4,7 @@ from .payment_sources import PaymentSource, PaymentSourceCreate, PaymentSourceUp
 from .repayments import LoanRepayment, LoanRepaymentCreate, LoanRepaymentUpdate
 from .properties import Property, PropertyCreate, PropertyUpdate
 from .payments import Payment, PaymentCreate, PaymentUpdate
+from .invoices import Invoice, InvoiceCreate, InvoiceUpdate
 from .users import User, UserCreate
 from .documents import Document, DocumentCreate
 from .dashboard import (
@@ -11,6 +12,7 @@ from .dashboard import (
     AcquisitionCostSummary,
     AcquisitionCostDetails,
     LoanSummary,
+    InvoiceSummary,
 )
 from .construction_status import ConstructionStatus
 from .purchases import Purchase, PurchaseCreate, PurchaseUpdate
@@ -31,6 +33,9 @@ __all__ = [
     "Payment",
     "PaymentCreate",
     "PaymentUpdate",
+    "Invoice",
+    "InvoiceCreate",
+    "InvoiceUpdate",
     "Loan",
     "LoanCreate",
     "LoanUpdate",
@@ -43,4 +48,5 @@ __all__ = [
     "AcquisitionCostSummary",
     "AcquisitionCostDetails",
     "LoanSummary",
+    "InvoiceSummary",
 ]

@@ -42,6 +42,7 @@ app.include_router(routes.loans_router)
 app.include_router(routes.payments_router)
 app.include_router(routes.repayments_router)
 app.include_router(routes.payment_sources_router)
+app.include_router(routes.invoices_router)
 
 
 # Health check endpoint

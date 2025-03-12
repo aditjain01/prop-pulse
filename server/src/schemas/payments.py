@@ -5,21 +5,16 @@ from decimal import Decimal
 
 
 class PaymentBase(BaseModel):
-    purchase_id: int
+    # purchase_id: int
+    invoice_id: int
     payment_date: date
     amount: Decimal
     source_id: int
     payment_mode: str
     transaction_reference: Optional[str] = None
-    milestone: Optional[str] = None
-    # Invoice details
-    invoice_date: Optional[date] = None
-    invoice_number: Optional[str] = None
-    invoice_amount: Optional[Decimal] = None
-    # Receipt details
     receipt_date: Optional[date] = None
     receipt_number: Optional[str] = None
-    receipt_amount: Optional[Decimal] = None
+    notes: Optional[str] = None
 
 
 class PaymentCreate(PaymentBase):
@@ -35,11 +30,15 @@ class Payment(PaymentBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-class PaymentUpdate(PaymentBase):
+class PaymentUpdate(BaseModel):
     payment_date: Optional[date] = None
     amount: Optional[Decimal] = None
     source_id: Optional[int] = None
     payment_mode: Optional[str] = None
+    transaction_reference: Optional[str] = None
+    receipt_date: Optional[date] = None
+    receipt_number: Optional[str] = None
+    notes: Optional[str] = None
 
 
 # class PaymentUpdate(BaseModel):

@@ -25,14 +25,27 @@ def create_payment(
         if purchase is None:
             raise HTTPException(status_code=404, detail="Purchase not found")
 
-        # Check if payment amount is not greater than the purchase's total_sale_cost
-        if payment.amount > purchase.total_sale_cost:
+        # Check if invoice exists
+        invoice = (
+            db.query(models.Invoice)
+            .filter(models.Invoice.id == payment.invoice_id)
+            .first()
+        )
+        if invoice is None:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        payments = (
+            db.query(models.Payment)
+            .filter(models.Payment.invoice_id == payment.invoice_id)
+            .all()
+        )
+        # Check if payment amount is not greater than the invoice's balance amount
+        if payment.amount > invoice.balance_amount:
             raise HTTPException(
                 status_code=400,
-                detail="Payment amount exceeds total sale cost of the purchase",
+                detail="Payment amount exceeds invoice's balance amount",
             )
 
-        # Check if payment source exists - updated to use source_id
+        # Check if payment source exists
         payment_source = (
             db.query(models.PaymentSource)
             .filter(models.PaymentSource.id == payment.source_id)
@@ -49,15 +62,23 @@ def create_payment(
                 .first()
             )
             if loan:
-                loan.total_disbursed_amount += (
-                    payment.amount
-                )  # Update the disbursed amount
+                loan.total_disbursed_amount += payment.amount
             else:
                 raise HTTPException(status_code=404, detail="Loan not found")
 
         # Create payment with user_id defaulted to 1
-        db_payment = models.Payment(**payment.dict(), user_id=1)  # Default user_id to 1
+        db_payment = models.Payment(**payment.dict(), user_id=1)
         db.add(db_payment)
+        
+        # Update invoice paid_amount
+        invoice.paid_amount += payment.amount
+        
+        # Update invoice status if fully paid
+        if invoice.paid_amount >= invoice.amount:
+            invoice.status = "paid"
+        elif invoice.paid_amount > 0:
+            invoice.status = "partially_paid"
+        
         db.commit()
         db.refresh(db_payment)
         return db_payment
