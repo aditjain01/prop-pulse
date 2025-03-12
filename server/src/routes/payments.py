@@ -145,6 +145,64 @@ def update_payment(
         # # Check if user owns this payment
         # if db_payment.user_id != current_user.id:
         #     raise HTTPException(status_code=403, detail="Not authorized to update this payment")
+        # Check if invoice exists
+        invoice = (
+            db.query(models.Invoice)
+            .filter(models.Invoice.id == db_payment.invoice_id)
+            .first()
+        )
+        if invoice is None:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        
+        # Get all payments for this invoice except the current one being updated
+        invoice_payments = (
+            db.query(models.Payment)
+            .filter(models.Payment.invoice_id == db_payment.invoice_id)
+            .filter(models.Payment.id != payment_id)
+            .all()
+        )
+        
+        # Calculate total paid amount excluding the current payment
+        total_paid = sum(p.amount for p in invoice_payments)
+        
+        # Check if the updated payment amount would exceed the invoice balance
+        if payment.amount and payment.amount > invoice.amount - total_paid:
+            raise HTTPException(
+                status_code=400,
+                detail="Payment amount exceeds invoice's balance amount",
+            )
+        
+        # If payment source is being updated, check if it exists
+        if payment.source_id:
+            payment_source = (
+                db.query(models.PaymentSource)
+                .filter(models.PaymentSource.id == payment.source_id)
+                .first()
+            )
+            if payment_source is None:
+                raise HTTPException(status_code=404, detail="Payment source not found")
+            
+            # Check if the payment source's source_type is "loan" and validate against loan's disbursed amount
+            if payment_source.source_type == "loan":
+                loan = (
+                    db.query(models.Loan)
+                    .filter(models.Loan.id == payment_source.loan_id)
+                    .first()
+                )
+                if loan:
+                    loan_payments = (
+                        db.query(models.Payment)
+                        .filter(models.Payment.source_id == payment_source.id)
+                        .filter(models.Payment.id != payment_id)
+                        .all()
+                    )
+                    if payment.amount and payment.amount > loan.total_disbursed_amount - sum(p.amount for p in loan_payments):
+                        raise HTTPException(
+                            status_code=400, 
+                            detail="Payment amount exceeds loan's disbursed amount"
+                        )
+                else:
+                    raise HTTPException(status_code=404, detail="Loan not found")
 
         # Update payment fields
         for key, value in payment.dict(exclude_unset=True).items():
