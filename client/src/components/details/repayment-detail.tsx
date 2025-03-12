@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { DetailView } from "@/components/detail-view";
 import { SlideDialog } from "@/components/slide-dialog";
 import { LoanRepaymentForm } from "@/components/forms/loan-repayment-form";
@@ -8,6 +8,10 @@ import { DocumentUpload } from "@/components/document-upload";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { apiRequest } from "@/lib/api/api";
+import { queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 type RepaymentDetailProps = {
   repaymentId: number;
@@ -48,15 +52,6 @@ export function RepaymentDetail({ repaymentId, onEdit, onDelete, onClose }: Repa
 
   const handleDelete = () => {
     setShowDeleteDialog(true);
-  };
-
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return "N/A";
-    try {
-      return format(new Date(dateString), "PPP");
-    } catch (error) {
-      return dateString;
-    }
   };
 
   const totalAmount = repayment 
