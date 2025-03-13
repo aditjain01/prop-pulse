@@ -2,8 +2,11 @@
 name: Feature Request
 about: Suggest a new feature for the project
 title: "[Feature]: "
-labels: ['enhancement']
+labels: 
 assignees: ''
+type: "feature"
+project: ["aditjain01/1"]
+size:
 ---
 ## Feature Description
 

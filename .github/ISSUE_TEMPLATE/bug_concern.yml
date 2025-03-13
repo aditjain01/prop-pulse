@@ -1,0 +1,104 @@
+name: Bug Concern
+description: Report a bug or issue with the project
+title: "[Bug]: "
+labels: ["bug"]
+projects: ["aditjain01/1"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug!
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Bug Description
+      description: Provide a clear and detailed description of the issue you're experiencing.
+      placeholder: Describe what happened and what you expected to happen...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Please provide the steps needed to reproduce the issue.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: Describe what you expected to happen when following the steps above.
+      placeholder: I expected that...
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current Behavior
+      description: Describe what actually happened when following the steps above.
+      placeholder: Instead, what happened was...
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots-logs
+    attributes:
+      label: Screenshots/Logs
+      description: If applicable, add screenshots, error messages, or logs to help explain your problem.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Please provide information about your environment.
+      placeholder: |
+        - Device: [e.g. iPhone 13, Desktop PC]
+        - OS: [e.g. iOS 15, Windows 11]
+        - Browser: [e.g. Chrome 96, Safari 15]
+        - Version: [e.g. v1.2.3 of the project]
+    validations:
+      required: false
+
+  - type: textarea
+    id: possible-solution
+    attributes:
+      label: Possible Solution
+      description: If you have suggestions on how to fix the issue, please describe them here.
+      placeholder: I think this could be fixed by...
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here.
+      placeholder: More details...
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: before-submitting
+    attributes:
+      label: Before Submitting
+      options:
+        - label: I have searched for similar bug reports and confirmed this is not a duplicate
+          required: true
+        - label: I have provided all the necessary information to understand and reproduce this bug
+          required: true
+        - label: I have included relevant details about my environment
+          required: true 

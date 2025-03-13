@@ -1,0 +1,73 @@
+name: Feature Concern
+description: Suggest a new feature for the project
+title: "[Feature]: "
+labels: ["enhancement"]
+projects: ["aditjain01/1"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to suggest a new feature!
+
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature Description
+      description: Provide a detailed description of the feature you're suggesting.
+      placeholder: Describe what you'd like to see implemented...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-implementation
+    attributes:
+      label: Proposed Implementation
+      description: If you have ideas on how this could be implemented, please share them.
+      placeholder: I think this could be implemented by...
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: What criteria must be met for this feature to be considered complete?
+      placeholder: |
+        The feature should...
+        - Be able to be tested ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: size
+    attributes:
+      label: Size
+      description: How large is this feature request?
+      options:
+        - Small
+        - Medium
+        - Large
+        - Extra Large
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, or examples about the feature request here.
+      placeholder: More details...
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: before-submitting
+    attributes:
+      label: Before Submitting
+      options:
+        - label: I have searched for similar feature requests and confirmed this is not a duplicate
+          required: true
+        - label: I have provided all the necessary information to understand this feature request
+          required: true 
