@@ -1,4 +1,4 @@
-name: Bug Concern
+name: Report Bug
 description: Report a bug or issue with the project
 title: "[Bug]: "
 labels: ["bug"]

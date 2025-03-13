@@ -1,4 +1,4 @@
-name: Feature Concern
+name: Request Feature
 description: Suggest a new feature for the project
 title: "[Feature]: "
 labels: ["enhancement"]
@@ -40,18 +40,6 @@ body:
     validations:
       required: true
 
-  - type: dropdown
-    id: size
-    attributes:
-      label: Size
-      description: How large is this feature request?
-      options:
-        - Small
-        - Medium
-        - Large
-        - Extra Large
-    validations:
-      required: false
 
   - type: textarea
     id: additional-context
