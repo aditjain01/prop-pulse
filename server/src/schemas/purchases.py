@@ -53,3 +53,34 @@ class PurchaseUpdate(BaseModel):
 
     seller: Optional[str] = None
     remarks: Optional[str] = None
+
+
+# V2 schemas for frontend-aligned endpoints
+class PurchasePublic(BaseModel):
+    """Schema for listing purchases with essential information for the frontend"""
+    id: int
+    property_name: str  # From Purchase -> Property relationship
+    purchase_date: date
+    total_purchase_cost: Decimal  # This is total_sale_cost from the model
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class Purchase(PurchasePublic):
+    """Schema for detailed view of a single purchase"""
+    # Dates
+    registration_date: Optional[date] = None
+    possession_date: Optional[date] = None
+    
+    # Costs
+    base_cost: Decimal
+    other_charges: Optional[Decimal] = None
+    ifms: Optional[Decimal] = None
+    lease_rent: Optional[Decimal] = None
+    amc: Optional[Decimal] = None
+    gst: Optional[Decimal] = None
+    property_cost: Decimal  # base_cost + other_charges
+    total_cost: Decimal  # property_cost + ifms + lease_rent + amc
+    
+    # Additional information
+    seller: Optional[str] = None

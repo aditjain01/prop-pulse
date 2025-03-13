@@ -51,3 +51,29 @@ class LoanRepaymentUpdate(BaseModel):
     payment_mode: Optional[str] = None
     transaction_reference: Optional[str] = None
     notes: Optional[str] = None
+
+
+# V2 schemas for frontend-aligned endpoints
+class LoanRepaymentPublic(BaseModel):
+    """Schema for listing loan repayments with essential information for the frontend"""
+    id: int
+    loan_name: str  # From Repayment -> Loan
+    loan_institution: str  # From Repayment -> Loan -> institution
+    property_name: str  # From Repayment -> Loan -> Purchase -> Property
+    total_payment: Decimal
+    source_name: str  # From Repayment -> PaymentSource
+    payment_date: date
+    payment_mode: str
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LoanRepayment(LoanRepaymentPublic):
+    """Schema for detailed view of a single loan repayment"""
+    principal_amount: Decimal
+    interest_amount: Decimal
+    other_fees: Decimal
+    penalties: Decimal
+    purchase_id: int  # From Repayment -> Loan -> Purchase
+    transaction_reference: Optional[str] = None
+    notes: Optional[str] = None

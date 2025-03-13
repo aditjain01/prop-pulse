@@ -173,4 +173,122 @@ def delete_invoice(invoice_id: int, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# V2 routes for frontend-aligned endpoints
+router_v2 = APIRouter(prefix="/v2/invoices", tags=["invoices"])
+
+
+@router_v2.get("/", response_model=List[schemas.InvoicePublic])
+def get_invoices_v2(
+    purchase_id: Optional[int] = None,
+    status: Optional[str] = None,
+    milestone: Optional[str] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    db: Session = Depends(get_db),
+) -> List[schemas.InvoicePublic]:
+    """
+    Get a list of invoices with property information and enhanced filtering.
+    Optimized for frontend listing views.
+    """
+    try:
+        # Start with a query that joins Invoice with Purchase and Property
+        query = (
+            db.query(
+                models.Invoice,
+                models.Property.name.label("property_name")
+            )
+            .join(models.Purchase, models.Invoice.purchase_id == models.Purchase.id)
+            .join(models.Property, models.Purchase.property_id == models.Property.id)
+        )
+
+        # Apply filters if provided
+        if purchase_id:
+            query = query.filter(models.Invoice.purchase_id == purchase_id)
+        if status:
+            query = query.filter(models.Invoice.status == status)
+        if milestone:
+            query = query.filter(models.Invoice.milestone == milestone)
+        if from_date:
+            query = query.filter(models.Invoice.invoice_date >= from_date)
+        if to_date:
+            query = query.filter(models.Invoice.invoice_date <= to_date)
+
+        # Order by invoice date (newest first)
+        query = query.order_by(models.Invoice.invoice_date.desc())
+
+        results = query.all()
+        
+        # Convert the results to the expected schema format
+        invoices = []
+        for invoice, property_name in results:
+            invoice_dict = {
+                "id": invoice.id,
+                "purchase_id": invoice.purchase_id,
+                "invoice_number": invoice.invoice_number,
+                "invoice_date": invoice.invoice_date,
+                "due_date": invoice.due_date,
+                "amount": invoice.amount,
+                "status": invoice.status,
+                "milestone": invoice.milestone,
+                "description": invoice.description,
+                "created_at": invoice.created_at,
+                "updated_at": invoice.updated_at,
+                "paid_amount": invoice.paid_amount,
+                "property_name": property_name,
+            }
+            invoices.append(invoice_dict)
+            
+        return invoices
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router_v2.get("/{invoice_id}", response_model=schemas.Invoice)
+def get_invoice_v2(invoice_id: int, db: Session = Depends(get_db)) -> schemas.Invoice:
+    """
+    Get a detailed view of a single invoice with property information.
+    Optimized for frontend detail views.
+    """
+    try:
+        # Query that joins Invoice with Purchase and Property
+        result = (
+            db.query(
+                models.Invoice,
+                models.Property.name.label("property_name")
+            )
+            .join(models.Purchase, models.Invoice.purchase_id == models.Purchase.id)
+            .join(models.Property, models.Purchase.property_id == models.Property.id)
+            .filter(models.Invoice.id == invoice_id)
+            .first()
+        )
+        
+        if result is None:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+            
+        invoice, property_name = result
+        
+        # Convert to the expected schema format
+        invoice_dict = {
+            "id": invoice.id,
+            "purchase_id": invoice.purchase_id,
+            "invoice_number": invoice.invoice_number,
+            "invoice_date": invoice.invoice_date,
+            "due_date": invoice.due_date,
+            "amount": invoice.amount,
+            "status": invoice.status,
+            "milestone": invoice.milestone,
+            "description": invoice.description,
+            "created_at": invoice.created_at,
+            "updated_at": invoice.updated_at,
+            "paid_amount": invoice.paid_amount,
+            "property_name": property_name,
+        }
+            
+        return invoice_dict
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 

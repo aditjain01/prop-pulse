@@ -23,11 +23,6 @@ class PropertyBase(BaseModel):
     developer: Optional[str] = None
     rera_id: Optional[str] = None
 
-    # @computed_field
-    # def super_area(self) -> Optional[Decimal]:
-    #     if self.carpet_area is not None and self.exclusive_area is not None and self.common_area is not None:
-    #         return self.carpet_area + self.exclusive_area + self.common_area
-    #     return None
 
 
 class PropertyCreate(PropertyBase):
@@ -56,4 +51,21 @@ class PropertyUpdate(BaseModel):
     initial_rate: Optional[float] = None
     current_rate: Optional[float] = None
     developer: Optional[str] = None
+    rera_id: Optional[str] = None
+
+
+# V2 schemas for frontend-aligned endpoints
+class PropertyPublic(BaseModel):
+    """Schema for listing properties with minimal information needed for the frontend"""
+    id: int
+    name: str
+    address: str
+    developer: Optional[str] = None
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class Property(PropertyPublic):
+    """Schema for detailed view of a single property"""
+    property_type: str
     rera_id: Optional[str] = None

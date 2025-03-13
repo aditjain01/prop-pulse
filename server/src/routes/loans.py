@@ -9,6 +9,9 @@ from src.routes.payment_sources import create_payment_source
 # Create a router instance
 router = APIRouter(prefix="/loans", tags=["loans"])
 
+# V2 routes for frontend-aligned endpoints
+router_v2 = APIRouter(prefix="/v2/loans", tags=["loans"])
+
 
 # Loan routes
 @router.post("", response_model=schemas.Loan, include_in_schema=False)
@@ -174,4 +177,89 @@ def delete_loan(loan_id: int, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router_v2.get("/", response_model=List[schemas.LoanPublic])
+def get_loans_v2(
+    purchase_id: Optional[int] = None,
+    is_active: Optional[bool] = None,
+    from_amount: Optional[float] = None,
+    to_amount: Optional[float] = None,
+    db: Session = Depends(get_db),
+) -> List[schemas.LoanPublic]:
+    """
+    Get a list of loans with essential information for the frontend.
+    Optimized for frontend listing views with enhanced filtering.
+    """
+    try:
+        query = db.query(models.Loan).filter(
+            models.Loan.user_id == 1
+        )  # Replace with actual user ID
+
+        # Apply filters if provided
+        if purchase_id:
+            query = query.filter(models.Loan.purchase_id == purchase_id)
+            
+        if is_active is not None:
+            query = query.filter(models.Loan.is_active == is_active)
+            
+        if from_amount:
+            query = query.filter(models.Loan.sanction_amount >= from_amount)
+            
+        if to_amount:
+            query = query.filter(models.Loan.sanction_amount <= to_amount)
+
+        loans = query.all()
+        return loans
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router_v2.get("/{loan_id}", response_model=schemas.Loan)
+def get_loan_v2(loan_id: int, db: Session = Depends(get_db)) -> schemas.Loan:
+    """
+    Get a detailed view of a single loan with property information.
+    Optimized for frontend detail views.
+    """
+    try:
+        # Query that joins Loan with Purchase and Property
+        result = (
+            db.query(
+                models.Loan,
+                models.Property.name.label("property_name")
+            )
+            .join(models.Purchase, models.Loan.purchase_id == models.Purchase.id)
+            .join(models.Property, models.Purchase.property_id == models.Property.id)
+            .filter(models.Loan.id == loan_id)
+            .first()
+        )
+        
+        if result is None:
+            raise HTTPException(status_code=404, detail="Loan not found")
+            
+        loan, property_name = result
+        
+        # Convert to the expected schema format
+        loan_dict = {
+            "id": loan.id,
+            "name": loan.name,
+            "institution": loan.institution,
+            "total_disbursed_amount": loan.total_disbursed_amount,
+            "sanction_amount": loan.sanction_amount,
+            "property_name": property_name,
+            "processing_fee": loan.processing_fee,
+            "other_charges": loan.other_charges,
+            "loan_sanction_charges": loan.loan_sanction_charges,
+            "interest_rate": loan.interest_rate,
+            "tenure_months": loan.tenure_months,
+            "is_active": loan.is_active,
+        }
+            
+        return loan_dict
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

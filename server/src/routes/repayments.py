@@ -8,6 +8,9 @@ from fastapi import APIRouter
 # Create a router instance
 router = APIRouter(prefix="/repayments", tags=["repayments"])
 
+# V2 routes for frontend-aligned endpoints
+router_v2 = APIRouter(prefix="/v2/repayments", tags=["repayments"])
+
 
 # Updated Loan Repayment endpoints with new route structure
 @router.post("", response_model=schemas.LoanRepayment, include_in_schema=False)
@@ -173,4 +176,133 @@ def delete_loan_repayment(repayment_id: int, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router_v2.get("/", response_model=List[schemas.LoanRepaymentPublic])
+def get_loan_repayments_v2(
+    loan_id: Optional[int] = None,
+    source_id: Optional[int] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    min_amount: Optional[float] = None,
+    max_amount: Optional[float] = None,
+    db: Session = Depends(get_db),
+) -> List[schemas.LoanRepaymentPublic]:
+    """
+    Get a list of loan repayments with enhanced information.
+    Optimized for frontend listing views with improved filtering.
+    """
+    try:
+        # Start with a query that joins LoanRepayment with Loan, PaymentSource, Purchase, and Property
+        query = (
+            db.query(
+                models.LoanRepayment,
+                models.Loan.name.label("loan_name"),
+                models.PaymentSource.name.label("source_name"),
+                models.Property.name.label("property_name"),
+                models.Loan.institution.label("loan_institution")
+            )
+            .join(models.Loan, models.LoanRepayment.loan_id == models.Loan.id)
+            .join(models.PaymentSource, models.LoanRepayment.source_id == models.PaymentSource.id)
+            .join(models.Purchase, models.Loan.purchase_id == models.Purchase.id)
+            .join(models.Property, models.Purchase.property_id == models.Property.id)
+        )
+
+        # Apply filters if provided
+        if loan_id:
+            query = query.filter(models.LoanRepayment.loan_id == loan_id)
+            
+        if source_id:
+            query = query.filter(models.LoanRepayment.source_id == source_id)
+            
+        if from_date:
+            query = query.filter(models.LoanRepayment.payment_date >= from_date)
+            
+        if to_date:
+            query = query.filter(models.LoanRepayment.payment_date <= to_date)
+            
+        if min_amount:
+            query = query.filter(models.LoanRepayment.total_payment >= min_amount)
+            
+        if max_amount:
+            query = query.filter(models.LoanRepayment.total_payment <= max_amount)
+
+        # Order by payment date (newest first)
+        query = query.order_by(models.LoanRepayment.payment_date.desc())
+
+        results = query.all()
+        
+        # Convert the results to the expected schema format
+        repayments = []
+        for repayment, loan_name, source_name, property_name, loan_institution in results:
+            repayment_dict = {
+                "id": repayment.id,
+                "loan_name": loan_name,
+                "loan_institution": loan_institution,
+                "property_name": property_name,
+                "total_payment": repayment.total_payment,
+                "source_name": source_name,
+                "payment_date": repayment.payment_date,
+                "payment_mode": repayment.payment_mode,
+            }
+            repayments.append(repayment_dict)
+            
+        return repayments
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router_v2.get("/{repayment_id}", response_model=schemas.LoanRepayment)
+def get_loan_repayment_v2(repayment_id: int, db: Session = Depends(get_db)) -> schemas.LoanRepayment:
+    """
+    Get a detailed view of a single loan repayment.
+    Optimized for frontend detail views.
+    """
+    try:
+        # Query with joins to Loan, PaymentSource, Purchase, and Property
+        result = (
+            db.query(
+                models.LoanRepayment,
+                models.Loan.name.label("loan_name"),
+                models.Loan.institution.label("loan_institution"),
+                models.PaymentSource.name.label("source_name"),
+                models.Property.name.label("property_name"),
+                models.Purchase.id.label("purchase_id")
+            )
+            .join(models.Loan, models.LoanRepayment.loan_id == models.Loan.id)
+            .join(models.PaymentSource, models.LoanRepayment.source_id == models.PaymentSource.id)
+            .join(models.Purchase, models.Loan.purchase_id == models.Purchase.id)
+            .join(models.Property, models.Purchase.property_id == models.Property.id)
+            .filter(models.LoanRepayment.id == repayment_id)
+            .first()
+        )
+        
+        if result is None:
+            raise HTTPException(status_code=404, detail="Loan repayment not found")
+            
+        repayment, loan_name, loan_institution, source_name, property_name, purchase_id = result
+        
+        # Convert to the expected schema format
+        repayment_dict = {
+            "id": repayment.id,
+            "loan_name": loan_name,
+            "loan_institution": loan_institution,
+            "property_name": property_name,
+            "purchase_id": purchase_id,
+            "total_payment": repayment.total_payment,
+            "source_name": source_name,
+            "payment_date": repayment.payment_date,
+            "payment_mode": repayment.payment_mode,
+            "principal_amount": repayment.principal_amount,
+            "interest_amount": repayment.interest_amount,
+            "other_fees": repayment.other_fees,
+            "penalties": repayment.penalties,
+            "transaction_reference": repayment.transaction_reference,
+            "notes": repayment.notes,
+        }
+            
+        return repayment_dict
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

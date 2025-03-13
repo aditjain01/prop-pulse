@@ -115,3 +115,49 @@ def delete_property(property_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# V2 routes for frontend-aligned endpoints
+router_v2 = APIRouter(prefix="/v2/properties", tags=["properties"])
+
+
+@router_v2.get("/", response_model=List[schemas.PropertyPublic])
+def get_properties_v2(
+    developer: str = None,
+    db: Session = Depends(get_db),
+) -> List[schemas.PropertyPublic]:
+    """
+    Get a list of properties with minimal information needed for the frontend.
+    Optimized for frontend listing views with filtering by developer.
+    """
+    try:
+        query = db.query(models.Property)
+        
+        # Apply filter by developer if provided
+        if developer:
+            query = query.filter(models.Property.developer == developer)
+            
+        properties = query.all()
+        return properties
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router_v2.get("/{property_id}", response_model=schemas.Property)
+def get_property_v2(
+    property_id: int, 
+    db: Session = Depends(get_db)
+) -> schemas.Property:
+    """
+    Get a detailed view of a single property.
+    Optimized for frontend detail views.
+    """
+    try:
+        db_property = (
+            db.query(models.Property).filter(models.Property.id == property_id).first()
+        )
+        if db_property is None:
+            raise HTTPException(status_code=404, detail="Property not found")
+        return db_property
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

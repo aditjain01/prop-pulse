@@ -46,3 +46,26 @@ class LoanUpdate(BaseModel):
     interest_rate: Optional[float] = None
     tenure_months: Optional[int] = None
     is_active: Optional[bool] = None
+
+
+# V2 schemas for frontend-aligned endpoints
+class LoanPublic(BaseModel):
+    """Schema for listing loans with essential information for the frontend"""
+    id: int
+    name: str
+    institution: str
+    total_disbursed_amount: Decimal
+    sanction_amount: Decimal
+    is_active: bool
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class Loan(LoanPublic):
+    """Schema for detailed view of a single loan"""
+    property_name: str  # From Loan->Purchase->Property relationship
+    processing_fee: Decimal
+    other_charges: Decimal
+    loan_sanction_charges: Decimal
+    interest_rate: Decimal
+    tenure_months: int

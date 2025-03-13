@@ -44,6 +44,15 @@ app.include_router(routes.repayments_router)
 app.include_router(routes.payment_sources_router)
 app.include_router(routes.invoices_router)
 
+# V2 routes
+app.include_router(routes.properties_v2_router)
+app.include_router(routes.purchases_v2_router)
+app.include_router(routes.loans_v2_router)
+app.include_router(routes.payments_v2_router)
+app.include_router(routes.repayments_v2_router)
+app.include_router(routes.payment_sources_v2_router)
+app.include_router(routes.invoices_v2_router)
+
 
 # Health check endpoint
 @app.get("/health")

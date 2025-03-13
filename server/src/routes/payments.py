@@ -239,3 +239,137 @@ def delete_payment(payment_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# V2 routes for frontend-aligned endpoints
+router_v2 = APIRouter(prefix="/v2/payments", tags=["payments"])
+
+
+@router_v2.get("/", response_model=List[schemas.PaymentPublic])
+def get_payments_v2(
+    purchase_id: Optional[int] = None,
+    invoice_id: Optional[int] = None,
+    source_id: Optional[int] = None,
+    payment_mode: Optional[str] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    min_amount: Optional[float] = None,
+    max_amount: Optional[float] = None,
+    db: Session = Depends(get_db),
+) -> List[schemas.PaymentPublic]:
+    """
+    Get a list of payments with property and invoice information.
+    Optimized for frontend listing views with enhanced filtering.
+    """
+    try:
+        # Start with a query that joins Payment with Invoice, Purchase, Property, and PaymentSource
+        query = (
+            db.query(
+                models.Payment,
+                models.Property.name.label("property_name"),
+                models.Invoice.invoice_number.label("invoice_number"),
+                models.PaymentSource.name.label("source_name")
+            )
+            .join(models.Invoice, models.Payment.invoice_id == models.Invoice.id)
+            .join(models.Purchase, models.Invoice.purchase_id == models.Purchase.id)
+            .join(models.Property, models.Purchase.property_id == models.Property.id)
+            .join(models.PaymentSource, models.Payment.source_id == models.PaymentSource.id)
+        )
+
+        # Apply filters if provided
+        if purchase_id:
+            query = query.filter(models.Purchase.id == purchase_id)
+            
+        if invoice_id:
+            query = query.filter(models.Payment.invoice_id == invoice_id)
+            
+        if source_id:
+            query = query.filter(models.Payment.source_id == source_id)
+            
+        if payment_mode:
+            query = query.filter(models.Payment.payment_mode == payment_mode)
+            
+        if from_date:
+            query = query.filter(models.Payment.payment_date >= from_date)
+            
+        if to_date:
+            query = query.filter(models.Payment.payment_date <= to_date)
+            
+        if min_amount:
+            query = query.filter(models.Payment.amount >= min_amount)
+            
+        if max_amount:
+            query = query.filter(models.Payment.amount <= max_amount)
+
+        # Order by payment date (newest first)
+        query = query.order_by(models.Payment.payment_date.desc())
+
+        results = query.all()
+        
+        # Convert the results to the expected schema format
+        payments = []
+        for payment, property_name, invoice_number, source_name in results:
+            payment_dict = {
+                "id": payment.id,
+                "payment_date": payment.payment_date,
+                "amount": payment.amount,
+                "source_name": source_name,
+                "payment_mode": payment.payment_mode,
+                "property_name": property_name,
+                "invoice_number": invoice_number,
+            }
+            payments.append(payment_dict)
+            
+        return payments
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router_v2.get("/{payment_id}", response_model=schemas.Payment)
+def get_payment_v2(payment_id: int, db: Session = Depends(get_db)) -> schemas.Payment:
+    """
+    Get a detailed view of a single payment with property and invoice information.
+    Optimized for frontend detail views.
+    """
+    try:
+        # Query with joins to Invoice, Purchase, Property, and PaymentSource
+        result = (
+            db.query(
+                models.Payment,
+                models.Property.name.label("property_name"),
+                models.Invoice.invoice_number.label("invoice_number"),
+                models.PaymentSource.name.label("source_name")
+            )
+            .join(models.Invoice, models.Payment.invoice_id == models.Invoice.id)
+            .join(models.Purchase, models.Invoice.purchase_id == models.Purchase.id)
+            .join(models.Property, models.Purchase.property_id == models.Property.id)
+            .join(models.PaymentSource, models.Payment.source_id == models.PaymentSource.id)
+            .filter(models.Payment.id == payment_id)
+            .first()
+        )
+        
+        if result is None:
+            raise HTTPException(status_code=404, detail="Payment not found")
+            
+        payment, property_name, invoice_number, source_name = result
+        
+        # Convert to the expected schema format
+        payment_dict = {
+            "id": payment.id,
+            "payment_date": payment.payment_date,
+            "amount": payment.amount,
+            "source_name": source_name,
+            "payment_mode": payment.payment_mode,
+            "property_name": property_name,
+            "invoice_number": invoice_number,
+            "transaction_reference": payment.transaction_reference,
+            "receipt_date": payment.receipt_date,
+            "receipt_number": payment.receipt_number,
+            "notes": payment.notes,
+        }
+            
+        return payment_dict
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
