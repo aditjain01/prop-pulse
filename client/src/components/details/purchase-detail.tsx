@@ -26,12 +26,13 @@ import { useLocation } from "wouter";
 
 type PurchaseDetailProps = {
   purchaseId: number;
+  showHeader?: boolean;
   onEdit?: (purchase: Purchase) => void;
   onDelete?: () => void;
   onClose?: () => void;
 };
 
-export function PurchaseDetail({ purchaseId, onEdit, onDelete, onClose }: PurchaseDetailProps) {
+export function PurchaseDetail({ purchaseId, showHeader = false, onEdit, onDelete, onClose }: PurchaseDetailProps) {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -76,6 +77,23 @@ export function PurchaseDetail({ purchaseId, onEdit, onDelete, onClose }: Purcha
     queryKey: ["/api/payments", { purchase_id: purchaseId }],
     enabled: !!purchaseId,
   });
+
+  // If we're just showing the header, return the property name or purchase ID
+  if (showHeader) {
+    if (purchaseLoading) {
+      return <div>Loading...</div>;
+    }
+    
+    if (!purchase) {
+      return <div>Purchase not found</div>;
+    }
+    
+    return (
+      <h1 className="text-3xl font-bold">
+        {property ? property.name : `Purchase #${purchase.id}`}
+      </h1>
+    );
+  }
 
   // Delete loan mutation
   const deleteLoanMutation = useMutation({

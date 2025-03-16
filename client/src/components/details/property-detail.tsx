@@ -18,12 +18,13 @@ import { useToast } from "@/hooks/use-toast";
 
 type PropertyDetailProps = {
   propertyId: number;
+  showHeader?: boolean;
   onEdit?: (property: Property) => void;
   onDelete?: () => void;
   onClose?: () => void;
 };
 
-export function PropertyDetail({ propertyId, onEdit, onDelete, onClose }: PropertyDetailProps) {
+export function PropertyDetail({ propertyId, showHeader = false, onEdit, onDelete, onClose }: PropertyDetailProps) {
   const { toast } = useToast();
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -94,6 +95,19 @@ export function PropertyDetail({ propertyId, onEdit, onDelete, onClose }: Proper
   const handlePurchaseFormSuccess = () => {
     queryClient.invalidateQueries({ queryKey: [`/api/purchases`, { property_id: propertyId }] });
   };
+
+  // If we're just showing the header (property name), return that
+  if (showHeader) {
+    if (propertyLoading) {
+      return <div>Loading...</div>;
+    }
+    
+    if (!property) {
+      return <div>Property not found</div>;
+    }
+    
+    return <h1 className="text-3xl font-bold">{property.name}</h1>;
+  }
 
   return (
     <>
