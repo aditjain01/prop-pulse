@@ -21,16 +21,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InvoiceList } from "@/components/lists/invoice-list";
 
-// Define types for Purchase and Property
+// Define types for Purchase and Invoice
 type Purchase = {
   id: number;
   property_id: number;
-  [key: string]: any;
-};
-
-type Property = {
-  id: number;
-  name: string;
+  property_name: string;
   [key: string]: any;
 };
 
@@ -43,6 +38,7 @@ type Invoice = {
   status: string;
   due_date: string | null;
   milestone: string | null;
+  property_name: string;
   [key: string]: any;
 };
 
@@ -60,7 +56,7 @@ export default function InvoiceListPage() {
   
   // Fetch invoices with filters
   const { data: invoices, isLoading: invoicesLoading } = useQuery({
-    queryKey: ["/api/invoices", filters],
+    queryKey: ["/api/v2/invoices", filters],
     queryFn: async () => {
       // Build query string from filters
       const queryParams = new URLSearchParams();
@@ -68,19 +64,14 @@ export default function InvoiceListPage() {
         if (value) queryParams.append(key, value);
       });
       
-      const res = await apiRequest("GET", `/api/invoices?${queryParams.toString()}`);
+      const res = await apiRequest("GET", `/api/v2/invoices?${queryParams.toString()}`);
       return res.json();
     },
   });
   
   // Fetch purchases for filter dropdown
   const { data: purchases } = useQuery<Purchase[]>({
-    queryKey: ["/api/purchases"],
-  });
-  
-  // Fetch properties to get property names
-  const { data: properties } = useQuery<Property[]>({
-    queryKey: ["/api/properties"],
+    queryKey: ["/api/v2/purchases"],
   });
   
   const deleteMutation = useMutation({
@@ -89,7 +80,7 @@ export default function InvoiceListPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v2/invoices"] });
       toast({
         title: "Invoice deleted",
         description: "The invoice has been deleted successfully.",
@@ -158,14 +149,11 @@ export default function InvoiceListPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="">All properties</SelectItem>
-                          {purchases?.map(purchase => {
-                            const property = properties?.find(p => p.id === purchase.property_id);
-                            return (
-                              <SelectItem key={purchase.id} value={purchase.id.toString()}>
-                                {property ? property.name : `Purchase #${purchase.id}`}
-                              </SelectItem>
-                            );
-                          })}
+                          {purchases?.map(purchase => (
+                            <SelectItem key={purchase.id} value={purchase.id.toString()}>
+                              {purchase.property_name || `Purchase #${purchase.id}`}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -268,8 +256,6 @@ export default function InvoiceListPage() {
         ) : (
           <InvoiceList
             invoices={invoices}
-            purchases={purchases}
-            properties={properties}
             isLoading={invoicesLoading}
             onDeleteInvoice={handleDelete}
             onEditInvoice={handleEdit}
@@ -281,13 +267,9 @@ export default function InvoiceListPage() {
       <DeleteConfirmation
         isOpen={!!invoiceToDelete}
         onClose={() => setInvoiceToDelete(null)}
-        onConfirm={() => {
-          if (invoiceToDelete) {
-            deleteMutation.mutate(invoiceToDelete.id);
-          }
-        }}
+        onConfirm={() => deleteMutation.mutate(invoiceToDelete!.id)}
         title="Delete Invoice"
-        description="Are you sure you want to delete this invoice? This action cannot be undone."
+        description={`Are you sure you want to delete invoice #${invoiceToDelete?.invoice_number}? This action cannot be undone.`}
       />
       
       {/* Edit dialog */}
@@ -295,8 +277,11 @@ export default function InvoiceListPage() {
         <Dialog open={!!invoiceToEdit} onOpenChange={(open) => !open && setInvoiceToEdit(null)}>
           <DialogContent className="sm:max-w-[600px]">
             <InvoiceForm 
-              invoice={invoiceToEdit as any} 
-              onSuccess={() => setInvoiceToEdit(null)} 
+              invoice={invoiceToEdit}
+              onSuccess={() => {
+                queryClient.invalidateQueries({ queryKey: ["/api/v2/invoices"] });
+                setInvoiceToEdit(null);
+              }}
             />
           </DialogContent>
         </Dialog>

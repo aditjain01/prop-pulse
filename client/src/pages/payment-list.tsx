@@ -30,6 +30,15 @@ type Payment = {
   source_id: number;
   payment_mode: string;
   transaction_reference: string | null;
+  invoice_number: string;
+  property_name: string;
+  source_name: string;
+  [key: string]: any;
+};
+
+type PaymentSource = {
+  id: number;
+  name: string;
   [key: string]: any;
 };
 
@@ -48,7 +57,7 @@ export default function PaymentListPage() {
   
   // Fetch payments with filters
   const { data: payments, isLoading: paymentsLoading } = useQuery({
-    queryKey: ["/api/payments", filters],
+    queryKey: ["/api/v2/payments", filters],
     queryFn: async () => {
       // Build query string from filters
       const queryParams = new URLSearchParams();
@@ -56,29 +65,14 @@ export default function PaymentListPage() {
         if (value) queryParams.append(key, value);
       });
       
-      const res = await apiRequest("GET", `/api/payments?${queryParams.toString()}`);
+      const res = await apiRequest("GET", `/api/v2/payments?${queryParams.toString()}`);
       return res.json();
     },
   });
   
-  // Fetch invoices for filter dropdown
-  const { data: invoices } = useQuery({
-    queryKey: ["/api/invoices"],
-  });
-  
   // Fetch payment sources for filter dropdown
-  const { data: paymentSources } = useQuery({
-    queryKey: ["/api/payment-sources"],
-  });
-  
-  // Fetch purchases for property names
-  const { data: purchases } = useQuery({
-    queryKey: ["/api/purchases"],
-  });
-  
-  // Fetch properties to get property names
-  const { data: properties } = useQuery({
-    queryKey: ["/api/properties"],
+  const { data: paymentSources } = useQuery<PaymentSource[]>({
+    queryKey: ["/api/v2/payment-sources"],
   });
   
   const deleteMutation = useMutation({
@@ -87,8 +81,8 @@ export default function PaymentListPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v2/payments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v2/invoices"] });
       toast({
         title: "Payment deleted",
         description: "The payment has been deleted successfully.",
@@ -103,35 +97,6 @@ export default function PaymentListPage() {
       });
     },
   });
-  
-  // Function to get invoice details
-  const getInvoiceDetails = (invoiceId: number) => {
-    if (!invoices) return { number: "Unknown", property: "Unknown Property" };
-    
-    const invoice = invoices.find((i: any) => i.id === invoiceId);
-    if (!invoice) return { number: "Unknown", property: "Unknown Property" };
-    
-    let propertyName = "Unknown Property";
-    
-    if (purchases && properties) {
-      const purchase = purchases.find((p: any) => p.id === invoice.purchase_id);
-      if (purchase) {
-        if (purchase.property) {
-          propertyName = purchase.property.name;
-        } else if (purchase.property_id) {
-          const property = properties.find((p: any) => p.id === purchase.property_id);
-          if (property) {
-            propertyName = property.name;
-          }
-        }
-      }
-    }
-    
-    return {
-      number: invoice.invoice_number,
-      property: propertyName
-    };
-  };
   
   // Function to export payments as CSV
   const exportPaymentsCSV = () => {
@@ -176,32 +141,10 @@ export default function PaymentListPage() {
                   <div className="space-y-2">
                     <h4 className="font-medium leading-none">Filter Payments</h4>
                     <p className="text-sm text-muted-foreground">
-                      Filter payments by invoice, source, or date
+                      Filter payments by source or date
                     </p>
                   </div>
                   <div className="grid gap-2">
-                    <div className="grid grid-cols-3 items-center gap-4">
-                      <Label htmlFor="invoice">Invoice</Label>
-                      <Select
-                        value={filters.invoice_id}
-                        onValueChange={(value) => setFilters({...filters, invoice_id: value})}
-                      >
-                        <SelectTrigger className="col-span-2">
-                          <SelectValue placeholder="All invoices" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">All invoices</SelectItem>
-                          {invoices?.map((invoice: any) => {
-                            const details = getInvoiceDetails(invoice.id);
-                            return (
-                              <SelectItem key={invoice.id} value={invoice.id.toString()}>
-                                {details.property} - #{details.number}
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
-                    </div>
                     <div className="grid grid-cols-3 items-center gap-4">
                       <Label htmlFor="source">Source</Label>
                       <Select
@@ -213,7 +156,7 @@ export default function PaymentListPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="">All sources</SelectItem>
-                          {paymentSources?.map((source: any) => (
+                          {paymentSources?.map((source) => (
                             <SelectItem key={source.id} value={source.id.toString()}>
                               {source.name}
                             </SelectItem>
@@ -311,9 +254,6 @@ export default function PaymentListPage() {
         ) : (
           <PaymentList
             payments={payments}
-            invoices={invoices}
-            purchases={purchases}
-            properties={properties}
             paymentSources={paymentSources}
             isLoading={paymentsLoading}
             onDeletePayment={handleDelete}
@@ -327,11 +267,7 @@ export default function PaymentListPage() {
       <DeleteConfirmation
         isOpen={!!paymentToDelete}
         onClose={() => setPaymentToDelete(null)}
-        onConfirm={() => {
-          if (paymentToDelete) {
-            deleteMutation.mutate(paymentToDelete.id);
-          }
-        }}
+        onConfirm={() => deleteMutation.mutate(paymentToDelete!.id)}
         title="Delete Payment"
         description="Are you sure you want to delete this payment? This action cannot be undone."
       />
@@ -341,8 +277,11 @@ export default function PaymentListPage() {
         <Dialog open={!!paymentToEdit} onOpenChange={(open) => !open && setPaymentToEdit(null)}>
           <DialogContent className="sm:max-w-[600px]">
             <PaymentForm 
-              payment={paymentToEdit as any} 
-              onSuccess={() => setPaymentToEdit(null)} 
+              payment={paymentToEdit}
+              onSuccess={() => {
+                queryClient.invalidateQueries({ queryKey: ["/api/v2/payments"] });
+                setPaymentToEdit(null);
+              }}
             />
           </DialogContent>
         </Dialog>

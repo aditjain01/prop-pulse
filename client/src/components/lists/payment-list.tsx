@@ -19,32 +19,9 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 
 type Payment = {
   id: number;
-  invoice_id: number;
   payment_date: string;
   amount: number;
-  source_id: number;
   payment_mode: string;
-  transaction_reference: string | null;
-  [key: string]: any;
-};
-
-type Invoice = {
-  id: number;
-  invoice_number: string;
-  purchase_id: number;
-  [key: string]: any;
-};
-
-type Purchase = {
-  id: number;
-  property_id: number;
-  property?: { name: string; id: number };
-  [key: string]: any;
-};
-
-type Property = {
-  id: number;
-  name: string;
   [key: string]: any;
 };
 
@@ -56,9 +33,6 @@ type PaymentSource = {
 
 type PaymentListProps = {
   payments: Payment[] | undefined;
-  invoices?: Invoice[] | undefined;
-  purchases?: Purchase[] | undefined;
-  properties?: Property[] | undefined;
   paymentSources?: PaymentSource[] | undefined;
   isLoading: boolean;
   onDeletePayment?: (payment: Payment) => void;
@@ -68,9 +42,6 @@ type PaymentListProps = {
 
 export function PaymentList({ 
   payments, 
-  invoices, 
-  purchases, 
-  properties, 
   paymentSources,
   isLoading, 
   onDeletePayment,
@@ -89,43 +60,6 @@ export function PaymentList({
     );
   }
 
-  // Helper function to get invoice details
-  const getInvoiceDetails = (invoiceId: number) => {
-    if (!invoices) return { number: "Unknown", property: "Unknown Property" };
-    
-    const invoice = invoices.find(i => i.id === invoiceId);
-    if (!invoice) return { number: "Unknown", property: "Unknown Property" };
-    
-    let propertyName = "Unknown Property";
-    
-    if (purchases && properties) {
-      const purchase = purchases.find(p => p.id === invoice.purchase_id);
-      if (purchase) {
-        if (purchase.property) {
-          propertyName = purchase.property.name;
-        } else if (purchase.property_id) {
-          const property = properties.find(p => p.id === purchase.property_id);
-          if (property) {
-            propertyName = property.name;
-          }
-        }
-      }
-    }
-    
-    return {
-      number: invoice.invoice_number,
-      property: propertyName
-    };
-  };
-  
-  // Helper function to get payment source name
-  const getSourceName = (sourceId: number) => {
-    if (!paymentSources) return "Unknown Source";
-    
-    const source = paymentSources.find(s => s.id === sourceId);
-    return source ? source.name : "Unknown Source";
-  };
-  
   // Helper function to format payment mode
   const formatPaymentMode = (mode: string) => {
     if (!mode) return "Unknown";
@@ -146,23 +80,19 @@ export function PaymentList({
             <TableHead>Amount</TableHead>
             <TableHead>Mode</TableHead>
             <TableHead>Source</TableHead>
-            <TableHead>Reference</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {payments.map(payment => {
-            const invoiceDetails = getInvoiceDetails(payment.invoice_id);
-            
             return (
               <TableRow key={payment.id}>
                 <TableCell>{formatDate(payment.payment_date)}</TableCell>
-                <TableCell>#{invoiceDetails.number}</TableCell>
-                <TableCell>{invoiceDetails.property}</TableCell>
+                <TableCell>#{(payment as any).invoice_number || "Unknown"}</TableCell>
+                <TableCell>{(payment as any).property_name || "Unknown Property"}</TableCell>
                 <TableCell>{formatCurrency(payment.amount)}</TableCell>
                 <TableCell>{formatPaymentMode(payment.payment_mode)}</TableCell>
-                <TableCell>{getSourceName(payment.source_id)}</TableCell>
-                <TableCell>{payment.transaction_reference || "-"}</TableCell>
+                <TableCell>{(payment as any).source_name || "Unknown Source"}</TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

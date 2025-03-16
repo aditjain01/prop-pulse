@@ -4,7 +4,7 @@ import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
 import { SlideDialog } from "@/components/slide-dialog";
 import { PurchaseForm } from "@/components/forms/purchase-form";
-import { type Purchase, type Property } from "@/lib/schemas";
+import { type Purchase } from "@/lib/schemas";
 import { Plus } from "lucide-react";
 import { apiRequest } from '@/lib/api/api';
 import { queryClient } from "@/lib/queryClient";
@@ -17,11 +17,7 @@ export default function PurchaseListPage() {
   const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);
   
   const { data: purchases, isLoading: purchasesLoading } = useQuery<Purchase[]>({
-    queryKey: ["/api/purchases"],
-  });
-
-  const { data: properties } = useQuery<Property[]>({
-    queryKey: ["/api/properties"],
+    queryKey: ["/api/v2/purchases"],
   });
 
   const deleteMutation = useMutation({
@@ -30,7 +26,7 @@ export default function PurchaseListPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/purchases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v2/purchases"] });
       toast({
         title: "Purchase deleted",
         description: "The purchase has been deleted successfully.",
@@ -74,7 +70,6 @@ export default function PurchaseListPage() {
 
         <PurchaseList 
           purchases={purchases} 
-          properties={properties}
           isLoading={purchasesLoading} 
           onDeletePurchase={handleDelete}
         />

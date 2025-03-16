@@ -14,26 +14,12 @@ type LoanRepayment = {
   id: number;
   loan_id: number;
   payment_date: string;
-  principal_amount: number;
-  interest_amount: number;
-  other_fees: number;
-  penalties: number;
   payment_mode: string;
-  transaction_reference: string | null;
-  notes: string | null;
-  [key: string]: any;
-};
-
-type Loan = {
-  id: number;
-  name: string;
-  institution: string;
   [key: string]: any;
 };
 
 type RepaymentListProps = {
   repayments: LoanRepayment[] | undefined;
-  loans?: Loan[] | undefined;
   isLoading: boolean;
   onDeleteRepayment?: (repayment: LoanRepayment) => void;
   onEditRepayment?: (repayment: LoanRepayment) => void;
@@ -41,7 +27,6 @@ type RepaymentListProps = {
 
 export function RepaymentList({ 
   repayments, 
-  loans, 
   isLoading, 
   onDeleteRepayment,
   onEditRepayment
@@ -58,52 +43,37 @@ export function RepaymentList({
     );
   }
 
-  // Helper function to get loan name
-  const getLoanName = (loanId: number): string => {
-    if (!loans) return "Unknown Loan";
-    
-    const loan = loans.find(l => l.id === loanId);
-    return loan ? `${loan.name} - ${loan.institution}` : "Unknown Loan";
-  };
-
-  // Helper function to calculate total amount
-  const calculateTotal = (repayment: LoanRepayment): number => {
-    return (
-      (repayment.principal_amount || 0) +
-      (repayment.interest_amount || 0) +
-      (repayment.other_fees || 0) +
-      (repayment.penalties || 0)
-    );
-  };
-
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Date</TableHead>
-            <TableHead>Principal</TableHead>
-            <TableHead>Interest</TableHead>
-            <TableHead>Other Fees</TableHead>
-            <TableHead>Penalties</TableHead>
+            <TableHead>Loan</TableHead>
+            <TableHead>Property</TableHead>
             <TableHead>Total</TableHead>
             <TableHead>Mode</TableHead>
+            <TableHead>Source</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {repayments.map(repayment => {
-            const total = calculateTotal(repayment);
-            
             return (
               <TableRow key={repayment.id}>
                 <TableCell>{formatDate(repayment.payment_date)}</TableCell>
-                <TableCell>{formatCurrency(repayment.principal_amount)}</TableCell>
-                <TableCell>{formatCurrency(repayment.interest_amount)}</TableCell>
-                <TableCell>{formatCurrency(repayment.other_fees)}</TableCell>
-                <TableCell>{formatCurrency(repayment.penalties)}</TableCell>
-                <TableCell className="font-medium">{formatCurrency(total)}</TableCell>
+                <TableCell>
+                  {(repayment as any).loan_name || "Unknown Loan"}
+                  {(repayment as any).loan_institution && 
+                    <span className="text-xs text-muted-foreground block">
+                      {(repayment as any).loan_institution}
+                    </span>
+                  }
+                </TableCell>
+                <TableCell>{(repayment as any).property_name || ""}</TableCell>
+                <TableCell className="font-medium">{formatCurrency((repayment as any).total_payment || 0)}</TableCell>
                 <TableCell>{repayment.payment_mode}</TableCell>
+                <TableCell>{(repayment as any).source_name || ""}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end space-x-2">
                     {onEditRepayment && (

@@ -6,8 +6,6 @@ import { type Loan, type Property, type Purchase } from "@/lib/schemas";
 
 type LoanListProps = {
   loans: Loan[] | undefined;
-  purchases?: Purchase[] | undefined;
-  properties?: Property[] | undefined;
   isLoading: boolean;
   onDeleteLoan?: (loan: Loan) => void;
   onViewLoan?: (loanId: number) => void;
@@ -15,8 +13,6 @@ type LoanListProps = {
 
 export function LoanList({ 
   loans, 
-  purchases, 
-  properties, 
   isLoading, 
   onDeleteLoan,
   onViewLoan 
@@ -32,27 +28,6 @@ export function LoanList({
       </div>
     );
   }
-
-  // Helper function to get property name
-  const getPropertyName = (purchaseId: number): string => {
-    if (!purchases) return "Unknown Property";
-    
-    const purchase = purchases.find(p => p.id === purchaseId);
-    if (!purchase) return "Unknown Property";
-    
-    // If purchase has property object directly
-    if (purchase.property) {
-      return purchase.property.name;
-    }
-    
-    // If purchase only has property_id
-    if (purchase.property_id && properties) {
-      const property = properties.find(p => p.id === purchase.property_id);
-      return property ? property.name : "Unknown Property";
-    }
-    
-    return "Unknown Property";
-  };
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -81,18 +56,16 @@ export function LoanList({
               <span>{loan.institution}</span>
             </div>
             
-            <div className="flex items-center space-x-3 mb-3">
-              <Home className="h-5 w-5" />
-              <span>{getPropertyName(loan.purchase_id)}</span>
-            </div>
+            {(loan as any).property_name && (
+              <div className="flex items-center space-x-3 mb-3">
+                <Home className="h-5 w-5" />
+                <span>{(loan as any).property_name}</span>
+              </div>
+            )}
             
             <div className="space-y-1 text-sm mb-4">
-              <p><span className="font-medium">Sanction Date:</span> {new Date(loan.sanction_date).toLocaleDateString()}</p>
               <p><span className="font-medium">Amount:</span> ₹{Number(loan.sanction_amount).toLocaleString()}</p>
               <p><span className="font-medium">Disbursed:</span> ₹{Number(loan.total_disbursed_amount).toLocaleString()}</p>
-              <p><span className="font-medium">Interest Rate:</span> {loan.interest_rate}%</p>
-              <p><span className="font-medium">Tenure:</span> {loan.tenure_months} months</p>
-              {loan.agent && <p><span className="font-medium">Agent:</span> {loan.agent}</p>}
             </div>
 
             {onViewLoan && (

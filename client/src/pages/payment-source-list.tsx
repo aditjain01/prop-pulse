@@ -18,7 +18,7 @@ export default function PaymentSourceList() {
   const [sourceToDelete, setSourceToDelete] = useState(null);
   
   const { data: paymentSources, isLoading } = useQuery({
-    queryKey: ["/api/payment-sources"],
+    queryKey: ["/api/v2/payment-sources"],
   });
 
   const deleteMutation = useMutation({
@@ -27,7 +27,7 @@ export default function PaymentSourceList() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/payment-sources"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v2/payment-sources"] });
       toast({
         title: "Payment source deleted",
         description: "The payment source has been deleted successfully.",

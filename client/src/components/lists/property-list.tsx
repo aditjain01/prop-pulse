@@ -40,6 +40,9 @@ export function PropertyList({ properties, isLoading, onDeleteProperty }: Proper
             )}
           </CardHeader>
           <CardContent>
+            <p className="text-sm font-medium text-foreground mb-2">
+              {property.developer ? property.developer : "No developer information"}
+            </p>
             <p className="text-sm text-muted-foreground mb-4">{property.address}</p>
             <Link href={`/properties/${property.id}`}>
               <Button 

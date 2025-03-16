@@ -14,7 +14,6 @@ import {
 type Invoice = {
   id: number;
   invoice_number: string;
-  purchase_id: number;
   amount: number;
   paid_amount: number;
   status: string;
@@ -23,23 +22,8 @@ type Invoice = {
   [key: string]: any;
 };
 
-type Property = {
-  id: number;
-  name: string;
-  [key: string]: any;
-};
-
-type Purchase = {
-  id: number;
-  property_id: number;
-  property?: Property;
-  [key: string]: any;
-};
-
 type InvoiceListProps = {
   invoices: Invoice[] | undefined;
-  purchases?: Purchase[] | undefined;
-  properties?: Property[] | undefined;
   isLoading: boolean;
   onDeleteInvoice?: (invoice: Invoice) => void;
   onEditInvoice?: (invoice: Invoice) => void;
@@ -47,8 +31,6 @@ type InvoiceListProps = {
 
 export function InvoiceList({ 
   invoices, 
-  purchases, 
-  properties, 
   isLoading, 
   onDeleteInvoice,
   onEditInvoice 
@@ -64,27 +46,6 @@ export function InvoiceList({
       </div>
     );
   }
-
-  // Helper function to get property name
-  const getPropertyName = (purchaseId: number): string => {
-    if (!purchases) return "Unknown Property";
-    
-    const purchase = purchases.find(p => p.id === purchaseId);
-    if (!purchase) return "Unknown Property";
-    
-    // If purchase has property object directly
-    if (purchase.property) {
-      return purchase.property.name;
-    }
-    
-    // If purchase only has property_id
-    if (purchase.property_id && properties) {
-      const property = properties.find(p => p.id === purchase.property_id);
-      return property ? property.name : "Unknown Property";
-    }
-    
-    return "Unknown Property";
-  };
 
   // Helper function to get status badge
   const getStatusBadge = (status: string) => {
@@ -124,7 +85,7 @@ export function InvoiceList({
                 Invoice #{invoice.invoice_number}
               </CardTitle>
               <CardDescription className="text-sm">
-                {getPropertyName(invoice.purchase_id)}
+                {(invoice as any).property_name || "Unknown Property"}
               </CardDescription>
             </div>
             {getStatusBadge(invoice.status)}

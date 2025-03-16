@@ -40,12 +40,12 @@ export default function RepaymentListPage({ initialLoanIdFilter }: RepaymentList
   
   // Fetch all repayments
   const { data: repayments, isLoading: repaymentsLoading } = useQuery<LoanRepayment[]>({
-    queryKey: ["/api/repayments", selectedLoanId ? { loan_id: selectedLoanId } : undefined],
+    queryKey: ["/api/v2/repayments", selectedLoanId ? { loan_id: selectedLoanId } : undefined],
   });
 
   // Fetch all loans for dropdown
   const { data: loans, isLoading: loansLoading } = useQuery<Loan[]>({
-    queryKey: ["/api/loans"],
+    queryKey: ["/api/v2/loans"],
   });
 
   const deleteMutation = useMutation({
@@ -54,7 +54,7 @@ export default function RepaymentListPage({ initialLoanIdFilter }: RepaymentList
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/repayments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v2/repayments"] });
       toast({
         title: "Repayment deleted",
         description: "The repayment has been deleted successfully.",
@@ -80,13 +80,12 @@ export default function RepaymentListPage({ initialLoanIdFilter }: RepaymentList
 
   const handleRepaymentFormSuccess = () => {
     queryClient.invalidateQueries({ 
-      queryKey: ["/api/repayments", selectedLoanId ? { loan_id: selectedLoanId } : undefined] 
+      queryKey: ["/api/v2/repayments", selectedLoanId ? { loan_id: selectedLoanId } : undefined] 
     });
     setRepaymentToEdit(null);
   };
 
-  const handleLoanFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
+  const handleLoanFilterChange = (value: string) => {
     setSelectedLoanId(value ? parseInt(value) : undefined);
   };
 
@@ -124,19 +123,22 @@ export default function RepaymentListPage({ initialLoanIdFilter }: RepaymentList
                 <label htmlFor="loan-filter" className="block text-sm font-medium mb-1">
                   Filter by Loan
                 </label>
-                <select
-                  id="loan-filter"
-                  className="w-full p-2 border rounded-md"
-                  value={selectedLoanId || ""}
-                  onChange={handleLoanFilterChange}
+                <Select
+                  value={selectedLoanId?.toString() || ""}
+                  onValueChange={handleLoanFilterChange}
                 >
-                  <option value="">All Loans</option>
-                  {loans?.map(loan => (
-                    <option key={loan.id} value={loan.id}>
-                      {loan.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="All Loans" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Loans</SelectItem>
+                    {loans?.map(loan => (
+                      <SelectItem key={loan.id} value={loan.id.toString()}>
+                        {loan.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardContent>
@@ -144,7 +146,6 @@ export default function RepaymentListPage({ initialLoanIdFilter }: RepaymentList
 
         <RepaymentList
           repayments={repayments}
-          loans={loans}
           isLoading={repaymentsLoading || loansLoading}
           onDeleteRepayment={handleDeleteRepayment}
           onEditRepayment={handleEditRepayment}

@@ -27,17 +27,7 @@ export default function LoanListPage() {
   const [, navigate] = useLocation();
   
   const { data: loans, isLoading } = useQuery<Loan[]>({
-    queryKey: ["/api/loans"],
-  });
-
-  // Fetch purchases to display purchase details
-  const { data: purchases } = useQuery({
-    queryKey: ["/api/purchases"],
-  });
-  
-  // Fetch properties to get property names
-  const { data: properties } = useQuery({
-    queryKey: ["/api/properties"],
+    queryKey: ["/api/v2/loans"],
   });
 
   const deleteMutation = useMutation({
@@ -46,7 +36,7 @@ export default function LoanListPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/loans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v2/loans"] });
       queryClient.invalidateQueries({ queryKey: ["/api/payment-sources"] });
       toast({
         title: "Loan deleted",
@@ -92,7 +82,7 @@ export default function LoanListPage() {
           >
             <LoanForm 
               onSuccess={() => {
-                queryClient.invalidateQueries({ queryKey: ["/api/loans"] });
+                queryClient.invalidateQueries({ queryKey: ["/api/v2/loans"] });
               }}
             />
           </SlideDialog>
@@ -100,8 +90,6 @@ export default function LoanListPage() {
 
         <LoanList 
           loans={loans}
-          purchases={purchases}
-          properties={properties}
           isLoading={isLoading}
           onDeleteLoan={handleDelete}
           onViewLoan={handleViewDetails}

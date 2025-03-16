@@ -18,7 +18,7 @@ export default function PropertyListPage() {
   const [propertyToDelete, setPropertyToDelete] = useState<Property | null>(null);
   
   const { data: properties, isLoading } = useQuery<Property[]>({
-    queryKey: ["/api/properties"],
+    queryKey: ["/api/v2/properties"],
   });
 
   const deleteMutation = useMutation({
@@ -27,7 +27,7 @@ export default function PropertyListPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v2/properties"] });
       toast({
         title: "Property deleted",
         description: "The property has been deleted successfully.",
