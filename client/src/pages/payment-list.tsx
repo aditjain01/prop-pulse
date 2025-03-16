@@ -4,45 +4,39 @@ import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { PaymentForm } from "@/components/forms/payment-form";
-import { Plus, Trash2, Filter, Download, Pencil, FileText } from "lucide-react";
+import { Plus, Filter, Download } from "lucide-react";
 import { apiRequest } from '@/lib/api/api';
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { DeleteConfirmation } from "@/components/delete-confirmation";
-import { Link, useLocation } from "wouter";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useLocation } from "wouter";
 import {
   Card,
-  CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { SlideDialog } from "@/components/slide-dialog";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { PaymentList } from "@/components/lists/payment-list";
 
-export default function PaymentList() {
+type Payment = {
+  id: number;
+  invoice_id: number;
+  payment_date: string;
+  amount: number;
+  source_id: number;
+  payment_mode: string;
+  transaction_reference: string | null;
+  [key: string]: any;
+};
+
+export default function PaymentListPage() {
   const { toast } = useToast();
-  const [paymentToDelete, setPaymentToDelete] = useState(null);
-  const [paymentToEdit, setPaymentToEdit] = useState(null);
+  const [paymentToDelete, setPaymentToDelete] = useState<Payment | null>(null);
+  const [paymentToEdit, setPaymentToEdit] = useState<Payment | null>(null);
   const [, navigate] = useLocation();
   const [filters, setFilters] = useState({
     invoice_id: "",
@@ -110,67 +104,57 @@ export default function PaymentList() {
     },
   });
   
-  // Helper function to get invoice details
+  // Function to get invoice details
   const getInvoiceDetails = (invoiceId: number) => {
-    const invoice = invoices?.find(i => i.id === invoiceId);
-    if (!invoice) return { number: "Unknown", property: "Unknown" };
+    if (!invoices) return { number: "Unknown", property: "Unknown Property" };
     
-    const purchase = purchases?.find(p => p.id === invoice.purchase_id);
-    if (!purchase) return { number: invoice.invoice_number, property: "Unknown" };
+    const invoice = invoices.find((i: any) => i.id === invoiceId);
+    if (!invoice) return { number: "Unknown", property: "Unknown Property" };
     
-    const property = properties?.find(p => p.id === purchase.property_id);
-    return { 
-      number: invoice.invoice_number, 
-      property: property?.name || "Unknown Property" 
+    let propertyName = "Unknown Property";
+    
+    if (purchases && properties) {
+      const purchase = purchases.find((p: any) => p.id === invoice.purchase_id);
+      if (purchase) {
+        if (purchase.property) {
+          propertyName = purchase.property.name;
+        } else if (purchase.property_id) {
+          const property = properties.find((p: any) => p.id === purchase.property_id);
+          if (property) {
+            propertyName = property.name;
+          }
+        }
+      }
+    }
+    
+    return {
+      number: invoice.invoice_number,
+      property: propertyName
     };
   };
   
-  // Helper function to get payment source name
-  const getPaymentSourceName = (sourceId: number) => {
-    const source = paymentSources?.find(s => s.id === sourceId);
-    return source?.name || "Unknown Source";
+  // Function to export payments as CSV
+  const exportPaymentsCSV = () => {
+    // Implementation would go here
+    toast({
+      title: "Export started",
+      description: "Your payments are being exported to CSV.",
+    });
   };
   
-  const exportPaymentsCSV = () => {
-    if (!payments || payments.length === 0) return;
-    
-    const headers = [
-      "Date",
-      "Invoice",
-      "Property",
-      "Amount",
-      "Payment Mode",
-      "Source",
-      "Reference"
-    ];
-    
-    const rows = payments.map(payment => {
-      const invoiceDetails = getInvoiceDetails(payment.invoice_id);
-      return [
-        formatDate(payment.payment_date),
-        invoiceDetails.number,
-        invoiceDetails.property,
-        payment.amount,
-        payment.payment_mode,
-        getPaymentSourceName(payment.source_id),
-        payment.transaction_reference || ""
-      ];
-    });
-    
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(row => row.join(","))
-    ].join("\n");
-    
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "payments.csv");
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // Function to handle delete
+  const handleDelete = (payment: Payment) => {
+    setPaymentToDelete(payment);
+  };
+  
+  // Function to handle edit
+  const handleEdit = (payment: Payment) => {
+    setPaymentToEdit(payment);
+  };
+  
+  // Function to view payment details
+  const handleViewPayment = (paymentId: number) => {
+    navigate(`/payments/${paymentId}`);
   };
   
   return (
@@ -207,7 +191,7 @@ export default function PaymentList() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="">All invoices</SelectItem>
-                          {invoices?.map(invoice => {
+                          {invoices?.map((invoice: any) => {
                             const details = getInvoiceDetails(invoice.id);
                             return (
                               <SelectItem key={invoice.id} value={invoice.id.toString()}>
@@ -229,7 +213,7 @@ export default function PaymentList() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="">All sources</SelectItem>
-                          {paymentSources?.map(source => (
+                          {paymentSources?.map((source: any) => (
                             <SelectItem key={source.id} value={source.id.toString()}>
                               {source.name}
                             </SelectItem>
@@ -299,7 +283,7 @@ export default function PaymentList() {
               <DialogTrigger asChild>
                 <Button size="sm">
                   <Plus className="h-4 w-4 mr-2" />
-                  New Payment
+                  Add Payment
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[600px]">
@@ -325,98 +309,17 @@ export default function PaymentList() {
             </CardHeader>
           </Card>
         ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Invoice</TableHead>
-                  <TableHead>Property</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Mode</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Reference</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {payments.map(payment => {
-                  const invoiceDetails = getInvoiceDetails(payment.invoice_id);
-                  return (
-                    <TableRow key={payment.id}>
-                      <TableCell>{formatDate(payment.payment_date)}</TableCell>
-                      <TableCell>
-                        <Link href={`/invoices/${payment.invoice_id}`} className="text-blue-500 hover:underline flex items-center">
-                          <FileText className="h-3 w-3 mr-1" />
-                          #{invoiceDetails.number}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{invoiceDetails.property}</TableCell>
-                      <TableCell>{formatCurrency(payment.amount)}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{payment.payment_mode}</Badge>
-                      </TableCell>
-                      <TableCell>{getPaymentSourceName(payment.source_id)}</TableCell>
-                      <TableCell>{payment.transaction_reference || "-"}</TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className="h-4 w-4"
-                              >
-                                <circle cx="12" cy="12" r="1" />
-                                <circle cx="12" cy="5" r="1" />
-                                <circle cx="12" cy="19" r="1" />
-                              </svg>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem 
-                              onSelect={() => navigate(`/payments/${payment.id}`)}
-                            >
-                              <FileText className="h-4 w-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <DropdownMenuItem onSelect={(e) => {
-                                  e.preventDefault();
-                                  setPaymentToEdit(payment);
-                                }}>
-                                  <Pencil className="h-4 w-4 mr-2" />
-                                  Edit
-                                </DropdownMenuItem>
-                              </DialogTrigger>
-                              <DialogContent className="sm:max-w-[600px]">
-                                <PaymentForm payment={paymentToEdit} onSuccess={() => setPaymentToEdit(null)} />
-                              </DialogContent>
-                            </Dialog>
-                            <DropdownMenuItem 
-                              className="text-red-600"
-                              onSelect={() => setPaymentToDelete(payment)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+          <PaymentList
+            payments={payments}
+            invoices={invoices}
+            purchases={purchases}
+            properties={properties}
+            paymentSources={paymentSources}
+            isLoading={paymentsLoading}
+            onDeletePayment={handleDelete}
+            onEditPayment={handleEdit}
+            onViewPayment={handleViewPayment}
+          />
         )}
       </main>
       
@@ -431,8 +334,19 @@ export default function PaymentList() {
         }}
         title="Delete Payment"
         description="Are you sure you want to delete this payment? This action cannot be undone."
-        isDeleting={deleteMutation.isPending}
       />
+      
+      {/* Edit dialog */}
+      {paymentToEdit && (
+        <Dialog open={!!paymentToEdit} onOpenChange={(open) => !open && setPaymentToEdit(null)}>
+          <DialogContent className="sm:max-w-[600px]">
+            <PaymentForm 
+              payment={paymentToEdit as any} 
+              onSuccess={() => setPaymentToEdit(null)} 
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 } 

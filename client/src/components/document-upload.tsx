@@ -16,11 +16,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { type Document as CustomDocument } from "@/lib/schemas";
 
 type DocumentUploadProps = {
   entityType: string;
   entityId: number;
-  documents: Document[];
+  documents: CustomDocument[];
 };
 
 export function DocumentUpload({ entityType, entityId, documents }: DocumentUploadProps) {
