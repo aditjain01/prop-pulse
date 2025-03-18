@@ -77,7 +77,7 @@ def get_purchase_old(purchase_id: int, db: Session = Depends(get_db)) -> schemas
 @router.put("/{purchase_id}/", response_model=schemas.PurchaseOld)
 def update_purchase(
     purchase_id: int,
-    purchase_update: schemas.PurchaseCreate,
+    purchase_update: schemas.PurchaseUpdate,
     db: Session = Depends(get_db),
 ) -> schemas.PurchaseOld:
     """

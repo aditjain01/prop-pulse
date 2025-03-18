@@ -123,16 +123,6 @@ export type Payment = {
   notes: string | null;
 };
 
-export type Document = {
-  id: number;
-  entity_type: string;
-  entity_id: number;
-  file_path: string;
-  document_vector: string | null;
-  metadata: Record<string, any> | null;
-  created_at: string;
-};
-
 // Add LoanRepayment type
 export type LoanRepayment = {
   id: number;
@@ -152,6 +142,17 @@ export type LoanRepayment = {
   notes: string | null;
 };
 
+export type Document = {
+  id: number;
+  entity_type: string;
+  entity_id: number;
+  file_path: string;
+  document_vector: string | null;
+  metadata: Record<string, any> | null;
+  created_at: string;
+};
+
+
 // Zod schemas for form validation
 
 // Property schemas
@@ -170,8 +171,27 @@ export const propertyFormSchema = z.object({
   developer: z.string().optional(),
   rera_id: z.string().optional(),
 });
-
 export type PropertyFormValues = z.infer<typeof propertyFormSchema>;
+export const propertyUpdateSchema = propertyFormSchema.partial();
+export type PropertyUpdateValues = z.infer<typeof propertyUpdateSchema>;
+export const initializePropertyForm = (property?: Property): PropertyFormValues => {
+  return {
+    name: property?.name || "",
+    address: property?.address || "",
+    property_type: property?.property_type || "",
+    carpet_area: property?.carpet_area !== null ? property.carpet_area.toString() : "",
+    exclusive_area: property?.exclusive_area !== null ? property.exclusive_area.toString() : "",
+    common_area: property?.common_area !== null ? property.common_area.toString() : "",
+    floor_number: property?.floor_number !== null ? property.floor_number.toString() : "",
+    parking_details: property?.parking_details || "",
+    amenities: property?.amenities || [],
+    initial_rate: property?.initial_rate !== undefined ? property.initial_rate.toString() : "0",
+    current_rate: property?.current_rate !== undefined ? property.current_rate.toString() : "0",
+    developer: property?.developer || "",
+    rera_id: property?.rera_id || "",
+  };
+};
+
 
 // Purchase schemas
 export const purchaseFormSchema = z.object({
@@ -188,8 +208,26 @@ export const purchaseFormSchema = z.object({
   seller: z.string().optional(),
   remarks: z.string().optional(),
 });
-
 export type PurchaseFormValues = z.infer<typeof purchaseFormSchema>;
+export const purchaseUpdateSchema = purchaseFormSchema.partial();
+export type PurchaseUpdateValues = z.infer<typeof purchaseUpdateSchema>;
+export const initializePurchaseForm = (purchase?: Purchase, propertyId?: number): PurchaseFormValues => {
+  return {
+    property_id: propertyId?.toString() || "",
+    purchase_date: purchase?.purchase_date || new Date().toISOString().split('T')[0],
+    registration_date: purchase?.registration_date || "", 
+    possession_date: purchase?.possession_date || "",
+    base_cost: purchase?.base_cost !== undefined ? purchase.base_cost.toString() : "0",
+    other_charges: purchase?.other_charges !== undefined ? purchase.other_charges.toString() : "0",
+    ifms: purchase?.ifms !== undefined ? purchase.ifms.toString() : "0",
+    lease_rent: purchase?.lease_rent !== undefined ? purchase.lease_rent.toString() : "0",
+    amc: purchase?.amc !== undefined ? purchase.amc.toString() : "0",
+    gst: purchase?.gst !== undefined ? purchase.gst.toString() : "0",
+    seller: purchase?.seller || "",
+    remarks: purchase?.remarks || "",
+  };
+};
+
 
 // Loan schemas
 export const loanFormSchema = z.object({
@@ -207,8 +245,27 @@ export const loanFormSchema = z.object({
   tenure_months: z.number().int().min(1, "Tenure must be at least 1 month"),
   is_active: z.boolean().default(true),
 });
-
 export type LoanFormValues = z.infer<typeof loanFormSchema>;
+export const loanUpdateSchema = loanFormSchema.partial();
+export type LoanUpdateValues = z.infer<typeof loanUpdateSchema>;
+export const initializeLoanForm = (loan?: Loan, purchaseId?: number): LoanFormValues => {
+  return {
+    purchase_id: loan?.purchase_id?.toString() || purchaseId?.toString() || "",
+    name: loan?.name || "",
+    institution: loan?.institution || "",
+    agent: loan?.agent || "",
+    sanction_date: loan?.sanction_date || new Date().toISOString().split('T')[0],
+    sanction_amount: loan?.sanction_amount || 0,
+    total_disbursed_amount: loan?.total_disbursed_amount || 0,
+    processing_fee: loan?.processing_fee || 0,
+    other_charges: loan?.other_charges || 0,
+    loan_sanction_charges: loan?.loan_sanction_charges || 0,
+    interest_rate: loan?.interest_rate || 0,
+    tenure_months: loan?.tenure_months || 0,
+    is_active: loan?.is_active ?? true,
+  };
+};
+
 
 // Payment source schemas
 export const paymentSourceFormSchema = z.object({
@@ -232,130 +289,9 @@ export const paymentSourceFormSchema = z.object({
   wallet_provider: z.string().optional(),
   wallet_identifier: z.string().optional(),
 });
-
 export type PaymentSourceFormValues = z.infer<typeof paymentSourceFormSchema>;
-
-// Payment schemas
-export const paymentFormSchema = z.object({
-  invoice_id: z.string().nonempty("Invoice is required"),
-  payment_date: z.string(),
-  amount: z.number(),
-  source_id: z.string().nonempty("Payment source is required"),
-  payment_mode: z.string(),
-  transaction_reference: z.string().optional(),
-  
-  // Receipt details
-  receipt_date: z.string().optional(),
-  receipt_number: z.string().optional(),
-  notes: z.string().optional(),
-});
-
-export type PaymentFormValues = z.infer<typeof paymentFormSchema>;
-
-// Document schemas
-export const documentFormSchema = z.object({
-  entity_type: z.string().nonempty("Entity type is required"),
-  entity_id: z.number().int().positive("Entity ID is required"),
-  file: z.instanceof(File, { message: "File is required" }),
-  metadata: z.record(z.string(), z.any()).optional(),
-});
-
-export type DocumentFormValues = z.infer<typeof documentFormSchema>;
-
-// Add LoanRepayment form schema
-export const loanRepaymentFormSchema = z.object({
-  loan_id: z.string().nonempty("Loan is required"),
-  payment_date: z.string().nonempty("Payment date is required"),
-  principal_amount: z.number().min(0, "Principal amount must be positive"),
-  interest_amount: z.number().min(0, "Interest amount must be positive"),
-  other_fees: z.number().min(0, "Other fees must be positive").default(0),
-  penalties: z.number().min(0, "Penalties must be positive").default(0),
-  source_id: z.string().nonempty("Payment source is required"),
-  payment_mode: z.string().nonempty("Payment mode is required"),
-  transaction_reference: z.string().optional(),
-  notes: z.string().optional(),
-});
-
-export type LoanRepaymentFormValues = z.infer<typeof loanRepaymentFormSchema>;
-
-// Add consistent Update types for all entities
-export type PropertyUpdate = Partial<Omit<Property, 'id' | 'created_at' | 'updated_at'>>;
-export type PurchaseUpdate = Partial<Omit<Purchase, 'id' | 'created_at' | 'updated_at'>>;
-export type LoanUpdate = Partial<Omit<Loan, 'id' | 'created_at' | 'updated_at'>>;
-export type PaymentSourceUpdate = Partial<Omit<PaymentSource, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
-export type PaymentUpdate = Partial<Omit<Payment, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
-export type LoanRepaymentUpdate = Partial<Omit<LoanRepayment, 'id' | 'created_at' | 'updated_at'>>;
-
-// Update schemas for form validation
-export const propertyUpdateSchema = propertyFormSchema.partial();
-export const purchaseUpdateSchema = purchaseFormSchema.partial();
-export const loanUpdateSchema = loanFormSchema.partial();
 export const paymentSourceUpdateSchema = paymentSourceFormSchema.partial();
-export const paymentUpdateSchema = paymentFormSchema.partial();
-export const loanRepaymentUpdateSchema = loanRepaymentFormSchema.partial();
-
-// Types for the update schemas
-export type PropertyUpdateValues = z.infer<typeof propertyUpdateSchema>;
-export type PurchaseUpdateValues = z.infer<typeof purchaseUpdateSchema>;
-export type LoanUpdateValues = z.infer<typeof loanUpdateSchema>;
 export type PaymentSourceUpdateValues = z.infer<typeof paymentSourceUpdateSchema>;
-export type PaymentUpdateValues = z.infer<typeof paymentUpdateSchema>;
-export type LoanRepaymentUpdateValues = z.infer<typeof loanRepaymentUpdateSchema>;
-
-// Helper functions for form initialization
-export const initializePropertyForm = (property?: Property): PropertyFormValues => {
-  return {
-    name: property?.name || "",
-    address: property?.address || "",
-    property_type: property?.property_type || "",
-    carpet_area: property?.carpet_area !== null ? property.carpet_area.toString() : "",
-    exclusive_area: property?.exclusive_area !== null ? property.exclusive_area.toString() : "",
-    common_area: property?.common_area !== null ? property.common_area.toString() : "",
-    floor_number: property?.floor_number !== null ? property.floor_number.toString() : "",
-    parking_details: property?.parking_details || "",
-    amenities: property?.amenities || [],
-    initial_rate: property?.initial_rate !== undefined ? property.initial_rate.toString() : "0",
-    current_rate: property?.current_rate !== undefined ? property.current_rate.toString() : "0",
-    developer: property?.developer || "",
-    rera_id: property?.rera_id || "",
-  };
-};
-
-export const initializePurchaseForm = (purchase?: Purchase): PurchaseFormValues => {
-  return {
-    property_id: purchase?.property_id?.toString() || "",
-    purchase_date: purchase?.purchase_date || new Date().toISOString().split('T')[0],
-    registration_date: purchase?.registration_date || new Date().toISOString().split('T')[0],
-    possession_date: purchase?.possession_date || new Date().toISOString().split('T')[0],
-    base_cost: purchase?.base_cost?.toString() || "0",
-    other_charges: purchase?.other_charges?.toString() || "0",
-    ifms: purchase?.ifms?.toString() || "0",
-    lease_rent: purchase?.lease_rent?.toString() || "0",
-    amc: purchase?.amc?.toString() || "0",
-    gst: purchase?.gst?.toString() || "0",
-    seller: purchase?.seller || "",
-    remarks: purchase?.remarks || "",
-  };
-};
-
-export const initializeLoanForm = (loan?: Loan, purchaseId?: number): LoanFormValues => {
-  return {
-    purchase_id: loan?.purchase_id?.toString() || purchaseId?.toString() || "",
-    name: loan?.name || "",
-    institution: loan?.institution || "",
-    agent: loan?.agent || "",
-    sanction_date: loan?.sanction_date || new Date().toISOString().split('T')[0],
-    sanction_amount: loan?.sanction_amount || 0,
-    total_disbursed_amount: loan?.total_disbursed_amount || 0,
-    processing_fee: loan?.processing_fee || 0,
-    other_charges: loan?.other_charges || 0,
-    loan_sanction_charges: loan?.loan_sanction_charges || 0,
-    interest_rate: loan?.interest_rate || 0,
-    tenure_months: loan?.tenure_months || 0,
-    is_active: loan?.is_active ?? true,
-  };
-};
-
 export const initializePaymentSourceForm = (source?: PaymentSource): PaymentSourceFormValues => {
   return {
     name: source?.name || "",
@@ -375,6 +311,24 @@ export const initializePaymentSourceForm = (source?: PaymentSource): PaymentSour
   };
 };
 
+
+// Payment schemas
+export const paymentFormSchema = z.object({
+  invoice_id: z.string().nonempty("Invoice is required"),
+  payment_date: z.string(),
+  amount: z.number(),
+  source_id: z.string().nonempty("Payment source is required"),
+  payment_mode: z.string(),
+  transaction_reference: z.string().optional(),
+  
+  // Receipt details
+  receipt_date: z.string().optional(),
+  receipt_number: z.string().optional(),
+  notes: z.string().optional(),
+});
+export type PaymentFormValues = z.infer<typeof paymentFormSchema>;
+export const paymentUpdateSchema = paymentFormSchema.partial();
+export type PaymentUpdateValues = z.infer<typeof paymentUpdateSchema>;
 export const initializePaymentForm = (payment?: Payment, invoiceId?: number): PaymentFormValues => {
   return {
     invoice_id: payment?.invoice_id?.toString() || invoiceId?.toString() || "",
@@ -389,6 +343,23 @@ export const initializePaymentForm = (payment?: Payment, invoiceId?: number): Pa
   };
 };
 
+
+// Add LoanRepayment form schema
+export const loanRepaymentFormSchema = z.object({
+  loan_id: z.string().nonempty("Loan is required"),
+  payment_date: z.string().nonempty("Payment date is required"),
+  principal_amount: z.number().min(0, "Principal amount must be positive"),
+  interest_amount: z.number().min(0, "Interest amount must be positive"),
+  other_fees: z.number().min(0, "Other fees must be positive").default(0),
+  penalties: z.number().min(0, "Penalties must be positive").default(0),
+  source_id: z.string().nonempty("Payment source is required"),
+  payment_mode: z.string().nonempty("Payment mode is required"),
+  transaction_reference: z.string().optional(),
+  notes: z.string().optional(),
+});
+export type LoanRepaymentFormValues = z.infer<typeof loanRepaymentFormSchema>;
+export const loanRepaymentUpdateSchema = loanRepaymentFormSchema.partial();
+export type LoanRepaymentUpdateValues = z.infer<typeof loanRepaymentUpdateSchema>;
 export const initializeLoanRepaymentForm = (repayment?: LoanRepayment, loanId?: number): LoanRepaymentFormValues => {
   return {
     loan_id: repayment?.loan_id?.toString() || loanId?.toString() || "",
@@ -403,3 +374,13 @@ export const initializeLoanRepaymentForm = (repayment?: LoanRepayment, loanId?: 
     notes: repayment?.notes || "",
   };
 }; 
+
+
+// Document schemas
+export const documentFormSchema = z.object({
+  entity_type: z.string().nonempty("Entity type is required"),
+  entity_id: z.number().int().positive("Entity ID is required"),
+  file: z.instanceof(File, { message: "File is required" }),
+  metadata: z.record(z.string(), z.any()).optional(),
+});
+export type DocumentFormValues = z.infer<typeof documentFormSchema>;

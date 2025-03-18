@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { SlideDialog } from "@/components/slide-dialog";
 import { PaymentForm } from "@/components/forms/payment-form";
 import { Plus, Filter, Download } from "lucide-react";
-import { apiRequest } from '@/lib/api/api';
+import { apiRequest } from '@/lib/api/base';
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {

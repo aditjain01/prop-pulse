@@ -11,7 +11,7 @@ import { RepaymentList } from "@/components/lists/repayment-list";
 import { LoanRepaymentForm } from "@/components/forms/loan-repayment-form";
 import { useState } from "react";
 import { DeleteConfirmation } from "@/components/delete-confirmation";
-import { apiRequest } from "@/lib/api/api";
+import { apiRequest } from "@/lib/api/base";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate } from "@/lib/utils";

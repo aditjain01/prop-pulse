@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { DetailView } from "@/components/detail-view";
-import { apiRequest } from "@/lib/api/api";
+import { apiRequest } from "@/lib/api/base";
 import { SlideDialog } from "@/components/slide-dialog";
 import { PropertyForm } from "@/components/forms/property-form";
 import { useState } from "react";
@@ -232,7 +232,6 @@ export function PropertyDetail({ propertyId, showHeader = false, onEdit, onDelet
               >
                 <PurchaseForm 
                   propertyId={propertyId} 
-                  onSuccess={handlePurchaseFormSuccess}
                 />
               </SlideDialog>
             </CardHeader>

@@ -109,7 +109,7 @@ def get_loan_old(loan_id: int, db: Session = Depends(get_db)) -> schemas.LoanOld
 @router.put("/{loan_id}", response_model=schemas.LoanOld, include_in_schema=False)
 @router.put("/{loan_id}/", response_model=schemas.LoanOld)
 def update_loan(
-    loan_id: int, loan_update: schemas.LoanCreate, db: Session = Depends(get_db)
+    loan_id: int, loan_update: schemas.LoanUpdate, db: Session = Depends(get_db)
 ) -> schemas.LoanOld:
     """
     Update the details of an existing loan and its associated payment source.

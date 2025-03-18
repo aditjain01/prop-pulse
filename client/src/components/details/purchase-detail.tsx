@@ -19,7 +19,7 @@ import { InvoiceList } from "@/components/lists/invoice-list";
 import { PaymentList } from "@/components/lists/payment-list";
 import { InvoiceForm } from "@/components/forms/invoice-form";
 import { PaymentForm } from "@/components/forms/payment-form";
-import { apiRequest } from "@/lib/api/api";
+import { apiRequest } from "@/lib/api/base";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";

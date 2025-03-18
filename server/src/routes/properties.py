@@ -109,7 +109,7 @@ def get_property_old(property_id: int, db: Session = Depends(get_db)) -> schemas
 @router.put("/{property_id}/", response_model=schemas.PropertyOld)
 def update_property(
     property_id: int,
-    property_update: schemas.PropertyCreate,
+    property_update: schemas.PropertyUpdate,
     db: Session = Depends(get_db),
 ) -> schemas.PropertyOld:
     """

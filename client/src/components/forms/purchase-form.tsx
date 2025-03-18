@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest } from '@/lib/api/api';
+import { apiRequest } from '@/lib/api/base';
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -59,10 +59,10 @@ export function PurchaseForm({ propertyId, purchase, onSuccess }: PurchaseFormPr
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/purchases"] });
-      if (propertyId) {
-        queryClient.invalidateQueries({ queryKey: [`/api/purchases`, { property_id: propertyId }] });
-      }
+      propertyId
+      ? queryClient.invalidateQueries({ queryKey: [`/api/purchases`, { property_id: propertyId }] })
+      : queryClient.invalidateQueries({ queryKey: ["/api/purchases"] });
+
       
       toast({
         title: purchase ? "Purchase updated" : "Purchase created",

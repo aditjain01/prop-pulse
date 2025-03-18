@@ -9,7 +9,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { apiRequest } from "@/lib/api/api";
+import { apiRequest } from "@/lib/api/base";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { type LoanRepayment } from "@/lib/schemas";

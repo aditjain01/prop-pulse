@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { PaymentSourceForm } from "@/components/forms/payment-source-form";
 import { Plus, CreditCard, Wallet, Building, Landmark, Banknote, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { apiRequest } from '@/lib/api/api';
+import { apiRequest } from '@/lib/api/base';
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { DeleteConfirmation } from "@/components/delete-confirmation";

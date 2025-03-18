@@ -69,5 +69,14 @@ class PropertyPublic(BaseModel):
 
 class Property(PropertyPublic):
     """Schema for detailed view of a single property, extending public schema with additional details."""
+    carpet_area: Optional[Decimal] = None
+    exclusive_area: Optional[Decimal] = None
+    common_area: Optional[Decimal] = None
+    floor_number: Optional[int] = None
+    parking_details: Optional[str] = None
+    amenities: List[str] = []
+    initial_rate: Decimal
+    current_rate: Decimal
+    
     property_type: str
     rera_id: Optional[str] = None

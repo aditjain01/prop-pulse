@@ -1,7 +1,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest } from '@/lib/api/api';
+import { apiRequest } from '@/lib/api/base';
+import { type Invoice } from "@/lib/schemas";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -30,21 +31,6 @@ const invoiceFormSchema = z.object({
 // Define the type for the form values
 type InvoiceFormValues = z.infer<typeof invoiceFormSchema>;
 
-// Define the type for the invoice object
-export type Invoice = {
-  id: number;
-  purchase_id: number;
-  invoice_number: string;
-  invoice_date: string;
-  due_date?: string;
-  amount: number;
-  paid_amount: number;
-  status: string;
-  milestone?: string;
-  description?: string;
-  created_at: string;
-  updated_at?: string;
-};
 
 // Helper function to initialize form values
 const initializeInvoiceForm = (invoice?: Invoice, purchaseId?: number): InvoiceFormValues => {

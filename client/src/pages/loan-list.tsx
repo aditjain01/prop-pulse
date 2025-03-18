@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { LoanForm } from "@/components/forms/loan-form";
 import { Plus, Landmark, Home, Trash2, ChevronLeft, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { apiRequest } from '@/lib/api/api';
+import { apiRequest } from '@/lib/api/base';
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { SlideDialog } from "@/components/slide-dialog";
