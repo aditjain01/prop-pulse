@@ -32,15 +32,17 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
   const { toast } = useToast();
   const [paymentSourceDialogOpen, setPaymentSourceDialogOpen] = useState(false);
   const [, navigate] = useLocation();
+  const [isLoading, setIsLoading] = useState(false);
   
-  // Fetch loans for dropdown
-  const { data: loans, isLoading: loansLoading } = useQuery({
-    queryKey: ["/api/loans"],
+  // Fetch loans if loanId is not provided
+  const { data: loans = [] } = useQuery<Loan[]>({
+    queryKey: ["/api/v2/loans"],
+    enabled: !loanId,
   });
   
-  // Fetch payment sources
-  const { data: paymentSources, isLoading: sourcesLoading } = useQuery({
-    queryKey: ["/api/payment-sources"],
+  // Fetch payment sources for the dropdown
+  const { data: paymentSources = [] } = useQuery<PaymentSource[]>({
+    queryKey: ["/api/v2/payment-sources"],
   });
   
   const form = useForm<LoanRepaymentFormValues>({
@@ -56,37 +58,27 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
   const penalties = Number(form.watch("penalties")) || 0;
   const totalPayment = principalAmount + interestAmount + otherFees + penalties;
 
-  const mutation = useMutation({
+  // Create or update the repayment
+  const saveMutation = useMutation({
     mutationFn: async (data: LoanRepaymentFormValues) => {
-      const endpoint = repayment ? `/api/repayments/${repayment.id}` : "/api/repayments";
+      const url = repayment 
+        ? `/api/v2/repayments/${repayment.id}` 
+        : "/api/v2/repayments";
+      
       const method = repayment ? "PUT" : "POST";
       
-      const payload = {
-        ...data,
-        loan_id: parseInt(data.loan_id),
-        source_id: parseInt(data.source_id),
-        principal_amount: Number(data.principal_amount),
-        interest_amount: Number(data.interest_amount),
-        other_fees: Number(data.other_fees),
-        penalties: Number(data.penalties),
-      };
-      
-      const res = await apiRequest(method, endpoint, payload);
+      const res = await apiRequest(method, url, data);
       return res.json();
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/repayments"] });
-      if (loanId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/loans", loanId.toString()] });
-      }
+    onSuccess: () => {
       toast({
-        title: repayment ? "Repayment updated" : "Repayment recorded",
-        description: repayment 
-          ? "The loan repayment has been updated successfully." 
-          : "The loan repayment has been recorded successfully.",
+        title: `Repayment ${repayment ? "updated" : "created"}`,
+        description: `The repayment has been ${repayment ? "updated" : "created"} successfully.`,
       });
-      if (onSuccess) onSuccess();
-      if (!repayment) navigate("/repayments");
+      
+      if (onSuccess) {
+        onSuccess();
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -95,21 +87,28 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
         variant: "destructive",
       });
     },
+    onSettled: () => {
+      setIsLoading(false);
+    },
   });
+
+  const onSubmit = (data: LoanRepaymentFormValues) => {
+    setIsLoading(true);
+    
+    // Handle loan_id conversion for compatibility with backend
+    let formattedData = {
+      ...data,
+      // If the repayment has a loan_id field but not a loan_name (backward compatibility),
+      // keep the loan_id. Otherwise, we'll send the form data as is.
+      loan_id: repayment?.loan_id ? repayment.loan_id : parseInt(data.loan_id)
+    };
+    
+    saveMutation.mutate(formattedData);
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => {
-        // Ensure all numeric values are properly parsed
-        const formattedData = {
-          ...data,
-          principal_amount: Number(data.principal_amount),
-          interest_amount: Number(data.interest_amount),
-          other_fees: Number(data.other_fees),
-          penalties: Number(data.penalties),
-        };
-        mutation.mutate(formattedData);
-      })} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="loan_id"
@@ -117,7 +116,7 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
             <FormItem>
               <FormLabel>Loan</FormLabel>
               <Select 
-                disabled={!!loanId || loansLoading} 
+                disabled={!!loanId || isLoading} 
                 onValueChange={field.onChange} 
                 value={field.value || ""} // Ensure value is not undefined
               >
@@ -180,13 +179,13 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
                     <PaymentSourceForm 
                       onSuccess={() => {
                         setPaymentSourceDialogOpen(false);
-                        queryClient.invalidateQueries({ queryKey: ["/api/payment-sources"] });
+                        queryClient.invalidateQueries({ queryKey: ["/api/v2/payment-sources"] });
                       }} 
                     />
                   </SlideDialog>
                 </div>
                 <Select 
-                  disabled={sourcesLoading} 
+                  disabled={isLoading} 
                   onValueChange={field.onChange} 
                   value={field.value || ""} // Ensure value is not undefined
                 >
@@ -360,8 +359,8 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
           </CardContent>
         </Card>
 
-        <Button type="submit" className="w-full" disabled={mutation.isPending || !paymentSources?.length}>
-          {mutation.isPending ? (repayment ? "Updating Repayment..." : "Recording Repayment...") : (repayment ? "Update Repayment" : "Record Repayment")}
+        <Button type="submit" className="w-full" disabled={isLoading || !paymentSources?.length}>
+          {isLoading ? (repayment ? "Updating Repayment..." : "Recording Repayment...") : (repayment ? "Update Repayment" : "Record Repayment")}
         </Button>
       </form>
     </Form>

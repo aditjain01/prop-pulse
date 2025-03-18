@@ -25,12 +25,7 @@ export default function PurchaseDetailPage() {
               Back to Purchases
             </Button>
           </Link>
-          <PurchaseDetail 
-            purchaseId={purchaseId} 
-            showHeader={true}
-          />
         </div>
-
         <PurchaseDetail purchaseId={purchaseId} />
       </main>
     </div>

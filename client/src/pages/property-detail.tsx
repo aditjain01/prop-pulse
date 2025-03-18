@@ -25,11 +25,10 @@ export default function PropertyDetailPage() {
               Back to Properties
             </Button>
           </Link>
-          <PropertyDetail 
-            propertyId={propertyId} 
-            showHeader={true}
-          />
         </div>
+        <PropertyDetail
+          propertyId={propertyId}
+        />
       </main>
     </div>
   );

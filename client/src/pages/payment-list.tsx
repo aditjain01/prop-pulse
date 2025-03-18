@@ -1,15 +1,13 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { SlideDialog } from "@/components/slide-dialog";
 import { PaymentForm } from "@/components/forms/payment-form";
 import { Plus, Filter, Download } from "lucide-react";
 import { apiRequest } from '@/lib/api/api';
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { DeleteConfirmation } from "@/components/delete-confirmation";
-import { useLocation } from "wouter";
 import {
   Card,
   CardHeader,
@@ -44,9 +42,6 @@ type PaymentSource = {
 
 export default function PaymentListPage() {
   const { toast } = useToast();
-  const [paymentToDelete, setPaymentToDelete] = useState<Payment | null>(null);
-  const [paymentToEdit, setPaymentToEdit] = useState<Payment | null>(null);
-  const [, navigate] = useLocation();
   const [filters, setFilters] = useState({
     invoice_id: "",
     payment_source_id: "",
@@ -54,6 +49,7 @@ export default function PaymentListPage() {
     from_date: "",
     to_date: "",
   });
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   
   // Fetch payments with filters
   const { data: payments, isLoading: paymentsLoading } = useQuery({
@@ -75,29 +71,6 @@ export default function PaymentListPage() {
     queryKey: ["/api/v2/payment-sources"],
   });
   
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/payments/${id}`);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v2/payments"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/v2/invoices"] });
-      toast({
-        title: "Payment deleted",
-        description: "The payment has been deleted successfully.",
-      });
-      setPaymentToDelete(null);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-  
   // Function to export payments as CSV
   const exportPaymentsCSV = () => {
     // Implementation would go here
@@ -105,21 +78,6 @@ export default function PaymentListPage() {
       title: "Export started",
       description: "Your payments are being exported to CSV.",
     });
-  };
-  
-  // Function to handle delete
-  const handleDelete = (payment: Payment) => {
-    setPaymentToDelete(payment);
-  };
-  
-  // Function to handle edit
-  const handleEdit = (payment: Payment) => {
-    setPaymentToEdit(payment);
-  };
-  
-  // Function to view payment details
-  const handleViewPayment = (paymentId: number) => {
-    navigate(`/payments/${paymentId}`);
   };
   
   return (
@@ -222,17 +180,21 @@ export default function PaymentListPage() {
               Export
             </Button>
             
-            <Dialog>
-              <DialogTrigger asChild>
+            <SlideDialog
+              trigger={
                 <Button size="sm">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Payment
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px]">
-                <PaymentForm />
-              </DialogContent>
-            </Dialog>
+              }
+              title="Add New Payment"
+              open={isAddDialogOpen}
+              onOpenChange={setIsAddDialogOpen}
+            >
+              <PaymentForm 
+                onSuccess={() => setIsAddDialogOpen(false)}
+              />
+            </SlideDialog>
           </div>
         </div>
         
@@ -256,36 +218,9 @@ export default function PaymentListPage() {
             payments={payments}
             paymentSources={paymentSources}
             isLoading={paymentsLoading}
-            onDeletePayment={handleDelete}
-            onEditPayment={handleEdit}
-            onViewPayment={handleViewPayment}
           />
         )}
       </main>
-      
-      {/* Delete confirmation dialog */}
-      <DeleteConfirmation
-        isOpen={!!paymentToDelete}
-        onClose={() => setPaymentToDelete(null)}
-        onConfirm={() => deleteMutation.mutate(paymentToDelete!.id)}
-        title="Delete Payment"
-        description="Are you sure you want to delete this payment? This action cannot be undone."
-      />
-      
-      {/* Edit dialog */}
-      {paymentToEdit && (
-        <Dialog open={!!paymentToEdit} onOpenChange={(open) => !open && setPaymentToEdit(null)}>
-          <DialogContent className="sm:max-w-[600px]">
-            <PaymentForm 
-              payment={paymentToEdit}
-              onSuccess={() => {
-                queryClient.invalidateQueries({ queryKey: ["/api/v2/payments"] });
-                setPaymentToEdit(null);
-              }}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 } 

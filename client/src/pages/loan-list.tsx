@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { apiRequest } from '@/lib/api/api';
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { DeleteConfirmation } from "@/components/delete-confirmation";
 import { SlideDialog } from "@/components/slide-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DocumentUpload } from "@/components/document-upload";
@@ -23,45 +22,10 @@ import { useLocation } from "wouter";
 
 export default function LoanListPage() {
   const { toast } = useToast();
-  const [loanToDelete, setLoanToDelete] = useState<Loan | null>(null);
-  const [, navigate] = useLocation();
   
   const { data: loans, isLoading } = useQuery<Loan[]>({
     queryKey: ["/api/v2/loans"],
   });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/loans/${id}`);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v2/loans"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/payment-sources"] });
-      toast({
-        title: "Loan deleted",
-        description: "The loan has been deleted successfully.",
-      });
-      setLoanToDelete(null);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Function to handle delete
-  const handleDelete = (loan: Loan) => {
-    setLoanToDelete(loan);
-  };
-
-  // Function to view loan details
-  const handleViewDetails = (loanId: number) => {
-    navigate(`/loans/${loanId}`);
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -91,18 +55,8 @@ export default function LoanListPage() {
         <LoanList 
           loans={loans}
           isLoading={isLoading}
-          onDeleteLoan={handleDelete}
-          onViewLoan={handleViewDetails}
         />
       </main>
-
-      <DeleteConfirmation
-        isOpen={!!loanToDelete}
-        onClose={() => setLoanToDelete(null)}
-        onConfirm={() => deleteMutation.mutate(loanToDelete!.id)}
-        title="Delete Loan"
-        description={`Are you sure you want to delete this loan? This action cannot be undone.`}
-      />
     </div>
   );
 } 

@@ -23,15 +23,16 @@ export type Property = {
   current_rate: number;
   developer: string | null;
   rera_id: string | null;
-  super_area: number | null;
-  created_at: string;
-  updated_at: string;
+  super_area?: number | null;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type Purchase = {
   id: number;
-  property_id: number;
-  user_id: number;
+  property_id?: number;
+  user_id?: number;
+  property_name: string;
   purchase_date: string;
   registration_date: string | null;
   possession_date: string | null;
@@ -43,16 +44,16 @@ export type Purchase = {
   gst: number | null;
   property_cost: number;
   total_cost: number;
-  total_sale_cost: number;
+  total_purchase_cost: number;
   seller: string | null;
   remarks: string | null;
-  created_at: string;
+  created_at?: string;
   property?: Property; // For joined queries
 };
 
 export type Loan = {
   id: number;
-  user_id: number | null;
+  user_id?: number | null;
   purchase_id: number;
   name: string;
   institution: string;
@@ -66,8 +67,9 @@ export type Loan = {
   interest_rate: number;
   tenure_months: number;
   is_active: boolean;
-  created_at: string;
-  updated_at: string | null;
+  property_name?: string;
+  created_at?: string;
+  updated_at?: string | null;
 };
 
 export type PaymentSource = {
@@ -91,22 +93,34 @@ export type PaymentSource = {
   updated_at: string | null;
 };
 
+export type Invoice = {
+  id: number;
+  purchase_id: number;
+  property_name: string;
+  invoice_number: string;
+  invoice_date: string;
+  due_date: string | null;
+  amount: number;
+  status: string;
+  milestone: string | null;
+  description: string | null;
+  created_at: string;
+  updated_at: string | null;
+  paid_amount: number;
+};
+
 export type Payment = {
   id: number;
-  invoice_id: number;
-  user_id: number;
   payment_date: string;
   amount: number;
-  source_id: number;
+  source_name: string;
   payment_mode: string;
+  property_name: string;
+  invoice_number: string;
   transaction_reference: string | null;
   receipt_date: string | null;
   receipt_number: string | null;
   notes: string | null;
-  created_at: string;
-  updated_at: string | null;
-  payment_source?: PaymentSource; // For joined queries
-  invoice?: Invoice; // For joined queries
 };
 
 export type Document = {
@@ -122,19 +136,20 @@ export type Document = {
 // Add LoanRepayment type
 export type LoanRepayment = {
   id: number;
-  loan_id: number;
+  loan_name: string;
+  loan_institution: string;
+  property_name: string;
+  total_payment: number;
+  source_name: string;
   payment_date: string;
+  payment_mode: string;
   principal_amount: number;
   interest_amount: number;
   other_fees: number;
   penalties: number;
-  source_id: number;
-  payment_mode: string;
+  purchase_id: number;
   transaction_reference: string | null;
   notes: string | null;
-  total_payment: number;
-  created_at: string;
-  updated_at: string | null;
 };
 
 // Zod schemas for form validation
@@ -365,7 +380,7 @@ export const initializePaymentForm = (payment?: Payment, invoiceId?: number): Pa
     invoice_id: payment?.invoice_id?.toString() || invoiceId?.toString() || "",
     payment_date: payment?.payment_date || new Date().toISOString().split('T')[0],
     amount: payment?.amount || 0,
-    source_id: payment?.source_id?.toString() || "",
+    source_id: payment?.source_name || "",
     payment_mode: payment?.payment_mode || "online",
     transaction_reference: payment?.transaction_reference || "",
     receipt_date: payment?.receipt_date || "",
@@ -382,7 +397,7 @@ export const initializeLoanRepaymentForm = (repayment?: LoanRepayment, loanId?: 
     interest_amount: repayment?.interest_amount !== undefined ? Number(repayment.interest_amount) : 0,
     other_fees: repayment?.other_fees !== undefined ? Number(repayment.other_fees) : 0,
     penalties: repayment?.penalties !== undefined ? Number(repayment.penalties) : 0,
-    source_id: repayment?.source_id?.toString() || "",
+    source_id: repayment?.source_name || "",
     payment_mode: repayment?.payment_mode || "online",
     transaction_reference: repayment?.transaction_reference || "",
     notes: repayment?.notes || "",

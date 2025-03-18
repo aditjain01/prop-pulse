@@ -29,6 +29,8 @@ interface SlideDialogProps {
   children: React.ReactNode;
   className?: string;
   contentClassName?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function SlideDialog({
@@ -38,9 +40,21 @@ export function SlideDialog({
   children,
   className,
   contentClassName,
+  open: externalOpen,
+  onOpenChange: externalOnOpenChange,
 }: SlideDialogProps) {
-  const [open, setOpen] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  
+  // Use external state if provided, otherwise use internal state
+  const open = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setOpen = (value: boolean) => {
+    if (externalOnOpenChange) {
+      externalOnOpenChange(value);
+    } else {
+      setInternalOpen(value);
+    }
+  };
 
   if (isDesktop) {
     return (

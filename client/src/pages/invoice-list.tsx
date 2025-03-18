@@ -1,14 +1,13 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { SlideDialog } from "@/components/slide-dialog";
 import { InvoiceForm } from "@/components/forms/invoice-form";
 import { Plus, Filter, Download } from "lucide-react";
 import { apiRequest } from '@/lib/api/api';
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { DeleteConfirmation } from "@/components/delete-confirmation";
 import {
   Card,
   CardHeader,
@@ -44,8 +43,6 @@ type Invoice = {
 
 export default function InvoiceListPage() {
   const { toast } = useToast();
-  const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
-  const [invoiceToEdit, setInvoiceToEdit] = useState<Invoice | null>(null);
   const [filters, setFilters] = useState({
     purchase_id: "",
     status: "",
@@ -53,6 +50,7 @@ export default function InvoiceListPage() {
     from_date: "",
     to_date: "",
   });
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   
   // Fetch invoices with filters
   const { data: invoices, isLoading: invoicesLoading } = useQuery({
@@ -74,28 +72,6 @@ export default function InvoiceListPage() {
     queryKey: ["/api/v2/purchases"],
   });
   
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/invoices/${id}`);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v2/invoices"] });
-      toast({
-        title: "Invoice deleted",
-        description: "The invoice has been deleted successfully.",
-      });
-      setInvoiceToDelete(null);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-  
   // Function to export invoices as CSV
   const exportInvoicesCSV = () => {
     // Implementation would go here
@@ -103,16 +79,6 @@ export default function InvoiceListPage() {
       title: "Export started",
       description: "Your invoices are being exported to CSV.",
     });
-  };
-  
-  // Function to handle delete
-  const handleDelete = (invoice: Invoice) => {
-    setInvoiceToDelete(invoice);
-  };
-  
-  // Function to handle edit
-  const handleEdit = (invoice: Invoice) => {
-    setInvoiceToEdit(invoice);
   };
   
   return (
@@ -137,7 +103,7 @@ export default function InvoiceListPage() {
                       Filter invoices by property, status, or date
                     </p>
                   </div>
-                  <div className="grid gap-2">
+                  <div className="space-y-4">
                     <div className="grid grid-cols-3 items-center gap-4">
                       <Label htmlFor="property">Property</Label>
                       <Select
@@ -224,17 +190,21 @@ export default function InvoiceListPage() {
               Export
             </Button>
             
-            <Dialog>
-              <DialogTrigger asChild>
+            <SlideDialog
+              trigger={
                 <Button size="sm">
                   <Plus className="h-4 w-4 mr-2" />
                   New Invoice
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px]">
-                <InvoiceForm />
-              </DialogContent>
-            </Dialog>
+              }
+              title="Add New Invoice"
+              open={isAddDialogOpen}
+              onOpenChange={setIsAddDialogOpen}
+            >
+              <InvoiceForm 
+                onSuccess={() => setIsAddDialogOpen(false)}
+              />
+            </SlideDialog>
           </div>
         </div>
         
@@ -257,35 +227,9 @@ export default function InvoiceListPage() {
           <InvoiceList
             invoices={invoices}
             isLoading={invoicesLoading}
-            onDeleteInvoice={handleDelete}
-            onEditInvoice={handleEdit}
           />
         )}
       </main>
-      
-      {/* Delete confirmation dialog */}
-      <DeleteConfirmation
-        isOpen={!!invoiceToDelete}
-        onClose={() => setInvoiceToDelete(null)}
-        onConfirm={() => deleteMutation.mutate(invoiceToDelete!.id)}
-        title="Delete Invoice"
-        description={`Are you sure you want to delete invoice #${invoiceToDelete?.invoice_number}? This action cannot be undone.`}
-      />
-      
-      {/* Edit dialog */}
-      {invoiceToEdit && (
-        <Dialog open={!!invoiceToEdit} onOpenChange={(open) => !open && setInvoiceToEdit(null)}>
-          <DialogContent className="sm:max-w-[600px]">
-            <InvoiceForm 
-              invoice={invoiceToEdit}
-              onSuccess={() => {
-                queryClient.invalidateQueries({ queryKey: ["/api/v2/invoices"] });
-                setInvoiceToEdit(null);
-              }}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 } 
