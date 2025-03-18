@@ -158,7 +158,7 @@ class TestPaymentSourcesV2Routes:
         payment = create_test_payment(db_session, source_id=payment_source.id)
         
         # Make request
-        response = client.get("/v2/payment-sources/")
+        response = client.get("/payment-sources/")
         
         # Check response
         assert response.status_code == 200
@@ -186,7 +186,7 @@ class TestPaymentSourcesV2Routes:
         inactive_source = create_test_payment_source(db_session, name="Inactive Source", is_active=False)
         
         # Test filter by is_active
-        response = client.get("/v2/payment-sources/?is_active=true")
+        response = client.get("/payment-sources/?is_active=true")
         data = response.json()
         active_sources = [s for s in data if s["is_active"] is True]
         inactive_sources = [s for s in data if s["is_active"] is False]
@@ -194,13 +194,13 @@ class TestPaymentSourcesV2Routes:
         assert len(inactive_sources) == 0
         
         # Test filter by type
-        response = client.get(f"/v2/payment-sources/?type={active_source.type}")
+        response = client.get(f"/payment-sources/?type={active_source.type}")
         data = response.json()
         assert len(data) >= 1
         assert all(s["type"] == active_source.type for s in data)
         
         # Test filter by name (partial match)
-        response = client.get("/v2/payment-sources/?name=Active")
+        response = client.get("/payment-sources/?name=Active")
         data = response.json()
         assert len(data) >= 1
         assert any(s["id"] == active_source.id for s in data)
@@ -216,7 +216,7 @@ class TestPaymentSourcesV2Routes:
         payment2 = create_test_payment(db_session, source_id=payment_source.id, amount=20000)
         
         # Make request
-        response = client.get(f"/v2/payment-sources/{payment_source.id}")
+        response = client.get(f"/payment-sources/{payment_source.id}")
         
         # Check response
         assert response.status_code == 200

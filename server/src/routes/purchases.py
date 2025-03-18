@@ -9,15 +9,18 @@ from src.database import get_db, models
 router = APIRouter(prefix="/purchases", tags=["purchases"])
 
 # V2 routes for frontend-aligned endpoints
-router_v2 = APIRouter(prefix="/v2/purchases", tags=["purchases"])
+router_dev = APIRouter(prefix="/v2/purchases", tags=["purchases"])
 
 
 # Purchase routes
-@router.post("", response_model=schemas.Purchase, include_in_schema=False)
-@router.post("/", response_model=schemas.Purchase)
+@router.post("", response_model=schemas.PurchaseOld, include_in_schema=False)
+@router.post("/", response_model=schemas.PurchaseOld)
 def create_purchase(
     purchase: schemas.PurchaseCreate, db: Session = Depends(get_db)
-) -> schemas.Purchase:
+) -> schemas.PurchaseOld:
+    """
+    Create a new purchase.
+    """
     try:
         print(purchase.dict())
         db_property = models.Purchase(**purchase.dict())
@@ -30,14 +33,17 @@ def create_purchase(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("", response_model=List[schemas.Purchase], include_in_schema=False)
-@router.get("/", response_model=List[schemas.Purchase])
-def get_purchases(
+@router_dev.get("", response_model=List[schemas.PurchaseOld], include_in_schema=False)
+@router_dev.get("/", response_model=List[schemas.PurchaseOld])
+def get_purchases_old(
     property_id: Optional[int] = None,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-) -> List[schemas.Purchase]:
+) -> List[schemas.PurchaseOld]:
+    """
+    Get a list of old purchases with optional filtering by property_id.
+    """
     try:
         query = db.query(models.Purchase)
 
@@ -51,9 +57,12 @@ def get_purchases(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{purchase_id}", response_model=schemas.Purchase, include_in_schema=False)
-@router.get("/{purchase_id}/", response_model=schemas.Purchase)
-def get_purchase(purchase_id: int, db: Session = Depends(get_db)) -> schemas.Purchase:
+@router_dev.get("/{purchase_id}", response_model=schemas.PurchaseOld, include_in_schema=False)
+@router_dev.get("/{purchase_id}/", response_model=schemas.PurchaseOld)
+def get_purchase_old(purchase_id: int, db: Session = Depends(get_db)) -> schemas.PurchaseOld:
+    """
+    Get details of an old purchase by purchase_id.
+    """
     try:
         db_purchase = (
             db.query(models.Purchase).filter(models.Purchase.id == purchase_id).first()
@@ -64,13 +73,16 @@ def get_purchase(purchase_id: int, db: Session = Depends(get_db)) -> schemas.Pur
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.put("/{purchase_id}", response_model=schemas.Purchase, include_in_schema=False)
-@router.put("/{purchase_id}/", response_model=schemas.Purchase)
+@router.put("/{purchase_id}", response_model=schemas.PurchaseOld, include_in_schema=False)
+@router.put("/{purchase_id}/", response_model=schemas.PurchaseOld)
 def update_purchase(
     purchase_id: int,
     purchase_update: schemas.PurchaseCreate,
     db: Session = Depends(get_db),
-) -> schemas.Purchase:
+) -> schemas.PurchaseOld:
+    """
+    Update an existing purchase by purchase_id.
+    """
     try:
         # Get the existing property
         db_purchase = (
@@ -97,6 +109,9 @@ def update_purchase(
 @router.delete("/{purchase_id}", include_in_schema=False)
 @router.delete("/{purchase_id}/")
 def delete_purchase(purchase_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a purchase by purchase_id.
+    """
     try:
         # Check if purchase exists
         purchase = (
@@ -116,8 +131,10 @@ def delete_purchase(purchase_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 # V2 routes for frontend-aligned endpoints
-@router_v2.get("/", response_model=List[schemas.PurchasePublic])
-def get_purchases_v2(
+@router.get("", response_model=List[schemas.PurchasePublic], include_in_schema=False)
+@router.get("/", response_model=List[schemas.PurchasePublic])
+def get_purchases(
+    property_id: Optional[int] = None,
     developer: Optional[str] = None,
     from_date: Optional[str] = None,
     to_date: Optional[str] = None,
@@ -138,6 +155,9 @@ def get_purchases_v2(
             )
             .join(models.Property, models.Purchase.property_id == models.Property.id)
         )
+
+        if property_id:
+            query = query.filter(models.Purchase.property_id == property_id)
 
         # Apply filters if provided
         if developer:
@@ -173,9 +193,9 @@ def get_purchases_v2(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@router_v2.get("/{purchase_id}", response_model=schemas.Purchase)
-def get_purchase_v2(purchase_id: int, db: Session = Depends(get_db)) -> schemas.Purchase:
+@router.get("/{purchase_id}", response_model=schemas.Purchase, include_in_schema=False)
+@router.get("/{purchase_id}", response_model=schemas.Purchase)
+def get_purchase(purchase_id: int, db: Session = Depends(get_db)) -> schemas.Purchase:
     """
     Get a detailed view of a single purchase with property information.
     Optimized for frontend detail views.

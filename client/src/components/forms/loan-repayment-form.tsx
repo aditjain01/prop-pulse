@@ -36,13 +36,13 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
   
   // Fetch loans if loanId is not provided
   const { data: loans = [] } = useQuery<Loan[]>({
-    queryKey: ["/api/v2/loans"],
+    queryKey: ["/api/loans"],
     enabled: !loanId,
   });
   
   // Fetch payment sources for the dropdown
   const { data: paymentSources = [] } = useQuery<PaymentSource[]>({
-    queryKey: ["/api/v2/payment-sources"],
+    queryKey: ["/api/payment-sources"],
   });
   
   const form = useForm<LoanRepaymentFormValues>({
@@ -62,8 +62,8 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
   const saveMutation = useMutation({
     mutationFn: async (data: LoanRepaymentFormValues) => {
       const url = repayment 
-        ? `/api/v2/repayments/${repayment.id}` 
-        : "/api/v2/repayments";
+        ? `/api/repayments/${repayment.id}` 
+        : "/api/repayments";
       
       const method = repayment ? "PUT" : "POST";
       
@@ -179,7 +179,7 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
                     <PaymentSourceForm 
                       onSuccess={() => {
                         setPaymentSourceDialogOpen(false);
-                        queryClient.invalidateQueries({ queryKey: ["/api/v2/payment-sources"] });
+                        queryClient.invalidateQueries({ queryKey: ["/api/payment-sources"] });
                       }} 
                     />
                   </SlideDialog>

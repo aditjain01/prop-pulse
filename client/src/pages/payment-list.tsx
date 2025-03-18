@@ -53,7 +53,7 @@ export default function PaymentListPage() {
   
   // Fetch payments with filters
   const { data: payments, isLoading: paymentsLoading } = useQuery({
-    queryKey: ["/api/v2/payments", filters],
+    queryKey: ["/api/payments", filters],
     queryFn: async () => {
       // Build query string from filters
       const queryParams = new URLSearchParams();
@@ -61,14 +61,14 @@ export default function PaymentListPage() {
         if (value) queryParams.append(key, value);
       });
       
-      const res = await apiRequest("GET", `/api/v2/payments?${queryParams.toString()}`);
+      const res = await apiRequest("GET", `/api/payments?${queryParams.toString()}`);
       return res.json();
     },
   });
   
   // Fetch payment sources for filter dropdown
   const { data: paymentSources } = useQuery<PaymentSource[]>({
-    queryKey: ["/api/v2/payment-sources"],
+    queryKey: ["/api/payment-sources"],
   });
   
   // Function to export payments as CSV

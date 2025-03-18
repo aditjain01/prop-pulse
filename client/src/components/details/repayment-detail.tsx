@@ -27,12 +27,12 @@ export function RepaymentDetail({ repaymentId, onEdit, onDelete, onClose }: Repa
   const { toast } = useToast();
 
   const { data: repayment, isLoading } = useQuery<LoanRepayment>({
-    queryKey: [`/api/v2/repayments/${repaymentId}`],
+    queryKey: [`/api/repayments/${repaymentId}`],
   });
 
   // Fetch documents for this repayment
   const { data: documents = [], isLoading: documentsLoading } = useQuery({
-    queryKey: [`/api/v2/documents`, { entity_type: "repayment", entity_id: repaymentId }],
+    queryKey: [`/api/documents`, { entity_type: "repayment", entity_id: repaymentId }],
     enabled: !!repaymentId,
   });
 
@@ -51,18 +51,18 @@ export function RepaymentDetail({ repaymentId, onEdit, onDelete, onClose }: Repa
   };
 
   const handleEditSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: [`/api/v2/repayments/${repaymentId}`] });
+    queryClient.invalidateQueries({ queryKey: [`/api/repayments/${repaymentId}`] });
     setShowEditDialog(false);
   };
 
   // Delete repayment mutation
   const deleteRepaymentMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/v2/repayments/${id}`);
+      const res = await apiRequest("DELETE", `/api/repayments/${id}`);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v2/repayments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/repayments"] });
       toast({
         title: "Repayment deleted",
         description: "The repayment has been deleted successfully.",

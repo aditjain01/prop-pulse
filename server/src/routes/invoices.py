@@ -7,13 +7,14 @@ from src.database import get_db, models
 
 # Create a router instance
 router = APIRouter(prefix="/invoices", tags=["invoices"])
-
+# V2 routes for frontend-aligned endpoints
+router_dev = APIRouter(prefix="/v2/invoices", tags=["invoices"])
 
 # Create a new invoice
-@router.post("/", response_model=schemas.Invoice)
+@router.post("/", response_model=schemas.InvoiceOld, description="Create a new invoice")
 def create_invoice(
     invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)
-) -> schemas.Invoice:
+) -> schemas.InvoiceOld:
     try:
         # Check if purchase exists
         purchase = (
@@ -56,15 +57,15 @@ def create_invoice(
 
 
 # Get all invoices with optional filters
-@router.get("/", response_model=List[schemas.Invoice])
-def get_invoices(
+@router_dev.get("/", response_model=List[schemas.InvoiceOld], description="Get all invoices with optional filters")
+def get_invoices_old(
     purchase_id: Optional[int] = None,
     status: Optional[str] = None,
     milestone: Optional[str] = None,
     from_date: Optional[str] = None,
     to_date: Optional[str] = None,
     db: Session = Depends(get_db),
-) -> List[schemas.Invoice]:
+) -> List[schemas.InvoiceOld]:
     try:
         query = db.query(models.Invoice)
 
@@ -90,8 +91,8 @@ def get_invoices(
 
 
 # Get a specific invoice by ID
-@router.get("/{invoice_id}", response_model=schemas.Invoice)
-def get_invoice(invoice_id: int, db: Session = Depends(get_db)) -> schemas.Invoice:
+@router_dev.get("/{invoice_id}", response_model=schemas.InvoiceOld, description="Get a specific invoice by ID")
+def get_invoice_old(invoice_id: int, db: Session = Depends(get_db)) -> schemas.InvoiceOld:
     try:
         invoice = (
             db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
@@ -106,10 +107,10 @@ def get_invoice(invoice_id: int, db: Session = Depends(get_db)) -> schemas.Invoi
 
 
 # Update an invoice
-@router.put("/{invoice_id}", response_model=schemas.Invoice)
+@router.put("/{invoice_id}", response_model=schemas.InvoiceOld, description="Update an existing invoice")
 def update_invoice(
     invoice_id: int, invoice: schemas.InvoiceUpdate, db: Session = Depends(get_db)
-) -> schemas.Invoice:
+) -> schemas.InvoiceOld:
     try:
         # Check if invoice exists
         db_invoice = (
@@ -143,7 +144,7 @@ def update_invoice(
 
 
 # Delete Invoice
-@router.delete("/{invoice_id}")
+@router.delete("/{invoice_id}", description="Delete an invoice by ID")
 def delete_invoice(invoice_id: int, db: Session = Depends(get_db)):
     try:
         # Check if invoice exists
@@ -175,13 +176,9 @@ def delete_invoice(invoice_id: int, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# V2 routes for frontend-aligned endpoints
-router_v2 = APIRouter(prefix="/v2/invoices", tags=["invoices"])
-
-
-@router_v2.get("/", response_model=List[schemas.InvoicePublic])
-def get_invoices_v2(
+@router.get("", response_model=List[schemas.InvoicePublic], include_in_schema=False, description="Get a list of invoices with property information and enhanced filtering")
+@router.get("/", response_model=List[schemas.InvoicePublic], description="Get a list of invoices with property information and enhanced filtering")
+def get_invoices(
     purchase_id: Optional[int] = None,
     status: Optional[str] = None,
     milestone: Optional[str] = None,
@@ -245,9 +242,9 @@ def get_invoices_v2(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@router_v2.get("/{invoice_id}", response_model=schemas.Invoice)
-def get_invoice_v2(invoice_id: int, db: Session = Depends(get_db)) -> schemas.Invoice:
+@router.get("/{invoice_id}", response_model=schemas.Invoice, include_in_schema=False, description="Get a detailed view of a single invoice with property information")
+@router.get("/{invoice_id}", response_model=schemas.Invoice, description="Get a detailed view of a single invoice with property information")
+def get_invoice(invoice_id: int, db: Session = Depends(get_db)) -> schemas.Invoice:
     """
     Get a detailed view of a single invoice with property information.
     Optimized for frontend detail views.

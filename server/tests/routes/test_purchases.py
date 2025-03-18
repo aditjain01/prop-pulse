@@ -207,7 +207,7 @@ class TestPurchasesV2Routes:
         purchase = create_test_purchase(db_session)
         
         # Make request
-        response = client.get("/v2/purchases/")
+        response = client.get("/purchases/")
         
         # Check response
         assert response.status_code == 200
@@ -248,31 +248,31 @@ class TestPurchasesV2Routes:
                                          purchase_date=date.today() - timedelta(days=30))
         
         # Test filter by property_id
-        response = client.get(f"/v2/purchases/?property_id={property.id}")
+        response = client.get(f"/purchases/?property_id={property.id}")
         data = response.json()
         assert len(data) == 2
         
         # Test filter by buyer_name
-        response = client.get("/v2/purchases/?buyer_name=Developer A")
+        response = client.get("/purchases/?buyer_name=Developer A")
         data = response.json()
         assert len(data) == 1
         assert data[0]["id"] == purchase1.id
         
         # Test filter by date range
         from_date = (date.today() - timedelta(days=20)).isoformat()
-        response = client.get(f"/v2/purchases/?from_date={from_date}")
+        response = client.get(f"/purchases/?from_date={from_date}")
         data = response.json()
         assert len(data) == 1
         assert data[0]["id"] == purchase1.id
         
         to_date = (date.today() - timedelta(days=20)).isoformat()
-        response = client.get(f"/v2/purchases/?to_date={to_date}")
+        response = client.get(f"/purchases/?to_date={to_date}")
         data = response.json()
         assert len(data) == 1
         assert data[0]["id"] == purchase2.id
         
         # Test filter by status
-        response = client.get(f"/v2/purchases/?status={purchase1.status}")
+        response = client.get(f"/purchases/?status={purchase1.status}")
         data = response.json()
         assert len(data) >= 1
         assert all(p["status"] == purchase1.status for p in data)
@@ -287,7 +287,7 @@ class TestPurchasesV2Routes:
         invoice2 = create_test_invoice(db_session, purchase_id=purchase.id, amount=200000)
         
         # Make request
-        response = client.get(f"/v2/purchases/{purchase.id}")
+        response = client.get(f"/purchases/{purchase.id}")
         
         # Check response
         assert response.status_code == 200

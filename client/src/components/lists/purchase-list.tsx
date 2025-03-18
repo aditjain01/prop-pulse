@@ -27,7 +27,7 @@ export function PurchaseList({ purchases, isLoading }: PurchaseListProps) {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v2/purchases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/purchases"] });
       toast({
         title: "Purchase deleted",
         description: "The purchase has been deleted successfully.",

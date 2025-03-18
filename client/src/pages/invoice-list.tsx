@@ -54,7 +54,7 @@ export default function InvoiceListPage() {
   
   // Fetch invoices with filters
   const { data: invoices, isLoading: invoicesLoading } = useQuery({
-    queryKey: ["/api/v2/invoices", filters],
+    queryKey: ["/api/invoices", filters],
     queryFn: async () => {
       // Build query string from filters
       const queryParams = new URLSearchParams();
@@ -62,14 +62,14 @@ export default function InvoiceListPage() {
         if (value) queryParams.append(key, value);
       });
       
-      const res = await apiRequest("GET", `/api/v2/invoices?${queryParams.toString()}`);
+      const res = await apiRequest("GET", `/api/invoices?${queryParams.toString()}`);
       return res.json();
     },
   });
   
   // Fetch purchases for filter dropdown
   const { data: purchases } = useQuery<Purchase[]>({
-    queryKey: ["/api/v2/purchases"],
+    queryKey: ["/api/purchases"],
   });
   
   // Function to export invoices as CSV

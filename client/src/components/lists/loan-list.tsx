@@ -30,7 +30,7 @@ export function LoanList({
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v2/loans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/loans"] });
       queryClient.invalidateQueries({ queryKey: ["/api/payment-sources"] });
       toast({
         title: "Loan deleted",

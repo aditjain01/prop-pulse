@@ -5,6 +5,7 @@ from decimal import Decimal
 
 
 class LoanRepaymentBase(BaseModel):
+    """Base schema for loan repayment details, including amounts, fees, and payment information."""
     loan_id: int
     payment_date: date
     principal_amount: Decimal
@@ -28,10 +29,12 @@ class LoanRepaymentBase(BaseModel):
 
 
 class LoanRepaymentCreate(LoanRepaymentBase):
+    """Schema for creating a new loan repayment, inheriting all base repayment details."""
     pass
 
 
-class LoanRepayment(LoanRepaymentBase):
+class LoanRepaymentOld(LoanRepaymentBase):
+    """Schema for representing an existing loan repayment with additional metadata like ID and timestamps."""
     id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
@@ -41,6 +44,7 @@ class LoanRepayment(LoanRepaymentBase):
 
 
 class LoanRepaymentUpdate(BaseModel):
+    """Schema for updating loan repayment details, allowing partial updates with optional fields."""
     loan_id: Optional[int] = None
     payment_date: Optional[date] = None
     principal_amount: Optional[Decimal] = None
@@ -55,7 +59,7 @@ class LoanRepaymentUpdate(BaseModel):
 
 # V2 schemas for frontend-aligned endpoints
 class LoanRepaymentPublic(BaseModel):
-    """Schema for listing loan repayments with essential information for the frontend"""
+    """Schema for listing loan repayments with essential information for the frontend."""
     id: int
     loan_name: str  # From Repayment -> Loan
     loan_institution: str  # From Repayment -> Loan -> institution
@@ -69,7 +73,7 @@ class LoanRepaymentPublic(BaseModel):
 
 
 class LoanRepayment(LoanRepaymentPublic):
-    """Schema for detailed view of a single loan repayment"""
+    """Schema for detailed view of a single loan repayment, extending public schema with additional details."""
     principal_amount: Decimal
     interest_amount: Decimal
     other_fees: Decimal

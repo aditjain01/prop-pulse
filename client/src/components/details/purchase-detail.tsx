@@ -39,24 +39,24 @@ export function PurchaseDetail({ purchaseId, onEdit, onDelete, onClose }: Purcha
 
   // Fetch purchase details
   const { data: purchase, isLoading: purchaseLoading } = useQuery<Purchase>({
-    queryKey: [`/api/v2/purchases/${purchaseId}`],
+    queryKey: [`/api/purchases/${purchaseId}`],
   });
 
   // Fetch documents for this purchase
   const { data: documents = [], isLoading: documentsLoading } = useQuery<PurchaseDocument[]>({
-    queryKey: [`/api/v2/documents`, { entity_type: "purchase", entity_id: purchaseId }],
+    queryKey: [`/api/documents`, { entity_type: "purchase", entity_id: purchaseId }],
     enabled: !!purchaseId,
   });
 
   // Fetch loans for this purchase
   const { data: loans = [], isLoading: loansLoading } = useQuery<Loan[]>({
-    queryKey: ["/api/v2/loans", { purchase_id: purchaseId }],
+    queryKey: ["/api/loans", { purchase_id: purchaseId }],
     enabled: !!purchaseId,
   });
 
   // Fetch invoices for this purchase
   const { data: invoices = [], isLoading: invoicesLoading } = useQuery<Invoice[]>({
-    queryKey: ["/api/v2/invoices", { purchase_id: purchaseId }],
+    queryKey: ["/api/invoices", { purchase_id: purchaseId }],
     enabled: !!purchaseId,
   });
 
@@ -76,11 +76,11 @@ export function PurchaseDetail({ purchaseId, onEdit, onDelete, onClose }: Purcha
   };
 
   const handleLoanFormSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/v2/loans", { purchase_id: purchaseId }] });
+    queryClient.invalidateQueries({ queryKey: ["/api/loans", { purchase_id: purchaseId }] });
   };
 
   const handleInvoiceFormSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/v2/invoices", { purchase_id: purchaseId }] });
+    queryClient.invalidateQueries({ queryKey: ["/api/invoices", { purchase_id: purchaseId }] });
   };
 
 

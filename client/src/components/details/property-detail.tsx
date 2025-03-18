@@ -31,18 +31,18 @@ export function PropertyDetail({ propertyId, showHeader = false, onEdit, onDelet
 
   // Fetch property details
   const { data: property, isLoading: propertyLoading } = useQuery<Property>({
-    queryKey: [`/api/v2/properties/${propertyId}`],
+    queryKey: [`/api/properties/${propertyId}`],
   });
 
   // Fetch purchases for the property
   const { data: purchases, isLoading: purchasesLoading } = useQuery<Purchase[]>({
-    queryKey: [`/api/v2/purchases`, { property_id: propertyId }],
+    queryKey: [`/api/purchases`, { property_id: propertyId }],
     enabled: !!propertyId,
   });
   
   // Fetch documents for this property
   const { data: documents = [], isLoading: documentsLoading } = useQuery<PropertyDocument[]>({
-    queryKey: [`/api/v2/documents`, { entity_type: "property", entity_id: propertyId }],
+    queryKey: [`/api/documents`, { entity_type: "property", entity_id: propertyId }],
     enabled: !!propertyId,
   });
 
@@ -65,7 +65,7 @@ export function PropertyDetail({ propertyId, showHeader = false, onEdit, onDelet
   };
 
   const handlePurchaseFormSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: [`/api/v2/purchases`, { property_id: propertyId }] });
+    queryClient.invalidateQueries({ queryKey: [`/api/purchases`, { property_id: propertyId }] });
   };
 
   // If we're just showing the header (property name), return that

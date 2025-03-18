@@ -57,7 +57,7 @@ export function PaymentDetail({ paymentId }: PaymentDetailProps) {
   
   // Fetch payment details
   const { data: payment, isLoading: paymentLoading } = useQuery<Payment>({
-    queryKey: [`/api/v2/payments/${paymentId}`],
+    queryKey: [`/api/payments/${paymentId}`],
   });
   
   if (paymentLoading) {
@@ -111,11 +111,11 @@ export function PaymentDetail({ paymentId }: PaymentDetailProps) {
   // Delete payment mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/v2/payments/${id}`);
+      const res = await apiRequest("DELETE", `/api/payments/${id}`);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v2/payments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
       toast({
         title: "Payment deleted",
         description: "The payment has been deleted successfully.",
@@ -138,7 +138,7 @@ export function PaymentDetail({ paymentId }: PaymentDetailProps) {
   };
 
   const handleEditSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: [`/api/v2/payments/${paymentId}`] });
+    queryClient.invalidateQueries({ queryKey: [`/api/payments/${paymentId}`] });
     setIsEditDialogOpen(false);
   };
 

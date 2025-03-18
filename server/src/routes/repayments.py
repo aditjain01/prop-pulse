@@ -9,15 +9,18 @@ from fastapi import APIRouter
 router = APIRouter(prefix="/repayments", tags=["repayments"])
 
 # V2 routes for frontend-aligned endpoints
-router_v2 = APIRouter(prefix="/v2/repayments", tags=["repayments"])
+router_dev = APIRouter(prefix="/repayments", tags=["repayments"])
 
 
 # Updated Loan Repayment endpoints with new route structure
-@router.post("", response_model=schemas.LoanRepayment, include_in_schema=False)
-@router.post("/", response_model=schemas.LoanRepayment)
+@router.post("", response_model=schemas.LoanRepaymentOld, include_in_schema=False)
+@router.post("/", response_model=schemas.LoanRepaymentOld)
 def create_loan_repayment(
     repayment: schemas.LoanRepaymentCreate, db: Session = Depends(get_db)
-) -> schemas.LoanRepayment:
+) -> schemas.LoanRepaymentOld:
+    """
+    Create a new loan repayment.
+    """
     print(repayment.model_dump())
     try:
         # Check if loan exists (required)
@@ -52,15 +55,18 @@ def create_loan_repayment(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("", response_model=List[schemas.LoanRepayment], include_in_schema=False)
-@router.get("/", response_model=List[schemas.LoanRepayment])
-def get_loan_repayments(
+@router_dev.get("", response_model=List[schemas.LoanRepaymentOld], include_in_schema=False)
+@router_dev.get("/", response_model=List[schemas.LoanRepaymentOld])
+def get_loan_repayments_old(
     loan_id: Optional[int] = None,
     source_id: Optional[int] = None,
     from_date: Optional[str] = None,
     to_date: Optional[str] = None,
     db: Session = Depends(get_db),
-) -> List[schemas.LoanRepayment]:
+) -> List[schemas.LoanRepaymentOld]:
+    """
+    Get a list of old loan repayments with optional filters.
+    """
     try:
         query = db.query(models.LoanRepayment)
 
@@ -82,11 +88,14 @@ def get_loan_repayments(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/{repayment_id}", response_model=schemas.LoanRepayment, include_in_schema=False)
-@router.get("/{repayment_id}/", response_model=schemas.LoanRepayment)
-def get_loan_repayment(
+@router_dev.get("/{repayment_id}", response_model=schemas.LoanRepaymentOld, include_in_schema=False)
+@router_dev.get("/{repayment_id}/", response_model=schemas.LoanRepaymentOld)
+def get_loan_repayment_old(
     repayment_id: int, db: Session = Depends(get_db)
-) -> schemas.LoanRepayment:
+) -> schemas.LoanRepaymentOld:
+    """
+    Get details of a specific old loan repayment by ID.
+    """
     try:
         repayment = (
             db.query(models.LoanRepayment)
@@ -101,13 +110,16 @@ def get_loan_repayment(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.put("/{repayment_id}", response_model=schemas.LoanRepayment, include_in_schema=False)
-@router.put("/{repayment_id}/", response_model=schemas.LoanRepayment)
+@router.put("/{repayment_id}", response_model=schemas.LoanRepaymentOld, include_in_schema=False)
+@router.put("/{repayment_id}/", response_model=schemas.LoanRepaymentOld)
 def update_loan_repayment(
     repayment_id: int,
     repayment: schemas.LoanRepaymentUpdate,
     db: Session = Depends(get_db),
-) -> schemas.LoanRepayment:
+) -> schemas.LoanRepaymentOld:
+    """
+    Update an existing loan repayment by ID.
+    """
     x = schemas.LoanRepaymentUpdate(**repayment.model_dump())
     print(x)
     print(repayment.model_dump(exclude_unset=True))
@@ -158,6 +170,9 @@ def update_loan_repayment(
 @router.delete("/{repayment_id}", include_in_schema=False)
 @router.delete("/{repayment_id}/")
 def delete_loan_repayment(repayment_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a loan repayment by ID.
+    """
     try:
         # Check if repayment exists
         repayment = (
@@ -178,8 +193,9 @@ def delete_loan_repayment(repayment_id: int, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router_v2.get("/", response_model=List[schemas.LoanRepaymentPublic])
-def get_loan_repayments_v2(
+@router.get("", response_model=List[schemas.LoanRepaymentPublic], include_in_schema=False)
+@router.get("/", response_model=List[schemas.LoanRepaymentPublic])
+def get_loan_repayments(
     loan_id: Optional[int] = None,
     source_id: Optional[int] = None,
     from_date: Optional[str] = None,
@@ -251,9 +267,9 @@ def get_loan_repayments_v2(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@router_v2.get("/{repayment_id}", response_model=schemas.LoanRepayment)
-def get_loan_repayment_v2(repayment_id: int, db: Session = Depends(get_db)) -> schemas.LoanRepayment:
+@router.get("/{repayment_id}", response_model=schemas.LoanRepayment, include_in_schema=False)
+@router.get("/{repayment_id}", response_model=schemas.LoanRepayment)
+def get_loan_repayment(repayment_id: int, db: Session = Depends(get_db)) -> schemas.LoanRepayment:
     """
     Get a detailed view of a single loan repayment.
     Optimized for frontend detail views.

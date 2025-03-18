@@ -9,7 +9,7 @@ import { PurchaseList } from "@/components/lists/purchase-list";
 
 export default function PurchaseListPage() {
   const { data: purchases, isLoading: purchasesLoading } = useQuery<Purchase[]>({
-    queryKey: ["/api/v2/purchases"],
+    queryKey: ["/api/purchases"],
   });
 
   return (

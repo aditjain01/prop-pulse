@@ -37,17 +37,17 @@ export default function RepaymentListPage({ initialLoanIdFilter }: RepaymentList
   
   // Fetch all repayments
   const { data: repayments, isLoading: repaymentsLoading } = useQuery<LoanRepayment[]>({
-    queryKey: ["/api/v2/repayments", selectedLoanId ? { loan_id: selectedLoanId } : undefined],
+    queryKey: ["/api/repayments", selectedLoanId ? { loan_id: selectedLoanId } : undefined],
   });
 
   // Fetch all loans for dropdown
   const { data: loans, isLoading: loansLoading } = useQuery<Loan[]>({
-    queryKey: ["/api/v2/loans"],
+    queryKey: ["/api/loans"],
   });
 
   const handleRepaymentFormSuccess = () => {
     queryClient.invalidateQueries({ 
-      queryKey: ["/api/v2/repayments", selectedLoanId ? { loan_id: selectedLoanId } : undefined] 
+      queryKey: ["/api/repayments", selectedLoanId ? { loan_id: selectedLoanId } : undefined] 
     });
   };
 

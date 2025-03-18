@@ -122,10 +122,10 @@ def delete_payment_source(source_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 # V2 routes for frontend-aligned endpoints
-router_v2 = APIRouter(prefix="/v2/payment-sources", tags=["payment-sources"])
+router_dev = APIRouter(prefix="/v2/payment-sources", tags=["payment-sources"])
 
 
-@router_v2.get("/", response_model=List[schemas.PaymentSourcePublic])
+@router_dev.get("/", response_model=List[schemas.PaymentSourcePublic])
 def get_payment_sources_v2(
     is_active: Optional[bool] = None,
     source_type: Optional[str] = None,

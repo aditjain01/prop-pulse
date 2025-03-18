@@ -138,7 +138,7 @@ class TestPaymentsV2Routes:
         payment = create_test_payment(db_session)
         
         # Make request
-        response = client.get("/v2/payments/")
+        response = client.get("/payments/")
         
         # Check response
         assert response.status_code == 200
@@ -160,7 +160,7 @@ class TestPaymentsV2Routes:
         payment = create_test_payment(db_session)
         
         # Make request
-        response = client.get(f"/v2/payments/{payment.id}")
+        response = client.get(f"/payments/{payment.id}")
         
         # Check response
         assert response.status_code == 200

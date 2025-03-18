@@ -49,7 +49,7 @@ export function InvoiceList({
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v2/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       toast({
         title: "Invoice deleted",
         description: "The invoice has been deleted successfully.",

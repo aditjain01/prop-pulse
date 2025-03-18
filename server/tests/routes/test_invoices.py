@@ -188,7 +188,7 @@ class TestInvoicesV2Routes:
         invoice = create_test_invoice(db_session)
         
         # Make request
-        response = client.get("/v2/invoices/")
+        response = client.get("/invoices/")
         
         # Check response
         assert response.status_code == 200
@@ -224,31 +224,31 @@ class TestInvoicesV2Routes:
         db_session.commit()
         
         # Test filter by purchase_id
-        response = client.get(f"/v2/invoices/?purchase_id={purchase.id}")
+        response = client.get(f"/invoices/?purchase_id={purchase.id}")
         data = response.json()
         assert len(data) == 2
         
         # Test filter by status
-        response = client.get("/v2/invoices/?status=paid")
+        response = client.get("/invoices/?status=paid")
         data = response.json()
         assert len(data) == 1
         assert data[0]["id"] == invoice2.id
         
         # Test filter by milestone
-        response = client.get("/v2/invoices/?milestone=Booking")
+        response = client.get("/invoices/?milestone=Booking")
         data = response.json()
         assert len(data) == 1
         assert data[0]["id"] == invoice1.id
         
         # Test filter by date range
         from_date = (date.today() - timedelta(days=20)).isoformat()
-        response = client.get(f"/v2/invoices/?from_date={from_date}")
+        response = client.get(f"/invoices/?from_date={from_date}")
         data = response.json()
         assert len(data) == 1
         assert data[0]["id"] == invoice1.id
         
         to_date = (date.today() - timedelta(days=20)).isoformat()
-        response = client.get(f"/v2/invoices/?to_date={to_date}")
+        response = client.get(f"/invoices/?to_date={to_date}")
         data = response.json()
         assert len(data) == 1
         assert data[0]["id"] == invoice2.id
@@ -262,7 +262,7 @@ class TestInvoicesV2Routes:
         payment = create_test_payment(db_session, invoice_id=invoice.id)
         
         # Make request
-        response = client.get(f"/v2/invoices/{invoice.id}")
+        response = client.get(f"/invoices/{invoice.id}")
         
         # Check response
         assert response.status_code == 200

@@ -131,7 +131,7 @@ class TestLoansV2Routes:
         loan = create_test_loan(db_session)
         
         # Make request
-        response = client.get("/v2/loans/")
+        response = client.get("/loans/")
         
         # Check response
         assert response.status_code == 200
@@ -164,25 +164,25 @@ class TestLoansV2Routes:
         db_session.commit()
         
         # Test filter by purchase_id
-        response = client.get(f"/v2/loans/?purchase_id={loan1.purchase_id}")
+        response = client.get(f"/loans/?purchase_id={loan1.purchase_id}")
         data = response.json()
         assert len(data) == 1
         assert data[0]["id"] == loan1.id
         
         # Test filter by is_active
-        response = client.get("/v2/loans/?is_active=false")
+        response = client.get("/loans/?is_active=false")
         data = response.json()
         assert len(data) == 1
         assert data[0]["id"] == loan2.id
         assert data[0]["is_active"] == False
         
         # Test filter by amount range
-        response = client.get("/v2/loans/?from_amount=3000000")
+        response = client.get("/loans/?from_amount=3000000")
         data = response.json()
         assert len(data) == 1
         assert data[0]["id"] == loan1.id
         
-        response = client.get("/v2/loans/?to_amount=2500000")
+        response = client.get("/loans/?to_amount=2500000")
         data = response.json()
         assert len(data) == 1
         assert data[0]["id"] == loan2.id
@@ -193,7 +193,7 @@ class TestLoansV2Routes:
         loan = create_test_loan(db_session)
         
         # Make request
-        response = client.get(f"/v2/loans/{loan.id}")
+        response = client.get(f"/loans/{loan.id}")
         
         # Check response
         assert response.status_code == 200

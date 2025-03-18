@@ -39,11 +39,11 @@ export function RepaymentList({
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/v2/repayments/${id}`);
+      const res = await apiRequest("DELETE", `/api/repayments/${id}`);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v2/repayments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/repayments"] });
       toast({
         title: "Repayment deleted",
         description: "The repayment has been deleted successfully.",
@@ -68,7 +68,7 @@ export function RepaymentList({
   };
 
   const handleEditSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/v2/repayments"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/repayments"] });
     setRepaymentToEdit(null);
   };
 

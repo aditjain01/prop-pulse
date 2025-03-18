@@ -7,14 +7,16 @@ from src.database import get_db, models
 
 # Create a router instance
 router = APIRouter(prefix="/payments", tags=["payments"])
+# V2 routes for frontend-aligned endpoints
+router_dev = APIRouter(prefix="/v2/payments", tags=["payments"])
 
 
 # Create a new payment
-@router.post("", response_model=schemas.Payment, include_in_schema=False)
-@router.post("/", response_model=schemas.Payment)
+@router.post("", response_model=schemas.PaymentOld, include_in_schema=False, description="Create a new payment")
+@router.post("/", response_model=schemas.PaymentOld, description="Create a new payment")
 def create_payment(
     payment: schemas.PaymentCreate, db: Session = Depends(get_db)
-) -> schemas.Payment:
+) -> schemas.PaymentOld:
     try:
         # Check if invoice exists
         invoice = (
@@ -74,9 +76,9 @@ def create_payment(
 
 
 # Get all payments with optional filters
-@router.get("", response_model=List[schemas.Payment], include_in_schema=False)
-@router.get("/", response_model=List[schemas.Payment])
-def get_payments(
+@router_dev.get("", response_model=List[schemas.PaymentOld], include_in_schema=False, description="Get all payments with optional filters")
+@router_dev.get("/", response_model=List[schemas.PaymentOld], description="Get all payments with optional filters")
+def get_payments_old(
     purchase_id: Optional[int] = None,
     payment_source_id: Optional[int] = None,
     milestone: Optional[str] = None,
@@ -84,7 +86,7 @@ def get_payments(
     from_date: Optional[str] = None,
     to_date: Optional[str] = None,
     db: Session = Depends(get_db),
-) -> List[schemas.Payment]:
+) -> List[schemas.PaymentOld]:
     try:
         query = db.query(models.Payment)
 
@@ -112,9 +114,9 @@ def get_payments(
 
 
 # Get a specific payment by ID
-@router.get("/{payment_id}", response_model=schemas.Payment, include_in_schema=False)
-@router.get("/{payment_id}/", response_model=schemas.Payment)
-def get_payment(payment_id: int, db: Session = Depends(get_db)) -> schemas.Payment:
+@router_dev.get("/{payment_id}", response_model=schemas.PaymentOld, include_in_schema=False, description="Get a specific payment by ID")
+@router_dev.get("/{payment_id}/", response_model=schemas.PaymentOld, description="Get a specific payment by ID")
+def get_payment_old(payment_id: int, db: Session = Depends(get_db)) -> schemas.PaymentOld:
     try:
         payment = (
             db.query(models.Payment).filter(models.Payment.id == payment_id).first()
@@ -129,11 +131,11 @@ def get_payment(payment_id: int, db: Session = Depends(get_db)) -> schemas.Payme
 
 
 # Update a payment
-@router.put("/{payment_id}", response_model=schemas.Payment, include_in_schema=False)
-@router.put("/{payment_id}/", response_model=schemas.Payment)
+@router.put("/{payment_id}", response_model=schemas.PaymentOld, include_in_schema=False, description="Update a payment")
+@router.put("/{payment_id}/", response_model=schemas.PaymentOld, description="Update a payment")
 def update_payment(
     payment_id: int, payment: schemas.PaymentUpdate, db: Session = Depends(get_db)
-) -> schemas.Payment:
+) -> schemas.PaymentOld:
     try:
         # Check if payment exists
         db_payment = (
@@ -219,8 +221,8 @@ def update_payment(
 
 
 # Delete Payment
-@router.delete("/{payment_id}", include_in_schema=False)
-@router.delete("/{payment_id}/")
+@router.delete("/{payment_id}", include_in_schema=False, description="Delete a payment")
+@router.delete("/{payment_id}/", description="Delete a payment")
 def delete_payment(payment_id: int, db: Session = Depends(get_db)):
     try:
         # Check if payment exists
@@ -240,13 +242,9 @@ def delete_payment(payment_id: int, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# V2 routes for frontend-aligned endpoints
-router_v2 = APIRouter(prefix="/v2/payments", tags=["payments"])
-
-
-@router_v2.get("/", response_model=List[schemas.PaymentPublic])
-def get_payments_v2(
+@router.get("", response_model=List[schemas.PaymentPublic], include_in_schema=False, description="Get a list of payments with property and invoice information")
+@router.get("/", response_model=List[schemas.PaymentPublic], description="Get a list of payments with property and invoice information")
+def get_payments(
     purchase_id: Optional[int] = None,
     invoice_id: Optional[int] = None,
     source_id: Optional[int] = None,
@@ -324,9 +322,9 @@ def get_payments_v2(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@router_v2.get("/{payment_id}", response_model=schemas.Payment)
-def get_payment_v2(payment_id: int, db: Session = Depends(get_db)) -> schemas.Payment:
+@router.get("/{payment_id}", response_model=schemas.Payment, include_in_schema=False, description="Get a detailed view of a single payment with property and invoice information")
+@router.get("/{payment_id}", response_model=schemas.Payment, description="Get a detailed view of a single payment with property and invoice information")
+def get_payment(payment_id: int, db: Session = Depends(get_db)) -> schemas.Payment:
     """
     Get a detailed view of a single payment with property and invoice information.
     Optimized for frontend detail views.

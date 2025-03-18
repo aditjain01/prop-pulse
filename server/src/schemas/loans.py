@@ -5,6 +5,7 @@ from decimal import Decimal
 
 
 class LoanBase(BaseModel):
+    """Base schema for loan details, containing common attributes for all loan-related operations."""
     purchase_id: int
     name: str
     institution: str
@@ -21,10 +22,12 @@ class LoanBase(BaseModel):
 
 
 class LoanCreate(LoanBase):
+    """Schema for creating a new loan, extending the base loan schema with a user ID."""
     user_id: Optional[int] = 1
 
 
-class Loan(LoanBase):
+class LoanOld(LoanBase):
+    """Schema for representing an existing loan with additional metadata like creation and update timestamps."""
     id: int
     user_id: Optional[int] = None
     created_at: datetime
@@ -34,6 +37,7 @@ class Loan(LoanBase):
 
 
 class LoanUpdate(BaseModel):
+    """Schema for updating loan details, allowing partial updates with optional fields."""
     purchase_id: Optional[int] = None
     institution: Optional[str] = None
     agent: Optional[str] = None
@@ -50,7 +54,7 @@ class LoanUpdate(BaseModel):
 
 # V2 schemas for frontend-aligned endpoints
 class LoanPublic(BaseModel):
-    """Schema for listing loans with essential information for the frontend"""
+    """Schema for listing loans with essential information for the frontend."""
     id: int
     name: str
     institution: str
@@ -62,7 +66,7 @@ class LoanPublic(BaseModel):
 
 
 class Loan(LoanPublic):
-    """Schema for detailed view of a single loan"""
+    """Schema for detailed view of a single loan, including additional financial details."""
     property_name: str  # From Loan->Purchase->Property relationship
     processing_fee: Decimal
     other_charges: Decimal

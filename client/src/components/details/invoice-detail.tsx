@@ -20,20 +20,7 @@ import { apiRequest } from "@/lib/api/api";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { DeleteConfirmation } from "@/components/delete-confirmation";
-import { type Invoice, type Payment, type PaymentSource } from "@/lib/schemas";
-
-// Define types for the component
-interface Property {
-  id: number;
-  name: string;
-  [key: string]: any;
-}
-
-interface Purchase {
-  id: number;
-  property_id: number;
-  [key: string]: any;
-}
+import { type Invoice } from "@/lib/schemas";
 
 type InvoiceDetailProps = {
   invoiceId: number;
@@ -47,29 +34,29 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   
   // Fetch invoice details
   const { data: invoice, isLoading: invoiceLoading } = useQuery<Invoice>({
-    queryKey: [`/api/v2/invoices/${invoiceId}`],
+    queryKey: [`/api/invoices/${invoiceId}`],
   });
   
   // Fetch related payments
   const { data: payments = [], isLoading: paymentsLoading } = useQuery<Payment[]>({
-    queryKey: ["/api/v2/payments", { invoice_id: invoiceId }],
+    queryKey: ["/api/payments", { invoice_id: invoiceId }],
     enabled: !!invoiceId,
   });
   
   // Fetch payment sources for displaying source names
   const { data: paymentSources = [] } = useQuery<PaymentSource[]>({
-    queryKey: ["/api/v2/payment-sources"],
+    queryKey: ["/api/payment-sources"],
     enabled: !!payments && payments.length > 0,
   });
 
   // Delete invoice mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/v2/invoices/${id}`);
+      const res = await apiRequest("DELETE", `/api/invoices/${id}`);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v2/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       toast({
         title: "Invoice deleted",
         description: "The invoice has been deleted successfully.",
@@ -133,7 +120,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   };
 
   const handleEditSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: [`/api/v2/invoices/${invoiceId}`] });
+    queryClient.invalidateQueries({ queryKey: [`/api/invoices/${invoiceId}`] });
     setIsEditDialogOpen(false);
   };
   

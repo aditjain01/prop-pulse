@@ -24,7 +24,7 @@ export default function LoanListPage() {
   const { toast } = useToast();
   
   const { data: loans, isLoading } = useQuery<Loan[]>({
-    queryKey: ["/api/v2/loans"],
+    queryKey: ["/api/loans"],
   });
 
   return (
@@ -46,7 +46,7 @@ export default function LoanListPage() {
           >
             <LoanForm 
               onSuccess={() => {
-                queryClient.invalidateQueries({ queryKey: ["/api/v2/loans"] });
+                queryClient.invalidateQueries({ queryKey: ["/api/loans"] });
               }}
             />
           </SlideDialog>

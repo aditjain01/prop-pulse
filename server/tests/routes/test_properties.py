@@ -229,7 +229,7 @@ class TestPropertiesV2Routes:
         property = create_test_property(db_session)
         
         # Make request
-        response = client.get("/v2/properties/")
+        response = client.get("/properties/")
         
         # Check response
         assert response.status_code == 200
@@ -265,28 +265,28 @@ class TestPropertiesV2Routes:
                                          developer="Developer B")
         
         # Test filter by property_type
-        response = client.get("/v2/properties/?property_type=apartment")
+        response = client.get("/properties/?property_type=apartment")
         data = response.json()
         assert len(data) >= 1
         assert any(p["id"] == property1.id for p in data)
         assert not any(p["id"] == property2.id for p in data)
         
         # Test filter by status
-        response = client.get("/v2/properties/?status=sold")
+        response = client.get("/properties/?status=sold")
         data = response.json()
         assert len(data) >= 1
         assert any(p["id"] == property2.id for p in data)
         assert not any(p["id"] == property1.id for p in data)
         
         # Test filter by developer
-        response = client.get("/v2/properties/?developer=Developer A")
+        response = client.get("/properties/?developer=Developer A")
         data = response.json()
         assert len(data) >= 1
         assert any(p["id"] == property1.id for p in data)
         assert not any(p["id"] == property2.id for p in data)
         
         # Test filter by name (partial match)
-        response = client.get("/v2/properties/?name=Property B")
+        response = client.get("/properties/?name=Property B")
         data = response.json()
         assert len(data) >= 1
         assert any(p["id"] == property2.id for p in data)
@@ -301,7 +301,7 @@ class TestPropertiesV2Routes:
         purchase = create_test_purchase(db_session, property_id=property.id)
         
         # Make request
-        response = client.get(f"/v2/properties/{property.id}")
+        response = client.get(f"/properties/{property.id}")
         
         # Check response
         assert response.status_code == 200

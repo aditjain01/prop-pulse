@@ -30,30 +30,30 @@ export function LoanDetail({ loanId }: LoanDetailProps) {
 
   // Fetch loan details
   const { data: loan, isLoading } = useQuery<Loan>({
-    queryKey: [`/api/v2/loans/${loanId}`],
+    queryKey: [`/api/loans/${loanId}`],
     enabled: !!loanId,
   });
 
   // Fetch repayments for the loan
   const { data: repayments = [], isLoading: repaymentsLoading } = useQuery<LoanRepayment[]>({
-    queryKey: ["/api/v2/repayments", { loan_id: loanId }],
+    queryKey: ["/api/repayments", { loan_id: loanId }],
     enabled: !!loanId,
   });
 
   // Fetch documents for this loan
   const { data: documents = [], isLoading: documentsLoading } = useQuery<LoanDocument[]>({
-    queryKey: [`/api/v2/documents`, { entity_type: "loan", entity_id: loanId }],
+    queryKey: [`/api/documents`, { entity_type: "loan", entity_id: loanId }],
     enabled: !!loanId,
   });
 
   // Delete loan mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/v2/loans/${id}`);
+      const res = await apiRequest("DELETE", `/api/loans/${id}`);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v2/loans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/loans"] });
       toast({
         title: "Loan deleted",
         description: "The loan has been deleted successfully.",
@@ -95,7 +95,7 @@ export function LoanDetail({ loanId }: LoanDetailProps) {
   };
   
   const handleEditSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: [`/api/v2/loans/${loanId}`] });
+    queryClient.invalidateQueries({ queryKey: [`/api/loans/${loanId}`] });
     setIsEditDialogOpen(false);
     toast({
       title: "Loan updated",
@@ -116,7 +116,7 @@ export function LoanDetail({ loanId }: LoanDetailProps) {
   };
 
   const handleAddRepaymentSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/v2/repayments", { loan_id: loanId }] });
+    queryClient.invalidateQueries({ queryKey: ["/api/repayments", { loan_id: loanId }] });
     setIsAddRepaymentDialogOpen(false);
     toast({
       title: "Repayment added",

@@ -10,15 +10,18 @@ from src.routes.payment_sources import create_payment_source
 router = APIRouter(prefix="/loans", tags=["loans"])
 
 # V2 routes for frontend-aligned endpoints
-router_v2 = APIRouter(prefix="/v2/loans", tags=["loans"])
+router_dev = APIRouter(prefix="/v2/loans", tags=["loans"])
 
 
 # Loan routes
-@router.post("", response_model=schemas.Loan, include_in_schema=False)
-@router.post("/", response_model=schemas.Loan)
+@router.post("", response_model=schemas.LoanOld, include_in_schema=False)
+@router.post("/", response_model=schemas.LoanOld)
 def create_loan(
     loan: schemas.LoanCreate, db: Session = Depends(get_db)
-) -> schemas.Loan:
+) -> schemas.LoanOld:
+    """
+    Create a new loan and automatically create a payment source for it.
+    """
     try:
         # Create the loan
         db_loan = models.Loan(**loan.dict())
@@ -48,11 +51,14 @@ def create_loan(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("", response_model=schemas.Loan, include_in_schema=False)
-@router.get("/", response_model=List[schemas.Loan])
-def get_loans(
+@router_dev.get("", response_model=schemas.LoanOld, include_in_schema=False)
+@router_dev.get("/", response_model=List[schemas.LoanOld])
+def get_loans_old(
     purchase_id: Optional[int] = None, db: Session = Depends(get_db)
-) -> List[schemas.Loan]:
+) -> List[schemas.LoanOld]:
+    """
+    Get a list of loans for a specific user, with an optional filter by purchase ID.
+    """
     try:
         query = db.query(models.Loan).filter(
             models.Loan.user_id == 1
@@ -84,9 +90,12 @@ def get_loans(
 # def get_loans_by_purchase(purchase_id: int, db: Session = Depends(get_db)):
 #     return get_loans(purchase_id=purchase_id, db=db)
 
-@router.get("/{loan_id}", response_model=schemas.Loan, include_in_schema=False)
-@router.get("/{loan_id}/", response_model=schemas.Loan)
-def get_loan(loan_id: int, db: Session = Depends(get_db)) -> schemas.Loan:
+@router_dev.get("/{loan_id}", response_model=schemas.LoanOld, include_in_schema=False)
+@router_dev.get("/{loan_id}/", response_model=schemas.LoanOld)
+def get_loan_old(loan_id: int, db: Session = Depends(get_db)) -> schemas.LoanOld:
+    """
+    Get detailed information about a specific loan.
+    """
     try:
         loan = db.query(models.Loan).filter(models.Loan.id == loan_id).first()
         if loan is None:
@@ -97,11 +106,14 @@ def get_loan(loan_id: int, db: Session = Depends(get_db)) -> schemas.Loan:
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.put("/{loan_id}", response_model=schemas.Loan, include_in_schema=False)
-@router.put("/{loan_id}/", response_model=schemas.Loan)
+@router.put("/{loan_id}", response_model=schemas.LoanOld, include_in_schema=False)
+@router.put("/{loan_id}/", response_model=schemas.LoanOld)
 def update_loan(
     loan_id: int, loan_update: schemas.LoanCreate, db: Session = Depends(get_db)
-) -> schemas.Loan:
+) -> schemas.LoanOld:
+    """
+    Update the details of an existing loan and its associated payment source.
+    """
     try:
         db_loan = db.query(models.Loan).filter(models.Loan.id == loan_id).first()
         if db_loan is None:
@@ -140,6 +152,9 @@ def update_loan(
 @router.delete("/{loan_id}", include_in_schema=False)
 @router.delete("/{loan_id}/")
 def delete_loan(loan_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a loan and its associated payment sources, if they have no associated payments.
+    """
     try:
         # Check if loan exists
         loan = db.query(models.Loan).filter(models.Loan.id == loan_id).first()
@@ -179,9 +194,9 @@ def delete_loan(loan_id: int, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@router_v2.get("/", response_model=List[schemas.LoanPublic])
-def get_loans_v2(
+@router.get("", response_model=List[schemas.LoanPublic], include_in_schema=False)
+@router.get("/", response_model=List[schemas.LoanPublic])
+def get_loans(
     purchase_id: Optional[int] = None,
     is_active: Optional[bool] = None,
     from_amount: Optional[float] = None,
@@ -217,9 +232,9 @@ def get_loans_v2(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@router_v2.get("/{loan_id}", response_model=schemas.Loan)
-def get_loan_v2(loan_id: int, db: Session = Depends(get_db)) -> schemas.Loan:
+@router.get("/{loan_id}", response_model=schemas.Loan, include_in_schema=False)
+@router.get("/{loan_id}", response_model=schemas.Loan)
+def get_loan(loan_id: int, db: Session = Depends(get_db)) -> schemas.Loan:
     """
     Get a detailed view of a single loan with property information.
     Optimized for frontend detail views.

@@ -208,7 +208,7 @@ class TestRepaymentsV2Routes:
         repayment = create_test_loan_repayment(db_session)
         
         # Make request
-        response = client.get("/v2/repayments/")
+        response = client.get("/repayments/")
         
         # Check response
         assert response.status_code == 200
@@ -243,24 +243,24 @@ class TestRepaymentsV2Routes:
         repayment2 = create_test_loan_repayment(db_session, loan_id=loan2.id)
         
         # Test filter by loan_id
-        response = client.get(f"/v2/repayments/?loan_id={loan.id}")
+        response = client.get(f"/repayments/?loan_id={loan.id}")
         data = response.json()
         assert len(data) == 1
         assert data[0]["loan_name"] == "Test Loan"  # From test_utils
         
         # Test filter by source_id
-        response = client.get(f"/v2/repayments/?source_id={payment_source.id}")
+        response = client.get(f"/repayments/?source_id={payment_source.id}")
         data = response.json()
         assert len(data) == 1
         
         # Test filter by amount range
         min_amount = float(repayment1.total_payment) - 1
-        response = client.get(f"/v2/repayments/?min_amount={min_amount}")
+        response = client.get(f"/repayments/?min_amount={min_amount}")
         data = response.json()
         assert len(data) >= 1
         
         # Very high amount should return no results
-        response = client.get("/v2/repayments/?min_amount=10000000")
+        response = client.get("/repayments/?min_amount=10000000")
         data = response.json()
         assert len(data) == 0
 
@@ -270,7 +270,7 @@ class TestRepaymentsV2Routes:
         repayment = create_test_loan_repayment(db_session)
         
         # Make request
-        response = client.get(f"/v2/repayments/{repayment.id}")
+        response = client.get(f"/repayments/{repayment.id}")
         
         # Check response
         assert response.status_code == 200

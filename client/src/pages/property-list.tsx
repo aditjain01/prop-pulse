@@ -9,7 +9,7 @@ import { PropertyList } from "@/components/lists/property-list";
 
 export default function PropertyListPage() {
   const { data: properties, isLoading } = useQuery<Property[]>({
-    queryKey: ["/api/v2/properties"],
+    queryKey: ["/api/properties"],
   });
 
   return (

@@ -63,8 +63,8 @@ export function PaymentList({
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v2/payments"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/v2/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       toast({
         title: "Payment deleted",
         description: "The payment has been deleted successfully.",
@@ -89,8 +89,8 @@ export function PaymentList({
   };
 
   const handleEditSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/v2/payments"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/v2/invoices"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
     setPaymentToEdit(null);
   };
 

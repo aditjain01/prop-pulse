@@ -25,7 +25,7 @@ export function PropertyList({ properties, isLoading }: PropertyListProps) {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v2/properties"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
       toast({
         title: "Property deleted",
         description: "The property has been deleted successfully.",

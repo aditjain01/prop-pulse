@@ -5,6 +5,7 @@ from decimal import Decimal
 
 
 class PropertyBase(BaseModel):
+    """Base schema for property details including name, address, type, and various area measurements."""
     name: str
     address: str
     property_type: str
@@ -19,17 +20,17 @@ class PropertyBase(BaseModel):
 
     initial_rate: Decimal
     current_rate: Decimal
-    # status_id: Optional[int] = None
     developer: Optional[str] = None
     rera_id: Optional[str] = None
 
 
-
 class PropertyCreate(PropertyBase):
+    """Schema for creating a new property, inheriting all base property details."""
     pass
 
 
-class Property(PropertyBase):
+class PropertyOld(PropertyBase):
+    """Schema for representing an existing property with additional metadata like ID and timestamps."""
     id: int
     created_at: datetime
     updated_at: datetime
@@ -39,6 +40,7 @@ class Property(PropertyBase):
 
 
 class PropertyUpdate(BaseModel):
+    """Schema for updating property details, allowing partial updates with optional fields."""
     name: Optional[str] = None
     address: Optional[str] = None
     property_type: Optional[str] = None
@@ -56,7 +58,7 @@ class PropertyUpdate(BaseModel):
 
 # V2 schemas for frontend-aligned endpoints
 class PropertyPublic(BaseModel):
-    """Schema for listing properties with minimal information needed for the frontend"""
+    """Schema for listing properties with minimal information needed for the frontend."""
     id: int
     name: str
     address: str
@@ -66,6 +68,6 @@ class PropertyPublic(BaseModel):
 
 
 class Property(PropertyPublic):
-    """Schema for detailed view of a single property"""
+    """Schema for detailed view of a single property, extending public schema with additional details."""
     property_type: str
     rera_id: Optional[str] = None
