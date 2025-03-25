@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { type Document as CustomDocument } from "@/lib/schemas";
+import { type Document as CustomDocument } from "@/lib/api/schemas";
 
 type DocumentUploadProps = {
   entityType: string;

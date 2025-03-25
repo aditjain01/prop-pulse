@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { SlideDialog } from "@/components/slide-dialog";
 import { PropertyForm } from "@/components/forms/property-form";
 import { Plus } from "lucide-react";
-import { type Property } from "@/lib/schemas";
+import { type Property } from "@/lib/api/schemas";
 import { PropertyList } from "@/components/lists/property-list";
 
 export default function PropertyListPage() {

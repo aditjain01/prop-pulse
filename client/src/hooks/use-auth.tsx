@@ -7,7 +7,7 @@ import {
 import { apiRequest } from '@/lib/api/base';
 import { queryClient, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { type SelectUser, type InsertUser } from "@/lib/schemas";
+import { type SelectUser, type InsertUser } from "@/lib/api/schemas";
 
 type AuthContextType = {
   user: SelectUser | null;

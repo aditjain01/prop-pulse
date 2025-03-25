@@ -17,12 +17,12 @@ import { useToast } from "@/hooks/use-toast";
 import { DeleteConfirmation } from "@/components/delete-confirmation";
 import { SlideDialog } from "@/components/slide-dialog";
 import { LoanRepaymentForm } from "@/components/forms/loan-repayment-form";
-import { type LoanRepayment as SchemaLoanRepayment } from "@/lib/schemas";
+import { type LoanRepayment } from "@/lib/api/schemas";
 
-// Local type definition for compatibility with existing code
-type LoanRepayment = SchemaLoanRepayment & {
-  loan_id?: number;  // Optional for backward compatibility
-};
+// // Local type definition for compatibility with existing code
+// type LoanRepayment = SchemaLoanRepayment & {
+//   loan_id?: number;  // Optional for backward compatibility
+// };
 
 type RepaymentListProps = {
   repayments: LoanRepayment[] | undefined;

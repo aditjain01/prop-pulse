@@ -20,7 +20,7 @@ import {
   type Purchase,
   type Property,
   initializePurchaseForm 
-} from "@/lib/schemas";
+} from "@/lib/api/schemas";
 
 type PurchaseFormProps = {
   propertyId?: number;

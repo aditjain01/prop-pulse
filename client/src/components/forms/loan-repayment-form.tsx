@@ -20,7 +20,7 @@ import {
   type LoanRepaymentFormValues, 
   type LoanRepayment,
   initializeLoanRepaymentForm 
-} from "@/lib/schemas";
+} from "@/lib/api/schemas";
 
 type LoanRepaymentFormProps = {
   loanId?: number;

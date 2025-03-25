@@ -15,7 +15,7 @@ import {
   type LoanFormValues, 
   type Loan,
   initializeLoanForm 
-} from "@/lib/schemas";
+} from "@/lib/api/schemas";
 
 type LoanFormProps = {
   purchaseId?: number;

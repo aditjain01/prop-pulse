@@ -16,7 +16,7 @@ import {
   type PaymentSourceFormValues, 
   type PaymentSource,
   initializePaymentSourceForm 
-} from "@/lib/schemas";
+} from "@/lib/api/schemas";
 
 type PaymentSourceFormProps = {
   paymentSource?: PaymentSource;

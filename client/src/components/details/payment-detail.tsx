@@ -21,7 +21,7 @@ import { DeleteConfirmation } from "@/components/delete-confirmation";
 import { apiRequest } from "@/lib/api/base";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { type Payment} from "@/lib/schemas";
+import { type Payment} from "@/lib/api/schemas";
 
 // Define types for the component
 interface Property {

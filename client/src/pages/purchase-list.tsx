@@ -3,7 +3,7 @@ import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
 import { SlideDialog } from "@/components/slide-dialog";
 import { PurchaseForm } from "@/components/forms/purchase-form";
-import { type Purchase } from "@/lib/schemas";
+import { type Purchase } from "@/lib/api/schemas";
 import { Plus } from "lucide-react";
 import { PurchaseList } from "@/components/lists/purchase-list";
 

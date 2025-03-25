@@ -22,7 +22,7 @@ import {
   type PaymentFormValues, 
   type Payment,
   initializePaymentForm 
-} from "@/lib/schemas";
+} from "@/lib/api/schemas";
 import { formatCurrency } from "@/lib/utils";
 
 type PaymentFormProps = {

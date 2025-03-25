@@ -25,21 +25,22 @@ import { DeleteConfirmation } from "@/components/delete-confirmation";
 import { SlideDialog } from "@/components/slide-dialog";
 import { PaymentForm } from "@/components/forms/payment-form";
 import { useLocation } from "wouter";
+import { type Payment, type PaymentSource } from "@/lib/api/schemas";
 
-type Payment = {
-  id: number;
-  payment_date: string;
-  amount: number;
-  payment_mode: string;
-  invoice_id?: number;
-  [key: string]: any;
-};
+// type Payment = {
+//   id: number;
+//   payment_date: string;
+//   amount: number;
+//   payment_mode: string;
+//   invoice_id?: number;
+//   [key: string]: any;
+// };
 
-type PaymentSource = {
-  id: number;
-  name: string;
-  [key: string]: any;
-};
+// type PaymentSource = {
+//   id: number;
+//   name: string;
+//   [key: string]: any;
+// };
 
 type PaymentListProps = {
   payments: Payment[] | undefined;

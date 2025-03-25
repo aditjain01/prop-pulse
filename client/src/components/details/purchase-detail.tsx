@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreditCard, FileText, Receipt, Plus, Pencil, Trash2 } from "lucide-react";
 import { LoanForm } from "@/components/forms/loan-form";
-import { type Purchase, type Property, type Document as PurchaseDocument, type Loan, type Invoice, type Payment } from "@/lib/schemas";
+import { type Purchase, type Property, type Document as PurchaseDocument, type Loan, type Invoice, type Payment } from "@/lib/api/schemas";
 import { AcquisitionCostCard } from "@/components/acquisition-cost";
 import { Badge } from "@/components/ui/badge";
 import { LoanList } from "@/components/lists/loan-list";

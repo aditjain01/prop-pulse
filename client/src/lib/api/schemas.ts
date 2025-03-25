@@ -1,5 +1,43 @@
 import { z } from "zod";
 
+import { components } from ".";
+
+
+export type Property = components["schemas"]["Property"];
+export type PropertyCreate = components["schemas"]["PropertyCreate"];
+export type PropertyUpdate = components["schemas"]["PropertyUpdate"];
+export type PropertyPublic = components["schemas"]["PropertyPublic"];
+
+export type Purchase = components["schemas"]["Purchase"];
+export type PurchaseCreate = components["schemas"]["PurchaseCreate"];
+export type PurchaseUpdate = components["schemas"]["PurchaseUpdate"];
+export type PurchasePublic = components["schemas"]["PurchasePublic"];
+
+export type Loan = components["schemas"]["Loan"];
+export type LoanCreate = components["schemas"]["LoanCreate"];
+export type LoanUpdate = components["schemas"]["LoanUpdate"];
+export type LoanPublic = components["schemas"]["LoanPublic"];
+
+export type PaymentSource = components["schemas"]["PaymentSource"];
+export type PaymentSourceCreate = components["schemas"]["PaymentSourceCreate"];
+export type PaymentSourceUpdate = components["schemas"]["PaymentSourceUpdate"];
+
+export type Invoice = components["schemas"]["Invoice"];
+export type InvoiceCreate = components["schemas"]["InvoiceCreate"];
+export type InvoiceUpdate = components["schemas"]["InvoiceUpdate"];
+export type InvoicePublic = components["schemas"]["InvoicePublic"];
+
+export type Payment = components["schemas"]["Payment"];
+export type PaymentCreate = components["schemas"]["PaymentCreate"];
+export type PaymentUpdate = components["schemas"]["PaymentUpdate"];
+export type PaymentPublic = components["schemas"]["PaymentPublic"];
+
+export type LoanRepayment = components["schemas"]["LoanRepayment"];
+export type LoanRepaymentCreate = components["schemas"]["LoanRepaymentCreate"];
+export type LoanRepaymentUpdate = components["schemas"]["LoanRepaymentUpdate"];
+export type LoanRepaymentPublic = components["schemas"]["LoanRepaymentPublic"];
+
+
 // Base types that match the server models
 export type User = {
   id: number;
@@ -8,139 +46,139 @@ export type User = {
   created_at: string;
 };
 
-export type Property = {
-  id: number;
-  name: string;
-  address: string;
-  property_type: string;
-  carpet_area: number | null;
-  exclusive_area: number | null;
-  common_area: number | null;
-  floor_number: number | null;
-  parking_details: string | null;
-  amenities: string[];
-  initial_rate: number;
-  current_rate: number;
-  developer: string | null;
-  rera_id: string | null;
-  super_area?: number | null;
-  created_at?: string;
-  updated_at?: string;
-};
+// export type Property = {
+//   id: number;
+//   name: string;
+//   address: string;
+//   property_type: string;
+//   carpet_area: number | null;
+//   exclusive_area: number | null;
+//   common_area: number | null;
+//   floor_number: number | null;
+//   parking_details: string | null;
+//   amenities: string[];
+//   initial_rate: number;
+//   current_rate: number;
+//   developer: string | null;
+//   rera_id: string | null;
+//   super_area?: number | null;
+//   created_at?: string;
+//   updated_at?: string;
+// };
 
-export type Purchase = {
-  id: number;
-  property_id?: number;
-  user_id?: number;
-  property_name: string;
-  purchase_date: string;
-  registration_date: string | null;
-  possession_date: string | null;
-  base_cost: number;
-  other_charges: number | null;
-  ifms: number | null;
-  lease_rent: number | null;
-  amc: number | null;
-  gst: number | null;
-  property_cost: number;
-  total_cost: number;
-  total_purchase_cost: number;
-  seller: string | null;
-  remarks: string | null;
-  created_at?: string;
-  property?: Property; // For joined queries
-};
+// export type Purchase = {
+//   id: number;
+//   property_id?: number;
+//   user_id?: number;
+//   property_name: string;
+//   purchase_date: string;
+//   registration_date: string | null;
+//   possession_date: string | null;
+//   base_cost: number;
+//   other_charges: number | null;
+//   ifms: number | null;
+//   lease_rent: number | null;
+//   amc: number | null;
+//   gst: number | null;
+//   property_cost: number;
+//   total_cost: number;
+//   total_purchase_cost: number;
+//   seller: string | null;
+//   remarks: string | null;
+//   created_at?: string;
+//   property?: Property; // For joined queries
+// };
 
-export type Loan = {
-  id: number;
-  user_id?: number | null;
-  purchase_id: number;
-  name: string;
-  institution: string;
-  agent: string | null;
-  sanction_date: string;
-  sanction_amount: number;
-  total_disbursed_amount: number;
-  processing_fee: number;
-  other_charges: number;
-  loan_sanction_charges: number;
-  interest_rate: number;
-  tenure_months: number;
-  is_active: boolean;
-  property_name?: string;
-  created_at?: string;
-  updated_at?: string | null;
-};
+// export type Loan = {
+//   id: number;
+//   user_id?: number | null;
+//   purchase_id: number;
+//   name: string;
+//   institution: string;
+//   agent: string | null;
+//   sanction_date: string;
+//   sanction_amount: number;
+//   total_disbursed_amount: number;
+//   processing_fee: number;
+//   other_charges: number;
+//   loan_sanction_charges: number;
+//   interest_rate: number;
+//   tenure_months: number;
+//   is_active: boolean;
+//   property_name?: string;
+//   created_at?: string;
+//   updated_at?: string | null;
+// };
 
-export type PaymentSource = {
-  id: number;
-  user_id: number;
-  name: string;
-  source_type: string;
-  description: string | null;
-  is_active: boolean;
-  bank_name: string | null;
-  account_number: string | null;
-  ifsc_code: string | null;
-  branch: string | null;
-  loan_id: number | null;
-  lender: string | null;
-  card_number: string | null;
-  card_expiry: string | null;
-  wallet_provider: string | null;
-  wallet_identifier: string | null;
-  created_at: string;
-  updated_at: string | null;
-};
+// export type PaymentSource = {
+//   id: number;
+//   user_id: number;
+//   name: string;
+//   source_type: string;
+//   description: string | null;
+//   is_active: boolean;
+//   bank_name: string | null;
+//   account_number: string | null;
+//   ifsc_code: string | null;
+//   branch: string | null;
+//   loan_id: number | null;
+//   lender: string | null;
+//   card_number: string | null;
+//   card_expiry: string | null;
+//   wallet_provider: string | null;
+//   wallet_identifier: string | null;
+//   created_at: string;
+//   updated_at: string | null;
+// };
 
-export type Invoice = {
-  id: number;
-  purchase_id: number;
-  property_name: string;
-  invoice_number: string;
-  invoice_date: string;
-  due_date: string | null;
-  amount: number;
-  status: string;
-  milestone: string | null;
-  description: string | null;
-  created_at: string;
-  updated_at: string | null;
-  paid_amount: number;
-};
+// export type Invoice = {
+//   id: number;
+//   purchase_id: number;
+//   property_name: string;
+//   invoice_number: string;
+//   invoice_date: string;
+//   due_date: string | null;
+//   amount: number;
+//   status: string;
+//   milestone: string | null;
+//   description: string | null;
+//   created_at: string;
+//   updated_at: string | null;
+//   paid_amount: number;
+// };
 
-export type Payment = {
-  id: number;
-  payment_date: string;
-  amount: number;
-  source_name: string;
-  payment_mode: string;
-  property_name: string;
-  invoice_number: string;
-  transaction_reference: string | null;
-  receipt_date: string | null;
-  receipt_number: string | null;
-  notes: string | null;
-};
+// export type Payment = {
+//   id: number;
+//   payment_date: string;
+//   amount: number;
+//   source_name: string;
+//   payment_mode: string;
+//   property_name: string;
+//   invoice_number: string;
+//   transaction_reference: string | null;
+//   receipt_date: string | null;
+//   receipt_number: string | null;
+//   notes: string | null;
+// };
 
-// Add LoanRepayment type
-export type LoanRepayment = {
-  id: number;
-  loan_name: string;
-  loan_institution: string;
-  property_name: string;
-  total_payment: number;
-  source_name: string;
-  payment_date: string;
-  payment_mode: string;
-  principal_amount: number;
-  interest_amount: number;
-  other_fees: number;
-  penalties: number;
-  purchase_id: number;
-  transaction_reference: string | null;
-  notes: string | null;
-};
+// // Add LoanRepayment type
+// export type LoanRepayment = {
+//   id: number;
+//   loan_name: string;
+//   loan_institution: string;
+//   property_name: string;
+//   total_payment: number;
+//   source_name: string;
+//   payment_date: string;
+//   payment_mode: string;
+//   principal_amount: number;
+//   interest_amount: number;
+//   other_fees: number;
+//   penalties: number;
+//   purchase_id: number;
+//   transaction_reference: string | null;
+//   notes: string | null;
+// };
 
 export type Document = {
   id: number;
@@ -374,6 +412,34 @@ export const initializeLoanRepaymentForm = (repayment?: LoanRepayment, loanId?: 
     notes: repayment?.notes || "",
   };
 }; 
+
+
+// Invoice schemas
+export const invoiceFormSchema = z.object({
+  purchase_id: z.string().min(1, "Property purchase is required"),
+  invoice_number: z.string().min(1, "Invoice number is required"),
+  invoice_date: z.string().min(1, "Invoice date is required"),
+  due_date: z.string().optional(),
+  amount: z.string().transform(val => parseFloat(val) || 0),
+  status: z.string().min(1, "Status is required"),
+  milestone: z.string().optional(),
+  description: z.string().optional(),
+});
+export type InvoiceFormValues = z.infer<typeof invoiceFormSchema>;
+export const invoiceUpdateSchema = invoiceFormSchema.partial();
+export type InvoiceUpdateValues = z.infer<typeof invoiceUpdateSchema>;
+export const initializeInvoiceForm = (invoice?: Invoice, purchaseId?: number): InvoiceFormValues => {
+  return {
+    purchase_id: invoice ? invoice.purchase_id.toString() : purchaseId ? purchaseId.toString() : "",
+    invoice_number: invoice?.invoice_number || "",
+    invoice_date: invoice?.invoice_date ? new Date(invoice.invoice_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    due_date: invoice?.due_date ? new Date(invoice.due_date).toISOString().split('T')[0] : "",
+    amount: invoice?.amount ? invoice.amount.toString() : "",
+    status: invoice?.status || "pending",
+    milestone: invoice?.milestone || "",
+    description: invoice?.description || "",
+  };
+};
 
 
 // Document schemas

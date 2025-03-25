@@ -20,7 +20,7 @@ import { apiRequest } from "@/lib/api/base";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { DeleteConfirmation } from "@/components/delete-confirmation";
-import { type Invoice } from "@/lib/schemas";
+import { type Invoice } from "@/lib/api/schemas";
 
 type InvoiceDetailProps = {
   invoiceId: number;

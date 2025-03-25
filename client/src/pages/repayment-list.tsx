@@ -23,7 +23,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { type LoanRepayment, type Loan } from "@/lib/schemas";
+import { type LoanRepayment, type Loan } from "@/lib/api/schemas";
 import { RepaymentList } from "@/components/lists/repayment-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 

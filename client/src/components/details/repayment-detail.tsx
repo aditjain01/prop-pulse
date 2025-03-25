@@ -12,7 +12,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { apiRequest } from "@/lib/api/base";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { type LoanRepayment } from "@/lib/schemas";
+import { type LoanRepayment } from "@/lib/api/schemas";
 
 type RepaymentDetailProps = {
   repaymentId: number;

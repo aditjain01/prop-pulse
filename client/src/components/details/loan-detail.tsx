@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Plus, ArrowLeft } from "lucide-react";
 import { SlideDialog } from "@/components/slide-dialog";
 import { LoanForm } from "@/components/forms/loan-form";
-import { type Loan, type LoanRepayment, type Document as LoanDocument } from "@/lib/schemas";
+import { type Loan, type LoanRepayment, type Document as LoanDocument } from "@/lib/api/schemas";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { DocumentUpload } from "@/components/document-upload";

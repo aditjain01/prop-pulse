@@ -2,7 +2,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from '@/lib/api/base';
-import { type Invoice } from "@/lib/schemas";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -12,39 +11,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { z } from "zod";
 import { useState } from "react";
 import { useLocation } from "wouter";
-
-// Define the schema for the form
-const invoiceFormSchema = z.object({
-  purchase_id: z.string().min(1, "Property purchase is required"),
-  invoice_number: z.string().min(1, "Invoice number is required"),
-  invoice_date: z.string().min(1, "Invoice date is required"),
-  due_date: z.string().optional(),
-  amount: z.string().min(1, "Amount is required"),
-  status: z.string().min(1, "Status is required"),
-  milestone: z.string().optional(),
-  description: z.string().optional(),
-});
-
-// Define the type for the form values
-type InvoiceFormValues = z.infer<typeof invoiceFormSchema>;
-
-
-// Helper function to initialize form values
-const initializeInvoiceForm = (invoice?: Invoice, purchaseId?: number): InvoiceFormValues => {
-  return {
-    purchase_id: invoice ? invoice.purchase_id.toString() : purchaseId ? purchaseId.toString() : "",
-    invoice_number: invoice?.invoice_number || "",
-    invoice_date: invoice?.invoice_date ? new Date(invoice.invoice_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-    due_date: invoice?.due_date ? new Date(invoice.due_date).toISOString().split('T')[0] : "",
-    amount: invoice?.amount ? invoice.amount.toString() : "",
-    status: invoice?.status || "pending",
-    milestone: invoice?.milestone || "",
-    description: invoice?.description || "",
-  };
-};
+import {
+  invoiceFormSchema,
+  type InvoiceFormValues,
+  type Invoice,
+  initializeInvoiceForm,
+  type Purchase
+} from "@/lib/api/schemas";
 
 type InvoiceFormProps = {
   purchaseId?: number;
@@ -57,7 +32,7 @@ export function InvoiceForm({ purchaseId, invoice, onSuccess }: InvoiceFormProps
   const [, navigate] = useLocation();
   
   // Fetch purchases for dropdown
-  const { data: purchases, isLoading: purchasesLoading } = useQuery({
+  const { data: purchases, isLoading: purchasesLoading } = useQuery<Purchase[]>({
     queryKey: ["/api/purchases/"],
   });
   
@@ -69,10 +44,8 @@ export function InvoiceForm({ purchaseId, invoice, onSuccess }: InvoiceFormProps
   // Helper function to get property name for a purchase
   const getPropertyName = (purchaseId: number) => {
     const purchase = purchases?.find(p => p.id === purchaseId);
-    if (!purchase) return "Unknown Property";
+    !purchase ? "Unknown Property" : purchase.property_name;
     
-    const property = properties?.find(p => p.id === purchase.property_id);
-    return property?.name || "Unknown Property";
   };
   
   const form = useForm<InvoiceFormValues>({
@@ -88,7 +61,7 @@ export function InvoiceForm({ purchaseId, invoice, onSuccess }: InvoiceFormProps
       const payload = {
         ...data,
         purchase_id: parseInt(data.purchase_id),
-        amount: parseFloat(data.amount),
+        amount: data.amount,
       };
       
       const res = await apiRequest(method, endpoint, payload);

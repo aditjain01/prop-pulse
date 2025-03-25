@@ -5,7 +5,7 @@ import { SlideDialog } from "@/components/slide-dialog";
 import { PropertyForm } from "@/components/forms/property-form";
 import { useState } from "react";
 import { DeleteConfirmation } from "@/components/delete-confirmation";
-import { type Property, type Purchase, type Document as PropertyDocument } from "@/lib/schemas";
+import { type Property, type Purchase, type Document as PropertyDocument } from "@/lib/api/schemas";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Pencil, Trash2 } from "lucide-react";

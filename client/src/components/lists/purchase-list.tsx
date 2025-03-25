@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Trash2, Plus } from "lucide-react";
-import { type Purchase } from "@/lib/schemas";
+import { type Purchase } from "@/lib/api/schemas";
 import { apiRequest } from "@/lib/api/base";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
