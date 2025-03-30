@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest } from '@/lib/api/base';
+import { apiRequest } from '@/lib/api/api';
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import {
   type PaymentSourceFormValues, 
   type PaymentSource,
   initializePaymentSourceForm 
-} from "@/lib/api/schemas";
+} from "@/lib/schemas";
 
 type PaymentSourceFormProps = {
   paymentSource?: PaymentSource;

@@ -8,19 +8,13 @@ from fastapi import APIRouter
 # Create a router instance
 router = APIRouter(prefix="/repayments", tags=["repayments"])
 
-# V2 routes for frontend-aligned endpoints
-router_dev = APIRouter(prefix="/repayments", tags=["repayments"])
-
 
 # Updated Loan Repayment endpoints with new route structure
-@router.post("", response_model=schemas.LoanRepaymentOld, include_in_schema=False)
-@router.post("/", response_model=schemas.LoanRepaymentOld)
+@router.post("", response_model=schemas.LoanRepayment, include_in_schema=False)
+@router.post("/", response_model=schemas.LoanRepayment)
 def create_loan_repayment(
     repayment: schemas.LoanRepaymentCreate, db: Session = Depends(get_db)
-) -> schemas.LoanRepaymentOld:
-    """
-    Create a new loan repayment.
-    """
+) -> schemas.LoanRepayment:
     print(repayment.model_dump())
     try:
         # Check if loan exists (required)
@@ -55,16 +49,62 @@ def create_loan_repayment(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.put("/{repayment_id}", response_model=schemas.LoanRepaymentOld, include_in_schema=False)
-@router.put("/{repayment_id}/", response_model=schemas.LoanRepaymentOld)
+@router.get("", response_model=List[schemas.LoanRepayment], include_in_schema=False)
+@router.get("/", response_model=List[schemas.LoanRepayment])
+def get_loan_repayments(
+    loan_id: Optional[int] = None,
+    source_id: Optional[int] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    db: Session = Depends(get_db),
+) -> List[schemas.LoanRepayment]:
+    try:
+        query = db.query(models.LoanRepayment)
+
+        # Apply filters if provided
+        if loan_id:
+            query = query.filter(models.LoanRepayment.loan_id == loan_id)
+        if source_id:
+            query = query.filter(models.LoanRepayment.source_id == source_id)
+        if from_date:
+            query = query.filter(models.LoanRepayment.payment_date >= from_date)
+        if to_date:
+            query = query.filter(models.LoanRepayment.payment_date <= to_date)
+
+        # Order by payment date (newest first)
+        query = query.order_by(models.LoanRepayment.payment_date.desc())
+
+        repayments = query.all()
+        return repayments
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{repayment_id}", response_model=schemas.LoanRepayment, include_in_schema=False)
+@router.get("/{repayment_id}/", response_model=schemas.LoanRepayment)
+def get_loan_repayment(
+    repayment_id: int, db: Session = Depends(get_db)
+) -> schemas.LoanRepayment:
+    try:
+        repayment = (
+            db.query(models.LoanRepayment)
+            .filter(models.LoanRepayment.id == repayment_id)
+            .first()
+        )
+        if repayment is None:
+            raise HTTPException(status_code=404, detail="Loan repayment not found")
+        return repayment
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/{repayment_id}", response_model=schemas.LoanRepayment, include_in_schema=False)
+@router.put("/{repayment_id}/", response_model=schemas.LoanRepayment)
 def update_loan_repayment(
     repayment_id: int,
     repayment: schemas.LoanRepaymentUpdate,
     db: Session = Depends(get_db),
-) -> schemas.LoanRepaymentOld:
-    """
-    Update an existing loan repayment by ID.
-    """
+) -> schemas.LoanRepayment:
     x = schemas.LoanRepaymentUpdate(**repayment.model_dump())
     print(x)
     print(repayment.model_dump(exclude_unset=True))
@@ -115,9 +155,6 @@ def update_loan_repayment(
 @router.delete("/{repayment_id}", include_in_schema=False)
 @router.delete("/{repayment_id}/")
 def delete_loan_repayment(repayment_id: int, db: Session = Depends(get_db)):
-    """
-    Delete a loan repayment by ID.
-    """
     try:
         # Check if repayment exists
         repayment = (
@@ -136,134 +173,4 @@ def delete_loan_repayment(repayment_id: int, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("", response_model=List[schemas.LoanRepaymentPublic], include_in_schema=False)
-@router.get("/", response_model=List[schemas.LoanRepaymentPublic])
-def get_loan_repayments(
-    loan_id: Optional[int] = None,
-    source_id: Optional[int] = None,
-    from_date: Optional[str] = None,
-    to_date: Optional[str] = None,
-    min_amount: Optional[float] = None,
-    max_amount: Optional[float] = None,
-    db: Session = Depends(get_db),
-) -> List[schemas.LoanRepaymentPublic]:
-    """
-    Get a list of loan repayments with enhanced information.
-    Optimized for frontend listing views with improved filtering.
-    """
-    try:
-        # Start with a query that joins LoanRepayment with Loan, PaymentSource, Purchase, and Property
-        query = (
-            db.query(
-                models.LoanRepayment,
-                models.Loan.name.label("loan_name"),
-                models.PaymentSource.name.label("source_name"),
-                models.Property.name.label("property_name"),
-                models.Loan.institution.label("loan_institution")
-            )
-            .join(models.Loan, models.LoanRepayment.loan_id == models.Loan.id)
-            .join(models.PaymentSource, models.LoanRepayment.source_id == models.PaymentSource.id)
-            .join(models.Purchase, models.Loan.purchase_id == models.Purchase.id)
-            .join(models.Property, models.Purchase.property_id == models.Property.id)
-        )
-
-        # Apply filters if provided
-        if loan_id:
-            query = query.filter(models.LoanRepayment.loan_id == loan_id)
-            
-        if source_id:
-            query = query.filter(models.LoanRepayment.source_id == source_id)
-            
-        if from_date:
-            query = query.filter(models.LoanRepayment.payment_date >= from_date)
-            
-        if to_date:
-            query = query.filter(models.LoanRepayment.payment_date <= to_date)
-            
-        if min_amount:
-            query = query.filter(models.LoanRepayment.total_payment >= min_amount)
-            
-        if max_amount:
-            query = query.filter(models.LoanRepayment.total_payment <= max_amount)
-
-        # Order by payment date (newest first)
-        query = query.order_by(models.LoanRepayment.payment_date.desc())
-
-        results = query.all()
-        
-        # Convert the results to the expected schema format
-        repayments = []
-        for repayment, loan_name, source_name, property_name, loan_institution in results:
-            repayment_dict = {
-                "id": repayment.id,
-                "loan_name": loan_name,
-                "loan_institution": loan_institution,
-                "property_name": property_name,
-                "total_payment": repayment.total_payment,
-                "source_name": source_name,
-                "payment_date": repayment.payment_date,
-                "payment_mode": repayment.payment_mode,
-            }
-            repayments.append(repayment_dict)
-            
-        return repayments
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/{repayment_id}", response_model=schemas.LoanRepayment, include_in_schema=False)
-@router.get("/{repayment_id}", response_model=schemas.LoanRepayment)
-def get_loan_repayment(repayment_id: int, db: Session = Depends(get_db)) -> schemas.LoanRepayment:
-    """
-    Get a detailed view of a single loan repayment.
-    Optimized for frontend detail views.
-    """
-    try:
-        # Query with joins to Loan, PaymentSource, Purchase, and Property
-        result = (
-            db.query(
-                models.LoanRepayment,
-                models.Loan.name.label("loan_name"),
-                models.Loan.institution.label("loan_institution"),
-                models.PaymentSource.name.label("source_name"),
-                models.Property.name.label("property_name"),
-                models.Purchase.id.label("purchase_id")
-            )
-            .join(models.Loan, models.LoanRepayment.loan_id == models.Loan.id)
-            .join(models.PaymentSource, models.LoanRepayment.source_id == models.PaymentSource.id)
-            .join(models.Purchase, models.Loan.purchase_id == models.Purchase.id)
-            .join(models.Property, models.Purchase.property_id == models.Property.id)
-            .filter(models.LoanRepayment.id == repayment_id)
-            .first()
-        )
-        
-        if result is None:
-            raise HTTPException(status_code=404, detail="Loan repayment not found")
-            
-        repayment, loan_name, loan_institution, source_name, property_name, purchase_id = result
-        
-        # Convert to the expected schema format
-        repayment_dict = {
-            "id": repayment.id,
-            "loan_name": loan_name,
-            "loan_institution": loan_institution,
-            "property_name": property_name,
-            "purchase_id": purchase_id,
-            "total_payment": repayment.total_payment,
-            "source_name": source_name,
-            "payment_date": repayment.payment_date,
-            "payment_mode": repayment.payment_mode,
-            "principal_amount": repayment.principal_amount,
-            "interest_amount": repayment.interest_amount,
-            "other_fees": repayment.other_fees,
-            "penalties": repayment.penalties,
-            "transaction_reference": repayment.transaction_reference,
-            "notes": repayment.notes,
-        }
-            
-        return repayment_dict
-    except HTTPException:
-        raise
-    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

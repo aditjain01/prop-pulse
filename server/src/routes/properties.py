@@ -8,15 +8,13 @@ from fastapi import APIRouter
 # Create a router instance
 router = APIRouter(prefix="/properties", tags=["properties"])
 
+
 # Property routes
-@router.post("", response_model=schemas.PropertyOld, include_in_schema=False)
-@router.post("/", response_model=schemas.PropertyOld)
+@router.post("", response_model=schemas.Property, include_in_schema=False)
+@router.post("/", response_model=schemas.Property)
 def create_property(
     property: schemas.PropertyCreate, db: Session = Depends(get_db)
-) -> schemas.PropertyOld:
-    """
-    Create a new property in the database.
-    """
+) -> schemas.Property:
     try:
         db_property = models.Property(**property.dict())
         db.add(db_property)
@@ -27,38 +25,22 @@ def create_property(
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("", response_model=List[schemas.PropertyPublic], include_in_schema=False)
-@router.get("/", response_model=List[schemas.PropertyPublic])
+
+@router.get("", response_model=List[schemas.Property], include_in_schema=False)
+@router.get("/", response_model=List[schemas.Property])
 def get_properties(
-    developer: str = None,
-    db: Session = Depends(get_db),
-) -> List[schemas.PropertyPublic]:
-    """
-    Get a list of properties with minimal information needed for the frontend.
-    Optimized for frontend listing views with filtering by developer.
-    """
+    skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
+) -> List[schemas.Property]:
     try:
-        query = db.query(models.Property)
-        
-        # Apply filter by developer if provided
-        if developer:
-            query = query.filter(models.Property.developer == developer)
-            
-        properties = query.all()
+        properties = db.query(models.Property).offset(skip).limit(limit).all()
         return properties
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/{property_id}", response_model=schemas.Property, include_in_schema=False)
-@router.get("/{property_id}", response_model=schemas.Property)
-def get_property(
-    property_id: int, 
-    db: Session = Depends(get_db)
-) -> schemas.Property:
-    """
-    Get a detailed view of a single property.
-    Optimized for frontend detail views.
-    """
+@router.get("/{property_id}/", response_model=schemas.Property)
+def get_property(property_id: int, db: Session = Depends(get_db)) -> schemas.Property:
     try:
         db_property = (
             db.query(models.Property).filter(models.Property.id == property_id).first()
@@ -69,16 +51,14 @@ def get_property(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.put("/{property_id}", response_model=schemas.PropertyOld, include_in_schema=False)
-@router.put("/{property_id}/", response_model=schemas.PropertyOld)
+
+@router.put("/{property_id}", response_model=schemas.Property, include_in_schema=False)
+@router.put("/{property_id}/", response_model=schemas.Property)
 def update_property(
     property_id: int,
-    property_update: schemas.PropertyUpdate,
+    property_update: schemas.PropertyCreate,
     db: Session = Depends(get_db),
-) -> schemas.PropertyOld:
-    """
-    Update an existing property with new data.
-    """
+) -> schemas.Property:
     try:
         # Get the existing property
         db_property = (
@@ -106,9 +86,6 @@ def update_property(
 @router.delete("/{property_id}", include_in_schema=False)
 @router.delete("/{property_id}/")
 def delete_property(property_id: int, db: Session = Depends(get_db)):
-    """
-    Delete a property from the database.
-    """
     try:
         # Check if property exists
         property = (

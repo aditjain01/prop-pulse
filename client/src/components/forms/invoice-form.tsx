@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest } from '@/lib/api/base';
+import { apiRequest } from '@/lib/api/api';
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -11,15 +11,54 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { z } from "zod";
 import { useState } from "react";
 import { useLocation } from "wouter";
-import {
-  invoiceFormSchema,
-  type InvoiceFormValues,
-  type Invoice,
-  type PurchasePublic,
-  initializeInvoiceForm,
-} from "@/lib/api/schemas";
+
+// Define the schema for the form
+const invoiceFormSchema = z.object({
+  purchase_id: z.string().min(1, "Property purchase is required"),
+  invoice_number: z.string().min(1, "Invoice number is required"),
+  invoice_date: z.string().min(1, "Invoice date is required"),
+  due_date: z.string().optional(),
+  amount: z.string().min(1, "Amount is required"),
+  status: z.string().min(1, "Status is required"),
+  milestone: z.string().optional(),
+  description: z.string().optional(),
+});
+
+// Define the type for the form values
+type InvoiceFormValues = z.infer<typeof invoiceFormSchema>;
+
+// Define the type for the invoice object
+export type Invoice = {
+  id: number;
+  purchase_id: number;
+  invoice_number: string;
+  invoice_date: string;
+  due_date?: string;
+  amount: number;
+  paid_amount: number;
+  status: string;
+  milestone?: string;
+  description?: string;
+  created_at: string;
+  updated_at?: string;
+};
+
+// Helper function to initialize form values
+const initializeInvoiceForm = (invoice?: Invoice, purchaseId?: number): InvoiceFormValues => {
+  return {
+    purchase_id: invoice ? invoice.purchase_id.toString() : purchaseId ? purchaseId.toString() : "",
+    invoice_number: invoice?.invoice_number || "",
+    invoice_date: invoice?.invoice_date ? new Date(invoice.invoice_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    due_date: invoice?.due_date ? new Date(invoice.due_date).toISOString().split('T')[0] : "",
+    amount: invoice?.amount ? invoice.amount.toString() : "",
+    status: invoice?.status || "pending",
+    milestone: invoice?.milestone || "",
+    description: invoice?.description || "",
+  };
+};
 
 type InvoiceFormProps = {
   purchaseId?: number;
@@ -32,9 +71,23 @@ export function InvoiceForm({ purchaseId, invoice, onSuccess }: InvoiceFormProps
   const [, navigate] = useLocation();
   
   // Fetch purchases for dropdown
-  const { data: purchases, isLoading: purchasesLoading } = useQuery<PurchasePublic[]>({
+  const { data: purchases, isLoading: purchasesLoading } = useQuery({
     queryKey: ["/api/purchases/"],
   });
+  
+  // Fetch properties to display property names with purchases
+  const { data: properties } = useQuery({
+    queryKey: ["/api/properties"],
+  });
+  
+  // Helper function to get property name for a purchase
+  const getPropertyName = (purchaseId: number) => {
+    const purchase = purchases?.find(p => p.id === purchaseId);
+    if (!purchase) return "Unknown Property";
+    
+    const property = properties?.find(p => p.id === purchase.property_id);
+    return property?.name || "Unknown Property";
+  };
   
   const form = useForm<InvoiceFormValues>({
     resolver: zodResolver(invoiceFormSchema),
@@ -43,7 +96,7 @@ export function InvoiceForm({ purchaseId, invoice, onSuccess }: InvoiceFormProps
 
   const mutation = useMutation({
     mutationFn: async (data: InvoiceFormValues) => {
-      const endpoint = invoice ? `/api/invoices/${invoice.id}` : "/api/invoices/";
+      const endpoint = invoice ? `/api/invoices/${invoice.id}` : "/api/invoices";
       const method = invoice ? "PUT" : "POST";
       
       const payload = {
@@ -109,7 +162,7 @@ export function InvoiceForm({ purchaseId, invoice, onSuccess }: InvoiceFormProps
                     <SelectContent>
                       {purchases?.map((purchase) => (
                         <SelectItem key={purchase.id} value={purchase.id.toString()}>
-                          {purchase.property_name}
+                          {getPropertyName(purchase.id)}
                         </SelectItem>
                       ))}
                     </SelectContent>

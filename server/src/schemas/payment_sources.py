@@ -52,14 +52,3 @@ class PaymentSourceUpdate(BaseModel):
     card_expiry: Optional[str] = None
     wallet_provider: Optional[str] = None
     wallet_identifier: Optional[str] = None
-
-
-# V2 schemas for frontend-aligned endpoints
-class PaymentSourcePublic(BaseModel):
-    """Schema for listing payment sources with essential information for the frontend"""
-    id: int
-    name: str
-    is_active: bool
-    source_type: str
-    
-    model_config = ConfigDict(from_attributes=True)

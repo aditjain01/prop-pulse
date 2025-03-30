@@ -9,14 +9,13 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { apiRequest } from "@/lib/api/base";
+import { apiRequest } from "@/lib/api/api";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { type LoanRepayment } from "@/lib/api/schemas";
 
 type RepaymentDetailProps = {
   repaymentId: number;
-  onEdit?: (repayment: LoanRepayment) => void;
+  onEdit?: (repayment: any) => void;
   onDelete?: () => void;
   onClose?: () => void;
 };
@@ -24,16 +23,21 @@ type RepaymentDetailProps = {
 export function RepaymentDetail({ repaymentId, onEdit, onDelete, onClose }: RepaymentDetailProps) {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const { toast } = useToast();
 
-  const { data: repayment, isLoading } = useQuery<LoanRepayment>({
+  const { data: repayment, isLoading } = useQuery({
     queryKey: [`/api/repayments/${repaymentId}`],
   });
 
-  // Fetch documents for this repayment
-  const { data: documents = [], isLoading: documentsLoading } = useQuery({
-    queryKey: [`/api/documents`, { entity_type: "repayment", entity_id: repaymentId }],
-    enabled: !!repaymentId,
+  // Fetch loan details
+  const { data: loan } = useQuery({
+    queryKey: [`/api/loans/${repayment?.loan_id}`],
+    enabled: !!repayment?.loan_id,
+  });
+
+  // Fetch payment source
+  const { data: paymentSource } = useQuery({
+    queryKey: [`/api/payment-sources/${repayment?.source_id}`],
+    enabled: !!repayment?.source_id,
   });
 
   if (!repaymentId) return null;
@@ -50,44 +54,11 @@ export function RepaymentDetail({ repaymentId, onEdit, onDelete, onClose }: Repa
     setShowDeleteDialog(true);
   };
 
-  const handleEditSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: [`/api/repayments/${repaymentId}`] });
-    setShowEditDialog(false);
-  };
-
-  // Delete repayment mutation
-  const deleteRepaymentMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/repayments/${id}`);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/repayments"] });
-      toast({
-        title: "Repayment deleted",
-        description: "The repayment has been deleted successfully.",
-      });
-      if (onDelete) {
-        onDelete();
-      }
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleConfirmDelete = () => {
-    if (onDelete) {
-      onDelete();
-    } else {
-      deleteRepaymentMutation.mutate(repaymentId);
-    }
-    setShowDeleteDialog(false);
-  };
+  const totalAmount = repayment 
+    ? (repayment.principal_amount || 0) + 
+      (repayment.interest_amount || 0) + 
+      (repayment.other_fees || 0)
+    : 0;
 
   return (
     <>
@@ -102,12 +73,7 @@ export function RepaymentDetail({ repaymentId, onEdit, onDelete, onClose }: Repa
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground">Loan</h3>
-                <p className="mt-1">{repayment.loan_name || "Unknown"}</p>
-                {repayment.loan_institution && (
-                  <p className="text-xs text-muted-foreground">
-                    {repayment.loan_institution}
-                  </p>
-                )}
+                <p className="mt-1">{loan?.name || "Loading..."}</p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground">Payment Date</h3>
@@ -115,36 +81,25 @@ export function RepaymentDetail({ repaymentId, onEdit, onDelete, onClose }: Repa
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Property</h3>
-                <p className="mt-1">{repayment.property_name || "N/A"}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Total Payment</h3>
-                <p className="mt-1 font-semibold">{formatCurrency(repayment.total_payment)}</p>
-              </div>
-            </div>
-
             <div className="space-y-2">
               <h3 className="text-sm font-medium text-muted-foreground">Payment Breakdown</h3>
-              <div className="grid grid-cols-4 gap-4 text-sm">
+              <div className="grid grid-cols-3 gap-4 text-sm">
                 <div>
                   <div className="font-medium">Principal</div>
-                  <div>{formatCurrency(repayment.principal_amount)}</div>
+                  <div>₹{repayment.principal_amount?.toLocaleString() || 0}</div>
                 </div>
                 <div>
                   <div className="font-medium">Interest</div>
-                  <div>{formatCurrency(repayment.interest_amount)}</div>
+                  <div>₹{repayment.interest_amount?.toLocaleString() || 0}</div>
                 </div>
                 <div>
                   <div className="font-medium">Other Fees</div>
-                  <div>{formatCurrency(repayment.other_fees)}</div>
+                  <div>₹{repayment.other_fees?.toLocaleString() || 0}</div>
                 </div>
-                <div>
-                  <div className="font-medium">Penalties</div>
-                  <div>{formatCurrency(repayment.penalties)}</div>
-                </div>
+              </div>
+              <div className="flex justify-between pt-2 border-t mt-2">
+                <div className="font-medium">Total Amount</div>
+                <div className="font-bold">₹{totalAmount.toLocaleString()}</div>
               </div>
             </div>
 
@@ -159,7 +114,7 @@ export function RepaymentDetail({ repaymentId, onEdit, onDelete, onClose }: Repa
               </div>
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground">Payment Source</h3>
-                <p className="mt-1">{repayment.source_name || "N/A"}</p>
+                <p className="mt-1">{paymentSource?.name || "N/A"}</p>
               </div>
             </div>
 
@@ -184,7 +139,7 @@ export function RepaymentDetail({ repaymentId, onEdit, onDelete, onClose }: Repa
                   <DocumentUpload 
                     entityType="repayment" 
                     entityId={repaymentId} 
-                    documents={documents || []} 
+                    documents={repayment.documents || []} 
                   />
                 </AccordionContent>
               </AccordionItem>
@@ -201,8 +156,8 @@ export function RepaymentDetail({ repaymentId, onEdit, onDelete, onClose }: Repa
           onOpenChange={setShowEditDialog}
         >
           <LoanRepaymentForm 
-            repayment={repayment}
-            onSuccess={handleEditSuccess}
+            repayment={repayment} 
+            onSuccess={() => setShowEditDialog(false)} 
           />
         </SlideDialog>
       )}
@@ -210,7 +165,7 @@ export function RepaymentDetail({ repaymentId, onEdit, onDelete, onClose }: Repa
       <DeleteConfirmation
         isOpen={showDeleteDialog}
         onClose={() => setShowDeleteDialog(false)}
-        onConfirm={handleConfirmDelete}
+        onConfirm={onDelete || (() => {})}
         title="Delete Repayment"
         description="Are you sure you want to delete this repayment? This action cannot be undone."
       />

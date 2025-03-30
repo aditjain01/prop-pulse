@@ -1,9 +1,5 @@
 // Export all API functions
-export * from './base';
+export * from './api';
 
 // Export all API types
 export * from './types'; 
-
-export * from './api';
-
-export * from './schemas';

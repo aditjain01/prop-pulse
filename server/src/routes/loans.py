@@ -9,51 +9,14 @@ from src.routes.payment_sources import create_payment_source
 # Create a router instance
 router = APIRouter(prefix="/loans", tags=["loans"])
 
+
 # Loan routes
-@router.post("", response_model=schemas.LoanOld, include_in_schema=False)
-@router.post("/", response_model=schemas.LoanOld)
+@router.post("", response_model=schemas.Loan, include_in_schema=False)
+@router.post("/", response_model=schemas.Loan)
 def create_loan(
     loan: schemas.LoanCreate, db: Session = Depends(get_db)
-) -> schemas.LoanOld:
-    """
-    Create a new loan and automatically create a payment source for it.
-    Validates that:
-    1. The purchase exists
-    2. The loan amount doesn't exceed total invoice amounts for the purchase
-    3. The loan sanction amount doesn't exceed purchase total cost
-    """
+) -> schemas.Loan:
     try:
-        # Check if purchase exists
-        purchase = (
-            db.query(models.Purchase)
-            .filter(models.Purchase.id == loan.purchase_id)
-            .first()
-        )
-        if purchase is None:
-            raise HTTPException(status_code=404, detail="Purchase not found")
-
-        # Get total invoice amount for this purchase
-        purchase_invoices = (
-            db.query(models.Invoice)
-            .filter(models.Invoice.purchase_id == loan.purchase_id)
-            .all()
-        )
-        total_invoice_amount = sum(invoice.amount for invoice in purchase_invoices)
-
-        # Check if loan amount exceeds total invoice amount
-        if loan.total_disbursed_amount > total_invoice_amount:
-            raise HTTPException(
-                status_code=400,
-                detail="Loan disbursed amount cannot exceed total invoice amount for the purchase"
-            )
-
-        # Check if loan sanction amount exceeds purchase total cost
-        if loan.sanction_amount > purchase.total_cost:
-            raise HTTPException(
-                status_code=400,
-                detail="Loan sanction amount cannot exceed purchase total cost"
-            )
-
         # Create the loan
         db_loan = models.Loan(**loan.dict())
         db.add(db_loan)
@@ -77,21 +40,65 @@ def create_loan(
         db.commit()
         db.refresh(db_loan)
         return db_loan
-    except HTTPException:
-        db.rollback()
-        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.put("/{loan_id}", response_model=schemas.LoanOld, include_in_schema=False)
-@router.put("/{loan_id}/", response_model=schemas.LoanOld)
+
+@router.get("", response_model=schemas.Loan, include_in_schema=False)
+@router.get("/", response_model=List[schemas.Loan])
+def get_loans(
+    purchase_id: Optional[int] = None, db: Session = Depends(get_db)
+) -> List[schemas.Loan]:
+    try:
+        query = db.query(models.Loan).filter(
+            models.Loan.user_id == 1
+        )  # Replace with actual user ID
+
+        # Apply purchase_id filter if provided
+        if purchase_id:
+            # Check if purchase exists
+            purchase = (
+                db.query(models.Purchase)
+                .filter(models.Purchase.id == purchase_id)
+                .first()
+            )
+            if purchase is None:
+                raise HTTPException(status_code=404, detail="Purchase not found")
+
+            query = query.filter(models.Loan.purchase_id == purchase_id)
+
+        loans = query.all()
+        return loans
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# # Get loans by purchase ID (keeping for backward compatibility)
+# @app.get("/api/purchases/{purchase_id}/loans", response_model=List[schemas.Loan])
+# def get_loans_by_purchase(purchase_id: int, db: Session = Depends(get_db)):
+#     return get_loans(purchase_id=purchase_id, db=db)
+
+@router.get("/{loan_id}", response_model=schemas.Loan, include_in_schema=False)
+@router.get("/{loan_id}/", response_model=schemas.Loan)
+def get_loan(loan_id: int, db: Session = Depends(get_db)) -> schemas.Loan:
+    try:
+        loan = db.query(models.Loan).filter(models.Loan.id == loan_id).first()
+        if loan is None:
+            raise HTTPException(status_code=404, detail="Loan not found")
+        return loan
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/{loan_id}", response_model=schemas.Loan, include_in_schema=False)
+@router.put("/{loan_id}/", response_model=schemas.Loan)
 def update_loan(
-    loan_id: int, loan_update: schemas.LoanUpdate, db: Session = Depends(get_db)
-) -> schemas.LoanOld:
-    """
-    Update the details of an existing loan and its associated payment source.
-    """
+    loan_id: int, loan_update: schemas.LoanCreate, db: Session = Depends(get_db)
+) -> schemas.Loan:
     try:
         db_loan = db.query(models.Loan).filter(models.Loan.id == loan_id).first()
         if db_loan is None:
@@ -130,9 +137,6 @@ def update_loan(
 @router.delete("/{loan_id}", include_in_schema=False)
 @router.delete("/{loan_id}/")
 def delete_loan(loan_id: int, db: Session = Depends(get_db)):
-    """
-    Delete a loan and its associated payment sources, if they have no associated payments.
-    """
     try:
         # Check if loan exists
         loan = db.query(models.Loan).filter(models.Loan.id == loan_id).first()
@@ -151,7 +155,7 @@ def delete_loan(loan_id: int, db: Session = Depends(get_db)):
             # Check if payment source has associated payments
             payments = (
                 db.query(models.Payment)
-                .filter(models.Payment.source_id == payment_source.id)
+                .filter(models.Payment.payment_source_id == payment_source.id)
                 .all()
             )
             if payments:
@@ -170,89 +174,4 @@ def delete_loan(loan_id: int, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("", response_model=List[schemas.LoanPublic], include_in_schema=False)
-@router.get("/", response_model=List[schemas.LoanPublic])
-def get_loans(
-    purchase_id: Optional[int] = None,
-    is_active: Optional[bool] = None,
-    from_amount: Optional[float] = None,
-    to_amount: Optional[float] = None,
-    db: Session = Depends(get_db),
-) -> List[schemas.LoanPublic]:
-    """
-    Get a list of loans with essential information for the frontend.
-    Optimized for frontend listing views with enhanced filtering.
-    """
-    try:
-        query = db.query(models.Loan).filter(
-            models.Loan.user_id == 1
-        )  # Replace with actual user ID
-
-        # Apply filters if provided
-        if purchase_id:
-            query = query.filter(models.Loan.purchase_id == purchase_id)
-            
-        if is_active is not None:
-            query = query.filter(models.Loan.is_active == is_active)
-            
-        if from_amount:
-            query = query.filter(models.Loan.sanction_amount >= from_amount)
-            
-        if to_amount:
-            query = query.filter(models.Loan.sanction_amount <= to_amount)
-
-        loans = query.all()
-        return loans
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/{loan_id}", response_model=schemas.Loan, include_in_schema=False)
-@router.get("/{loan_id}", response_model=schemas.Loan)
-def get_loan(loan_id: int, db: Session = Depends(get_db)) -> schemas.Loan:
-    """
-    Get a detailed view of a single loan with property information.
-    Optimized for frontend detail views.
-    """
-    try:
-        # Query that joins Loan with Purchase and Property
-        result = (
-            db.query(
-                models.Loan,
-                models.Property.name.label("property_name")
-            )
-            .join(models.Purchase, models.Loan.purchase_id == models.Purchase.id)
-            .join(models.Property, models.Purchase.property_id == models.Property.id)
-            .filter(models.Loan.id == loan_id)
-            .first()
-        )
-        
-        if result is None:
-            raise HTTPException(status_code=404, detail="Loan not found")
-            
-        loan, property_name = result
-        
-        # Convert to the expected schema format
-        loan_dict = {
-            "id": loan.id,
-            "name": loan.name,
-            "institution": loan.institution,
-            "total_disbursed_amount": loan.total_disbursed_amount,
-            "sanction_amount": loan.sanction_amount,
-            "property_name": property_name,
-            "processing_fee": loan.processing_fee,
-            "other_charges": loan.other_charges,
-            "loan_sanction_charges": loan.loan_sanction_charges,
-            "interest_rate": loan.interest_rate,
-            "tenure_months": loan.tenure_months,
-            "is_active": loan.is_active,
-        }
-            
-        return loan_dict
-    except HTTPException:
-        raise
-    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,8 +1,9 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
-import { SlideDialog } from "@/components/slide-dialog";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { InvoiceForm } from "@/components/forms/invoice-form";
-import { FileText, Pencil, Receipt, Trash2 } from "lucide-react";
+import { ArrowLeft, FileText, Pencil, Receipt } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import {
@@ -12,69 +13,56 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
-import { PaymentList } from "@/components/lists/payment-list";
-import { apiRequest } from "@/lib/api/base";
-import { queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { DeleteConfirmation } from "@/components/delete-confirmation";
-import { type Invoice } from "@/lib/api/schemas";
 
 type InvoiceDetailProps = {
   invoiceId: number;
 };
 
 export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
-  const { toast } = useToast();
   const [, navigate] = useLocation();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   // Fetch invoice details
-  const { data: invoice, isLoading: invoiceLoading } = useQuery<Invoice>({
+  const { data: invoice, isLoading: invoiceLoading } = useQuery({
     queryKey: [`/api/invoices/${invoiceId}`],
   });
   
   // Fetch related payments
-  const { data: payments = [], isLoading: paymentsLoading } = useQuery<Payment[]>({
+  const { data: payments, isLoading: paymentsLoading } = useQuery({
     queryKey: ["/api/payments", { invoice_id: invoiceId }],
     enabled: !!invoiceId,
   });
   
+  // Fetch purchase details
+  const { data: purchase } = useQuery({
+    queryKey: [`/api/purchases/${invoice?.purchase_id}`],
+    enabled: !!invoice?.purchase_id,
+  });
+  
+  // Fetch property details
+  const { data: property } = useQuery({
+    queryKey: [`/api/properties/${purchase?.property_id}`],
+    enabled: !!purchase?.property_id,
+  });
+  
   // Fetch payment sources for displaying source names
-  const { data: paymentSources = [] } = useQuery<PaymentSource[]>({
+  const { data: paymentSources } = useQuery({
     queryKey: ["/api/payment-sources"],
     enabled: !!payments && payments.length > 0,
   });
-
-  // Delete invoice mutation
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/invoices/${id}`);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
-      toast({
-        title: "Invoice deleted",
-        description: "The invoice has been deleted successfully.",
-      });
-      // Navigate back to invoices list
-      navigate("/invoices");
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-      setShowDeleteDialog(false);
-    },
-  });
   
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status) => {
     switch (status) {
       case "paid":
         return <Badge className="bg-green-500">Paid</Badge>;
@@ -89,140 +77,190 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
     }
   };
   
-  const getPaymentSourceName = (sourceId: number) => {
+  const getPaymentSourceName = (sourceId) => {
     const source = paymentSources?.find(s => s.id === sourceId);
     return source?.name || "Unknown Source";
   };
   
   if (invoiceLoading) {
-    return <div>Loading invoice details...</div>;
+    return (
+      <div className="min-h-screen bg-background">
+        <NavBar />
+        <main className="container py-6">
+          <div className="flex items-center mb-6">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/invoices")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Invoices
+            </Button>
+          </div>
+          <div className="flex justify-center items-center h-64">
+            <p>Loading invoice details...</p>
+          </div>
+        </main>
+      </div>
+    );
   }
   
   if (!invoice) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Invoice Not Found</CardTitle>
-          <CardDescription>
-            The invoice you're looking for doesn't exist or has been deleted.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <div className="min-h-screen bg-background">
+        <NavBar />
+        <main className="container py-6">
+          <div className="flex items-center mb-6">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/invoices")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Invoices
+            </Button>
+          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Invoice Not Found</CardTitle>
+              <CardDescription>
+                The invoice you're looking for doesn't exist or has been deleted.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => navigate("/invoices")}>
+                View All Invoices
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
     );
   }
   
-  const handleEdit = () => {
-    setIsEditDialogOpen(true);
-  };
-
-  const handleDelete = () => {
-    setShowDeleteDialog(true);
-  };
-
-  const handleEditSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: [`/api/invoices/${invoiceId}`] });
-    setIsEditDialogOpen(false);
-  };
-  
   return (
-    <div className="grid gap-6">
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="text-2xl flex items-center">
-                <FileText className="h-6 w-6 mr-2" />
-                Invoice #{invoice.invoice_number}
-              </CardTitle>
-              <CardDescription>
-                {invoice.property_name || "Unknown Property"}
-              </CardDescription>
-            </div>
-            <div className="flex space-x-2">
-              <SlideDialog
-                trigger={
-                  <Button size="sm">
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Edit Invoice
-                  </Button>
-                }
-                title="Edit Invoice"
-                open={isEditDialogOpen}
-                onOpenChange={setIsEditDialogOpen}
-              >
-                <InvoiceForm 
-                  invoice={invoice as any} 
-                  onSuccess={handleEditSuccess} 
-                />
-              </SlideDialog>
-              
-              <Button 
-                variant="destructive" 
-                size="sm"
-                onClick={handleDelete}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
+    <div className="min-h-screen bg-background">
+      <NavBar />
+      <main className="container py-6">
+        <div className="flex justify-between items-center mb-6">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/invoices")}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Invoices
+          </Button>
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit Invoice
               </Button>
-            </div>
-          </div>
-          <div className="mt-2">
-            {getStatusBadge(invoice.status)}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Invoice Date</p>
-              <p>{formatDate(invoice.invoice_date)}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Due Date</p>
-              <p>{invoice.due_date ? formatDate(invoice.due_date) : "N/A"}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Amount</p>
-              <p className="font-semibold">{formatCurrency(invoice.amount)}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Paid Amount</p>
-              <p>{formatCurrency(invoice.paid_amount)} 
-                <span className="text-sm text-muted-foreground ml-1">
-                  ({Math.round((invoice.paid_amount / invoice.amount) * 100)}%)
-                </span>
-              </p>
-            </div>
-          </div>
-          
-          <div className="mt-6">
-            <p className="text-sm font-medium text-muted-foreground">Milestone</p>
-            <p>{invoice.milestone || "N/A"}</p>
-          </div>
-          
-          <div className="mt-6">
-            <p className="text-sm font-medium text-muted-foreground">Description</p>
-            <p>{invoice.description || "N/A"}</p>
-          </div>
-          
-          <Separator className="my-6" />
-          
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Payments</h3>
-            <PaymentList 
-              payments={payments} 
-              isLoading={paymentsLoading}
-            />
-          </div>
-        </CardContent>
-      </Card>
-      
-      <DeleteConfirmation
-        isOpen={showDeleteDialog}
-        onClose={() => setShowDeleteDialog(false)}
-        onConfirm={() => deleteMutation.mutate(invoice.id)}
-        title="Delete Invoice"
-        description="Are you sure you want to delete this invoice? This action cannot be undone."
-      />
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px]">
+              <InvoiceForm 
+                invoice={invoice} 
+                onSuccess={() => setIsEditDialogOpen(false)} 
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
+        
+        <div className="grid gap-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-2xl flex items-center">
+                    <FileText className="h-6 w-6 mr-2" />
+                    Invoice #{invoice.invoice_number}
+                  </CardTitle>
+                  <CardDescription>
+                    {property?.name || "Unknown Property"}
+                  </CardDescription>
+                </div>
+                <div>
+                  {getStatusBadge(invoice.status)}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Invoice Date</p>
+                  <p>{formatDate(invoice.invoice_date)}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Due Date</p>
+                  <p>{invoice.due_date ? formatDate(invoice.due_date) : "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Amount</p>
+                  <p className="font-semibold">{formatCurrency(invoice.amount)}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Paid Amount</p>
+                  <p>{formatCurrency(invoice.paid_amount)} 
+                    <span className="text-sm text-muted-foreground ml-1">
+                      ({Math.round((invoice.paid_amount / invoice.amount) * 100)}%)
+                    </span>
+                  </p>
+                </div>
+              </div>
+              
+              {invoice.milestone && (
+                <div className="mt-6">
+                  <p className="text-sm font-medium text-muted-foreground">Milestone</p>
+                  <p>{invoice.milestone}</p>
+                </div>
+              )}
+              
+              {invoice.description && (
+                <div className="mt-6">
+                  <p className="text-sm font-medium text-muted-foreground">Description</p>
+                  <p>{invoice.description}</p>
+                </div>
+              )}
+              
+              <Separator className="my-6" />
+              
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Related Payments</h3>
+                  <Link href={`/payments?invoice_id=${invoiceId}`}>
+                    <Button variant="outline" size="sm">
+                      <Receipt className="h-4 w-4 mr-2" />
+                      View All Payments
+                    </Button>
+                  </Link>
+                </div>
+                
+                {paymentsLoading ? (
+                  <div className="flex justify-center items-center h-24">
+                    <p>Loading payments...</p>
+                  </div>
+                ) : !payments || payments.length === 0 ? (
+                  <div className="bg-muted p-4 rounded-md">
+                    <p className="text-center text-muted-foreground">No payments have been made against this invoice yet.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Source</TableHead>
+                        <TableHead>Mode</TableHead>
+                        <TableHead>Reference</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {payments.map(payment => (
+                        <TableRow key={payment.id}>
+                          <TableCell>{formatDate(payment.payment_date)}</TableCell>
+                          <TableCell>{formatCurrency(payment.amount)}</TableCell>
+                          <TableCell>{getPaymentSourceName(payment.source_id)}</TableCell>
+                          <TableCell>{payment.payment_mode}</TableCell>
+                          <TableCell>{payment.transaction_reference || "-"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
     </div>
   );
 } 
