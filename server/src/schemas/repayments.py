@@ -17,15 +17,15 @@ class LoanRepaymentBase(BaseModel):
     transaction_reference: Optional[str] = None
     notes: Optional[str] = None
 
-    # No need for this now tho, since we made this a generated column in the database
-    @computed_field
-    def total_payment(self) -> Decimal:
-        return (
-            self.principal_amount
-            + self.interest_amount
-            + (self.other_fees or Decimal("0"))
-            + (self.penalties or Decimal("0"))
-        )
+    # # No need for this now tho, since we made this a generated column in the database
+    # @computed_field
+    # def total_payment(self) -> Decimal:
+    #     return (
+    #         self.principal_amount
+    #         + self.interest_amount
+    #         + (self.other_fees or Decimal("0"))
+    #         + (self.penalties or Decimal("0"))
+    #     )
 
 
 class LoanRepaymentCreate(LoanRepaymentBase):
