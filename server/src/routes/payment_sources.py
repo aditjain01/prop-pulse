@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from src import schemas
 from src.database import get_db, models
 
@@ -119,4 +119,36 @@ def delete_payment_source(source_id: int, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# V2 routes for frontend-aligned endpoints
+router_dev = APIRouter(prefix="/v2/payment-sources", tags=["payment-sources"])
+
+
+@router_dev.get("/", response_model=List[schemas.PaymentSourcePublic])
+def get_payment_sources_v2(
+    is_active: Optional[bool] = None,
+    source_type: Optional[str] = None,
+    db: Session = Depends(get_db),
+) -> List[schemas.PaymentSourcePublic]:
+    """
+    Get a list of payment sources with minimal information needed for the frontend.
+    Optimized for frontend listing views with filtering.
+    """
+    try:
+        query = db.query(models.PaymentSource)
+        
+        # Apply filters if provided
+        if is_active is not None:
+            query = query.filter(models.PaymentSource.is_active == is_active)
+            
+        if source_type:
+            query = query.filter(models.PaymentSource.source_type == source_type)
+        
+        # Default to current user's payment sources
+        query = query.filter(models.PaymentSource.user_id == 1)  # Replace with actual user ID
+            
+        payment_sources = query.all()
+        return payment_sources
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -5,6 +5,7 @@ from decimal import Decimal
 
 
 class LoanBase(BaseModel):
+    """Base schema for loan details, containing common attributes for all loan-related operations."""
     purchase_id: int
     name: str
     institution: str
@@ -21,10 +22,12 @@ class LoanBase(BaseModel):
 
 
 class LoanCreate(LoanBase):
+    """Schema for creating a new loan, extending the base loan schema with a user ID."""
     user_id: Optional[int] = 1
 
 
-class Loan(LoanBase):
+class LoanOld(LoanBase):
+    """Schema for representing an existing loan with additional metadata like creation and update timestamps."""
     id: int
     user_id: Optional[int] = None
     created_at: datetime
@@ -34,7 +37,9 @@ class Loan(LoanBase):
 
 
 class LoanUpdate(BaseModel):
-    purchase_id: Optional[int] = None
+    """Schema for updating loan details, allowing partial updates with optional fields."""
+    # purchase_id: Optional[int] = None
+    name: Optional[str] = None
     institution: Optional[str] = None
     agent: Optional[str] = None
     sanction_date: Optional[date] = None
@@ -46,3 +51,26 @@ class LoanUpdate(BaseModel):
     interest_rate: Optional[float] = None
     tenure_months: Optional[int] = None
     is_active: Optional[bool] = None
+
+
+# V2 schemas for frontend-aligned endpoints
+class LoanPublic(BaseModel):
+    """Schema for listing loans with essential information for the frontend."""
+    id: int
+    name: str
+    institution: str
+    total_disbursed_amount: Decimal
+    sanction_amount: Decimal
+    is_active: bool
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class Loan(LoanPublic):
+    """Schema for detailed view of a single loan, including additional financial details."""
+    property_name: str  # From Loan->Purchase->Property relationship
+    processing_fee: Decimal
+    other_charges: Decimal
+    loan_sanction_charges: Decimal
+    interest_rate: Decimal
+    tenure_months: int

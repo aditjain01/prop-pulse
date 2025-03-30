@@ -1,5 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { apiRequest } from './api/api';
+import { apiRequest } from './api/base';
 
 type UnauthorizedBehavior = "returnNull" | "throw";
 

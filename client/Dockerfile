@@ -18,6 +18,8 @@ COPY ./ .
 # Copy .env.docker file first (will be used for build)
 RUN mv ./.env.docker ./.env
 
+RUN npm run build
+
 # Stage 2: Run
 FROM nginx:alpine AS runner
 

@@ -4,16 +4,16 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from src import schemas
 from src.database import get_db, models
+from sqlalchemy import func
 
 # Create a router instance
 router = APIRouter(prefix="/invoices", tags=["invoices"])
 
-
 # Create a new invoice
-@router.post("/", response_model=schemas.Invoice)
+@router.post("/", response_model=schemas.InvoiceOld, description="Create a new invoice")
 def create_invoice(
     invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)
-) -> schemas.Invoice:
+) -> schemas.InvoiceOld:
     try:
         # Check if purchase exists
         purchase = (
@@ -54,62 +54,11 @@ def create_invoice(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# Get all invoices with optional filters
-@router.get("/", response_model=List[schemas.Invoice])
-def get_invoices(
-    purchase_id: Optional[int] = None,
-    status: Optional[str] = None,
-    milestone: Optional[str] = None,
-    from_date: Optional[str] = None,
-    to_date: Optional[str] = None,
-    db: Session = Depends(get_db),
-) -> List[schemas.Invoice]:
-    try:
-        query = db.query(models.Invoice)
-
-        # Apply filters if provided
-        if purchase_id:
-            query = query.filter(models.Invoice.purchase_id == purchase_id)
-        if status:
-            query = query.filter(models.Invoice.status == status)
-        if milestone:
-            query = query.filter(models.Invoice.milestone == milestone)
-        if from_date:
-            query = query.filter(models.Invoice.invoice_date >= from_date)
-        if to_date:
-            query = query.filter(models.Invoice.invoice_date <= to_date)
-
-        # Order by invoice date (newest first)
-        query = query.order_by(models.Invoice.invoice_date.desc())
-
-        invoices = query.all()
-        return invoices
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# Get a specific invoice by ID
-@router.get("/{invoice_id}", response_model=schemas.Invoice)
-def get_invoice(invoice_id: int, db: Session = Depends(get_db)) -> schemas.Invoice:
-    try:
-        invoice = (
-            db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
-        )
-        if invoice is None:
-            raise HTTPException(status_code=404, detail="Invoice not found")
-        return invoice
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 # Update an invoice
-@router.put("/{invoice_id}", response_model=schemas.Invoice)
+@router.put("/{invoice_id}", response_model=schemas.InvoiceOld, description="Update an existing invoice")
 def update_invoice(
     invoice_id: int, invoice: schemas.InvoiceUpdate, db: Session = Depends(get_db)
-) -> schemas.Invoice:
+) -> schemas.InvoiceOld:
     try:
         # Check if invoice exists
         db_invoice = (
@@ -143,7 +92,7 @@ def update_invoice(
 
 
 # Delete Invoice
-@router.delete("/{invoice_id}")
+@router.delete("/{invoice_id}", description="Delete an invoice by ID")
 def delete_invoice(invoice_id: int, db: Session = Depends(get_db)):
     try:
         # Check if invoice exists
@@ -173,4 +122,117 @@ def delete_invoice(invoice_id: int, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("", response_model=List[schemas.InvoicePublic], include_in_schema=False)
+@router.get("/", response_model=List[schemas.InvoicePublic])
+def get_invoices(
+    purchase_id: Optional[int] = None,
+    status: Optional[str] = None,
+    milestone: Optional[str] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    db: Session = Depends(get_db),
+) -> List[schemas.InvoicePublic]:
+    try:
+        # Start with a query that joins Invoice with Purchase, Property and Payments
+        query = (
+            db.query(
+                models.Invoice,
+                models.Property.name.label("property_name"),
+                func.coalesce(func.sum(models.Payment.amount), 0).label("paid_amount")
+            )
+            .join(models.Purchase, models.Invoice.purchase_id == models.Purchase.id)
+            .join(models.Property, models.Purchase.property_id == models.Property.id)
+            .outerjoin(models.Payment, models.Invoice.id == models.Payment.invoice_id)
+            .group_by(models.Invoice.id, models.Property.name)
+        )
+
+        # Apply filters if provided
+        if purchase_id:
+            query = query.filter(models.Invoice.purchase_id == purchase_id)
+        if status:
+            query = query.filter(models.Invoice.status == status)
+        if milestone:
+            query = query.filter(models.Invoice.milestone == milestone)
+        if from_date:
+            query = query.filter(models.Invoice.invoice_date >= from_date)
+        if to_date:
+            query = query.filter(models.Invoice.invoice_date <= to_date)
+
+        # Order by invoice date (newest first)
+        query = query.order_by(models.Invoice.invoice_date.desc())
+
+        results = query.all()
+        
+        # Convert the results to the expected schema format
+        invoices = []
+        for invoice, property_name, paid_amount in results:
+            invoice_dict = {
+                "id": invoice.id,
+                "purchase_id": invoice.purchase_id,
+                "invoice_number": invoice.invoice_number,
+                "invoice_date": invoice.invoice_date,
+                "due_date": invoice.due_date,
+                "amount": invoice.amount,
+                "status": invoice.status,
+                "milestone": invoice.milestone,
+                "description": invoice.description,
+                "created_at": invoice.created_at,
+                "updated_at": invoice.updated_at,
+                "paid_amount": paid_amount,
+                "property_name": property_name,
+            }
+            invoices.append(invoice_dict)
+            
+        return invoices
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{invoice_id}", response_model=schemas.Invoice, include_in_schema=False)
+@router.get("/{invoice_id}", response_model=schemas.Invoice)
+def get_invoice(invoice_id: int, db: Session = Depends(get_db)) -> schemas.Invoice:
+    try:
+        # Query that joins Invoice with Purchase, Property and calculates paid_amount
+        result = (
+            db.query(
+                models.Invoice,
+                models.Property.name.label("property_name"),
+                func.coalesce(func.sum(models.Payment.amount), 0).label("paid_amount")
+            )
+            .join(models.Purchase, models.Invoice.purchase_id == models.Purchase.id)
+            .join(models.Property, models.Purchase.property_id == models.Property.id)
+            .outerjoin(models.Payment, models.Invoice.id == models.Payment.invoice_id)
+            .filter(models.Invoice.id == invoice_id)
+            .group_by(models.Invoice.id, models.Property.name)
+            .first()
+        )
+        
+        if result is None:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+            
+        invoice, property_name, paid_amount = result
+        
+        # Convert to the expected schema format
+        invoice_dict = {
+            "id": invoice.id,
+            "purchase_id": invoice.purchase_id,
+            "invoice_number": invoice.invoice_number,
+            "invoice_date": invoice.invoice_date,
+            "due_date": invoice.due_date,
+            "amount": invoice.amount,
+            "status": invoice.status,
+            "milestone": invoice.milestone,
+            "description": invoice.description,
+            "created_at": invoice.created_at,
+            "updated_at": invoice.updated_at,
+            "paid_amount": paid_amount,
+            "property_name": property_name,
+        }
+            
+        return invoice_dict
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 

@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { NavBar } from "@/components/nav-bar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Building2, Wallet } from "lucide-react";
-import { Property } from "@/lib/schemas";
-import { Purchase } from "@/lib/schemas";
+import { Property } from "@/lib/api/schemas";
+import { Purchase } from "@/lib/api/schemas";
 
 export default function HomePage() {
   const { data: properties } = useQuery<Property[]>({

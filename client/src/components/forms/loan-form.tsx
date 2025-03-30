@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/api/api";
+import { apiRequest } from "@/lib/api/base";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -14,12 +14,14 @@ import {
   loanFormSchema, 
   type LoanFormValues, 
   type Loan,
-  initializeLoanForm 
-} from "@/lib/schemas";
+  type LoanCreate,
+  initializeLoanForm,
+  type PurchasePublic,
+} from "@/lib/api/schemas";
 
 type LoanFormProps = {
   purchaseId?: number;
-  loan?: Loan;
+  loan?: LoanCreate;
   onSuccess?: () => void;
 };
 
@@ -28,33 +30,9 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
   const [, setLocation] = useLocation();
   
   // Fetch purchases for dropdown
-  const { data: purchases, isLoading: purchasesLoading } = useQuery({
+  const { data: purchases, isLoading: purchasesLoading } = useQuery<PurchasePublic[]>({
     queryKey: ["/api/purchases"],
   });
-  
-  // Fetch properties to get property names
-  const { data: properties } = useQuery({
-    queryKey: ["/api/properties"],
-  });
-  
-  // Function to get property name for a purchase
-  const getPropertyName = (purchaseId: number) => {
-    const purchase = purchases?.find(p => p.id === purchaseId);
-    if (!purchase) return "Unknown Property";
-    
-    // If purchase has property object directly
-    if (purchase.property && purchase.property.name) {
-      return purchase.property.name;
-    }
-    
-    // If purchase only has property_id
-    if (purchase.property_id) {
-      const property = properties?.find(p => p.id === purchase.property_id);
-      return property ? property.name : "Unknown Property";
-    }
-    
-    return "Unknown Property";
-  };
 
   const form = useForm<LoanFormValues>({
     resolver: zodResolver(loanFormSchema),
@@ -69,12 +47,13 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
       const payload = {
         ...data,
         purchase_id: parseInt(data.purchase_id),
-        sanction_amount: parseFloat(data.sanction_amount.toString()),
-        processing_fee: parseFloat(data.processing_fee.toString()),
-        other_charges: parseFloat(data.other_charges.toString()),
-        loan_sanction_charges: parseFloat(data.loan_sanction_charges.toString()),
-        interest_rate: parseFloat(data.interest_rate.toString()),
-        tenure_months: parseInt(data.tenure_months.toString()),
+        sanction_amount: parseFloat(data.sanction_amount),
+        total_disbursed_amount: parseFloat(data.total_disbursed_amount),
+        processing_fee: parseFloat(data.processing_fee),
+        other_charges: parseFloat(data.other_charges),
+        loan_sanction_charges: parseFloat(data.loan_sanction_charges),
+        interest_rate: parseFloat(data.interest_rate),
+        tenure_months: parseInt(data.tenure_months),
       };
       
       // When updating, only send changed fields
@@ -135,7 +114,7 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
                 <SelectContent>
                   {purchases?.map((purchase) => (
                     <SelectItem key={purchase.id} value={purchase.id.toString()}>
-                      {getPropertyName(purchase.id)} - {new Date(purchase.purchase_date).toLocaleDateString()}
+                      {purchase.property_name} - {new Date(purchase.purchase_date).toLocaleDateString()}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -210,8 +189,9 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
               <FormControl>
                 <Input 
                   type="number" 
+                  step="0.01"
                   {...field} 
-                  onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
+                  onChange={e => field.onChange(e.target.value)} 
                 />
               </FormControl>
               <FormMessage />
@@ -228,8 +208,9 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
               <FormControl>
                 <Input 
                   type="number" 
+                  step="0.01"
                   {...field} 
-                  onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
+                  onChange={e => field.onChange(e.target.value)} 
                 />
               </FormControl>
               <FormMessage />
@@ -247,8 +228,9 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
                 <FormControl>
                   <Input 
                     type="number" 
+                    step="0.01"
                     {...field} 
-                    onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
+                    onChange={e => field.onChange(e.target.value)} 
                   />
                 </FormControl>
                 <FormMessage />
@@ -265,8 +247,9 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
                 <FormControl>
                   <Input 
                     type="number" 
+                    step="0.01"
                     {...field} 
-                    onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
+                    onChange={e => field.onChange(e.target.value)} 
                   />
                 </FormControl>
                 <FormMessage />
@@ -283,8 +266,9 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
                 <FormControl>
                   <Input 
                     type="number" 
+                    step="0.01"
                     {...field} 
-                    onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
+                    onChange={e => field.onChange(e.target.value)} 
                   />
                 </FormControl>
                 <FormMessage />
@@ -305,7 +289,7 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
                     type="number" 
                     step="0.01" 
                     {...field} 
-                    onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
+                    onChange={e => field.onChange(e.target.value)} 
                   />
                 </FormControl>
                 <FormMessage />
@@ -323,7 +307,7 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
                   <Input 
                     type="number" 
                     {...field} 
-                    onChange={e => field.onChange(parseInt(e.target.value) || 0)} 
+                    onChange={e => field.onChange(e.target.value)} 
                   />
                 </FormControl>
                 <FormMessage />

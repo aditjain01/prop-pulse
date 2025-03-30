@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { apiRequest } from '@/lib/api/api';
+import { apiRequest } from '@/lib/api/base';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { FileUp, Trash2, FileText } from "lucide-react";
@@ -16,11 +16,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { type Document as CustomDocument } from "@/lib/api/schemas";
 
 type DocumentUploadProps = {
   entityType: string;
   entityId: number;
-  documents: Document[];
+  documents: CustomDocument[];
 };
 
 export function DocumentUpload({ entityType, entityId, documents }: DocumentUploadProps) {

@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest } from '@/lib/api/api';
+import { apiRequest } from '@/lib/api/base';
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,9 @@ import {
   paymentFormSchema, 
   type PaymentFormValues, 
   type Payment,
-  initializePaymentForm 
-} from "@/lib/schemas";
+  initializePaymentForm,
+  type InvoicePublic
+} from "@/lib/api/schemas";
 import { formatCurrency } from "@/lib/utils";
 
 type PaymentFormProps = {
@@ -38,18 +39,13 @@ export function PaymentForm({ invoiceId, payment, onSuccess }: PaymentFormProps)
   const [, navigate] = useLocation();
   
   // Fetch invoices for dropdown
-  const { data: invoices, isLoading: invoicesLoading, refetch: refetchInvoices } = useQuery({
+  const { data: invoices, isLoading: invoicesLoading, refetch: refetchInvoices } = useQuery<InvoicePublic[]>({
     queryKey: ["/api/invoices"],
   });
   
   // Fetch purchases for displaying property names
   const { data: purchases } = useQuery({
     queryKey: ["/api/purchases"],
-  });
-  
-  // Fetch properties to display property names with purchases
-  const { data: properties } = useQuery({
-    queryKey: ["/api/properties"],
   });
   
   // Fetch payment sources
@@ -69,12 +65,9 @@ export function PaymentForm({ invoiceId, payment, onSuccess }: PaymentFormProps)
       paid: invoice.paid_amount,
       balance: invoice.amount - invoice.paid_amount
     };
-    
-    const property = properties?.find(p => p.id === purchase.property_id);
-    const propertyName = property?.name || "Unknown Property";
-    
+        
     return {
-      label: `${propertyName} - Invoice #${invoice.invoice_number}`,
+      label: `${invoice.property_name} - Invoice #${invoice.invoice_number}`,
       amount: invoice.amount,
       paid: invoice.paid_amount,
       balance: invoice.amount - invoice.paid_amount
@@ -96,8 +89,8 @@ export function PaymentForm({ invoiceId, payment, onSuccess }: PaymentFormProps)
     const id = parseInt(invoiceId);
     const invoice = invoices?.find(i => i.id === id);
     if (invoice) {
-      const balance = invoice.amount - invoice.paid_amount;
-      form.setValue("amount", balance);
+      const balance = Number(invoice.amount) - Number(invoice.paid_amount);
+      form.setValue("amount", balance.toString());
     }
   };
   
@@ -117,6 +110,7 @@ export function PaymentForm({ invoiceId, payment, onSuccess }: PaymentFormProps)
         ...data,
         invoice_id: parseInt(data.invoice_id),
         source_id: parseInt(data.source_id),
+        amount: data.amount,  // Let the API handle the conversion
       };
       
       const res = await apiRequest(method, endpoint, payload);
@@ -269,7 +263,7 @@ export function PaymentForm({ invoiceId, payment, onSuccess }: PaymentFormProps)
                           step="0.01"
                           placeholder="0.00"
                           {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                          onChange={(e) => field.onChange(e.target.value)}
                         />
                       </FormControl>
                       <FormMessage />
