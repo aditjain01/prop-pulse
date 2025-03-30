@@ -4,11 +4,10 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from src import schemas
 from src.database import get_db, models
+from sqlalchemy import func
 
 # Create a router instance
 router = APIRouter(prefix="/invoices", tags=["invoices"])
-# V2 routes for frontend-aligned endpoints
-router_dev = APIRouter(prefix="/v2/invoices", tags=["invoices"])
 
 # Create a new invoice
 @router.post("/", response_model=schemas.InvoiceOld, description="Create a new invoice")
@@ -54,57 +53,6 @@ def create_invoice(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# Get all invoices with optional filters
-@router_dev.get("/", response_model=List[schemas.InvoiceOld], description="Get all invoices with optional filters")
-def get_invoices_old(
-    purchase_id: Optional[int] = None,
-    status: Optional[str] = None,
-    milestone: Optional[str] = None,
-    from_date: Optional[str] = None,
-    to_date: Optional[str] = None,
-    db: Session = Depends(get_db),
-) -> List[schemas.InvoiceOld]:
-    try:
-        query = db.query(models.Invoice)
-
-        # Apply filters if provided
-        if purchase_id:
-            query = query.filter(models.Invoice.purchase_id == purchase_id)
-        if status:
-            query = query.filter(models.Invoice.status == status)
-        if milestone:
-            query = query.filter(models.Invoice.milestone == milestone)
-        if from_date:
-            query = query.filter(models.Invoice.invoice_date >= from_date)
-        if to_date:
-            query = query.filter(models.Invoice.invoice_date <= to_date)
-
-        # Order by invoice date (newest first)
-        query = query.order_by(models.Invoice.invoice_date.desc())
-
-        invoices = query.all()
-        return invoices
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# Get a specific invoice by ID
-@router_dev.get("/{invoice_id}", response_model=schemas.InvoiceOld, description="Get a specific invoice by ID")
-def get_invoice_old(invoice_id: int, db: Session = Depends(get_db)) -> schemas.InvoiceOld:
-    try:
-        invoice = (
-            db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
-        )
-        if invoice is None:
-            raise HTTPException(status_code=404, detail="Invoice not found")
-        return invoice
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 
 # Update an invoice
 @router.put("/{invoice_id}", response_model=schemas.InvoiceOld, description="Update an existing invoice")
@@ -176,8 +124,8 @@ def delete_invoice(invoice_id: int, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("", response_model=List[schemas.InvoicePublic], include_in_schema=False, description="Get a list of invoices with property information and enhanced filtering")
-@router.get("/", response_model=List[schemas.InvoicePublic], description="Get a list of invoices with property information and enhanced filtering")
+@router.get("", response_model=List[schemas.InvoicePublic], include_in_schema=False)
+@router.get("/", response_model=List[schemas.InvoicePublic])
 def get_invoices(
     purchase_id: Optional[int] = None,
     status: Optional[str] = None,
@@ -186,19 +134,18 @@ def get_invoices(
     to_date: Optional[str] = None,
     db: Session = Depends(get_db),
 ) -> List[schemas.InvoicePublic]:
-    """
-    Get a list of invoices with property information and enhanced filtering.
-    Optimized for frontend listing views.
-    """
     try:
-        # Start with a query that joins Invoice with Purchase and Property
+        # Start with a query that joins Invoice with Purchase, Property and Payments
         query = (
             db.query(
                 models.Invoice,
-                models.Property.name.label("property_name")
+                models.Property.name.label("property_name"),
+                func.coalesce(func.sum(models.Payment.amount), 0).label("paid_amount")
             )
             .join(models.Purchase, models.Invoice.purchase_id == models.Purchase.id)
             .join(models.Property, models.Purchase.property_id == models.Property.id)
+            .outerjoin(models.Payment, models.Invoice.id == models.Payment.invoice_id)
+            .group_by(models.Invoice.id, models.Property.name)
         )
 
         # Apply filters if provided
@@ -220,7 +167,7 @@ def get_invoices(
         
         # Convert the results to the expected schema format
         invoices = []
-        for invoice, property_name in results:
+        for invoice, property_name, paid_amount in results:
             invoice_dict = {
                 "id": invoice.id,
                 "purchase_id": invoice.purchase_id,
@@ -233,7 +180,7 @@ def get_invoices(
                 "description": invoice.description,
                 "created_at": invoice.created_at,
                 "updated_at": invoice.updated_at,
-                "paid_amount": invoice.paid_amount,
+                "paid_amount": paid_amount,
                 "property_name": property_name,
             }
             invoices.append(invoice_dict)
@@ -242,30 +189,30 @@ def get_invoices(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/{invoice_id}", response_model=schemas.Invoice, include_in_schema=False, description="Get a detailed view of a single invoice with property information")
-@router.get("/{invoice_id}", response_model=schemas.Invoice, description="Get a detailed view of a single invoice with property information")
+
+@router.get("/{invoice_id}", response_model=schemas.Invoice, include_in_schema=False)
+@router.get("/{invoice_id}", response_model=schemas.Invoice)
 def get_invoice(invoice_id: int, db: Session = Depends(get_db)) -> schemas.Invoice:
-    """
-    Get a detailed view of a single invoice with property information.
-    Optimized for frontend detail views.
-    """
     try:
-        # Query that joins Invoice with Purchase and Property
+        # Query that joins Invoice with Purchase, Property and calculates paid_amount
         result = (
             db.query(
                 models.Invoice,
-                models.Property.name.label("property_name")
+                models.Property.name.label("property_name"),
+                func.coalesce(func.sum(models.Payment.amount), 0).label("paid_amount")
             )
             .join(models.Purchase, models.Invoice.purchase_id == models.Purchase.id)
             .join(models.Property, models.Purchase.property_id == models.Property.id)
+            .outerjoin(models.Payment, models.Invoice.id == models.Payment.invoice_id)
             .filter(models.Invoice.id == invoice_id)
+            .group_by(models.Invoice.id, models.Property.name)
             .first()
         )
         
         if result is None:
             raise HTTPException(status_code=404, detail="Invoice not found")
             
-        invoice, property_name = result
+        invoice, property_name, paid_amount = result
         
         # Convert to the expected schema format
         invoice_dict = {
@@ -280,7 +227,7 @@ def get_invoice(invoice_id: int, db: Session = Depends(get_db)) -> schemas.Invoi
             "description": invoice.description,
             "created_at": invoice.created_at,
             "updated_at": invoice.updated_at,
-            "paid_amount": invoice.paid_amount,
+            "paid_amount": paid_amount,
             "property_name": property_name,
         }
             

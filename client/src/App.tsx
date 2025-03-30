@@ -23,7 +23,6 @@ import InvoiceDetailPage from "@/pages/invoice-detail";
 import { RouteComponentProps } from "wouter";
 
 // Wrapper components to handle props for routes
-const RepaymentListWrapper = (props: RouteComponentProps) => <RepaymentList />;
 const NotFoundWrapper = (props: RouteComponentProps) => <NotFound />;
 
 function Router() {
@@ -40,7 +39,7 @@ function Router() {
       <Route path="/payment-sources" component={PaymentSourceList} />
       <Route path="/loans" component={LoanList} />
       <Route path="/loans/:id" component={LoanDetailPage} />
-      <Route path="/repayments" component={RepaymentListWrapper} />
+      <Route path="/repayments" component={RepaymentList} />
       <Route path="/invoices" component={InvoiceList} />
       <Route path="/invoices/:id" component={InvoiceDetailPage} />
       <Route component={NotFoundWrapper} />

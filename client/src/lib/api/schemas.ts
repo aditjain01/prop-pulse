@@ -46,140 +46,6 @@ export type User = {
   created_at: string;
 };
 
-// export type Property = {
-//   id: number;
-//   name: string;
-//   address: string;
-//   property_type: string;
-//   carpet_area: number | null;
-//   exclusive_area: number | null;
-//   common_area: number | null;
-//   floor_number: number | null;
-//   parking_details: string | null;
-//   amenities: string[];
-//   initial_rate: number;
-//   current_rate: number;
-//   developer: string | null;
-//   rera_id: string | null;
-//   super_area?: number | null;
-//   created_at?: string;
-//   updated_at?: string;
-// };
-
-// export type Purchase = {
-//   id: number;
-//   property_id?: number;
-//   user_id?: number;
-//   property_name: string;
-//   purchase_date: string;
-//   registration_date: string | null;
-//   possession_date: string | null;
-//   base_cost: number;
-//   other_charges: number | null;
-//   ifms: number | null;
-//   lease_rent: number | null;
-//   amc: number | null;
-//   gst: number | null;
-//   property_cost: number;
-//   total_cost: number;
-//   total_purchase_cost: number;
-//   seller: string | null;
-//   remarks: string | null;
-//   created_at?: string;
-//   property?: Property; // For joined queries
-// };
-
-// export type Loan = {
-//   id: number;
-//   user_id?: number | null;
-//   purchase_id: number;
-//   name: string;
-//   institution: string;
-//   agent: string | null;
-//   sanction_date: string;
-//   sanction_amount: number;
-//   total_disbursed_amount: number;
-//   processing_fee: number;
-//   other_charges: number;
-//   loan_sanction_charges: number;
-//   interest_rate: number;
-//   tenure_months: number;
-//   is_active: boolean;
-//   property_name?: string;
-//   created_at?: string;
-//   updated_at?: string | null;
-// };
-
-// export type PaymentSource = {
-//   id: number;
-//   user_id: number;
-//   name: string;
-//   source_type: string;
-//   description: string | null;
-//   is_active: boolean;
-//   bank_name: string | null;
-//   account_number: string | null;
-//   ifsc_code: string | null;
-//   branch: string | null;
-//   loan_id: number | null;
-//   lender: string | null;
-//   card_number: string | null;
-//   card_expiry: string | null;
-//   wallet_provider: string | null;
-//   wallet_identifier: string | null;
-//   created_at: string;
-//   updated_at: string | null;
-// };
-
-// export type Invoice = {
-//   id: number;
-//   purchase_id: number;
-//   property_name: string;
-//   invoice_number: string;
-//   invoice_date: string;
-//   due_date: string | null;
-//   amount: number;
-//   status: string;
-//   milestone: string | null;
-//   description: string | null;
-//   created_at: string;
-//   updated_at: string | null;
-//   paid_amount: number;
-// };
-
-// export type Payment = {
-//   id: number;
-//   payment_date: string;
-//   amount: number;
-//   source_name: string;
-//   payment_mode: string;
-//   property_name: string;
-//   invoice_number: string;
-//   transaction_reference: string | null;
-//   receipt_date: string | null;
-//   receipt_number: string | null;
-//   notes: string | null;
-// };
-
-// // Add LoanRepayment type
-// export type LoanRepayment = {
-//   id: number;
-//   loan_name: string;
-//   loan_institution: string;
-//   property_name: string;
-//   total_payment: number;
-//   source_name: string;
-//   payment_date: string;
-//   payment_mode: string;
-//   principal_amount: number;
-//   interest_amount: number;
-//   other_fees: number;
-//   penalties: number;
-//   purchase_id: number;
-//   transaction_reference: string | null;
-//   notes: string | null;
-// };
-
 export type Document = {
   id: number;
   entity_type: string;
@@ -194,41 +60,62 @@ export type Document = {
 // Zod schemas for form validation
 
 // Property schemas
-export const propertyFormSchema = z.object({
-  name: z.string().nonempty("Property name is required"),
+const propertySchema = z.object({
+  name: z.string().nonempty("Name is required"),
   address: z.string().nonempty("Address is required"),
   property_type: z.string().nonempty("Property type is required"),
-  carpet_area: z.string().optional().transform(val => val ? parseFloat(val) : null),
-  exclusive_area: z.string().optional().transform(val => val ? parseFloat(val) : null),
-  common_area: z.string().optional().transform(val => val ? parseFloat(val) : null),
-  floor_number: z.string().optional().transform(val => val ? parseInt(val) : null),
+  carpet_area: z.string().optional(),
+  exclusive_area: z.string().optional(),
+  common_area: z.string().optional(),
+  floor_number: z.string().optional(),
+  initial_rate: z.string(),
+  current_rate: z.string(),
   parking_details: z.string().optional(),
   amenities: z.array(z.string()).default([]),
-  initial_rate: z.string().transform(val => parseFloat(val) || 0),
-  current_rate: z.string().transform(val => parseFloat(val) || 0),
   developer: z.string().optional(),
   rera_id: z.string().optional(),
 });
-export type PropertyFormValues = z.infer<typeof propertyFormSchema>;
-export const propertyUpdateSchema = propertyFormSchema.partial();
+
+export const propertyFormSchema = propertySchema.transform(data => ({
+  ...data,
+  carpet_area: data.carpet_area ? parseFloat(data.carpet_area) : null,
+  exclusive_area: data.exclusive_area ? parseFloat(data.exclusive_area) : null,
+  common_area: data.common_area ? parseFloat(data.common_area) : null,
+  floor_number: data.floor_number ? parseInt(data.floor_number) : null,
+  initial_rate: parseFloat(data.initial_rate) || 0,
+  current_rate: parseFloat(data.current_rate) || 0,
+}));
+
+export type PropertyFormValues = z.input<typeof propertyFormSchema>;
+export const propertyUpdateSchema = propertySchema.partial().transform((data: Partial<z.infer<typeof propertySchema>>) => ({
+  ...data,
+  carpet_area: data.carpet_area ? parseFloat(data.carpet_area) : undefined,
+  exclusive_area: data.exclusive_area ? parseFloat(data.exclusive_area) : undefined,
+  common_area: data.common_area ? parseFloat(data.common_area) : undefined,
+  floor_number: data.floor_number ? parseInt(data.floor_number) : undefined,
+  initial_rate: data.initial_rate ? parseFloat(data.initial_rate) : undefined,
+  current_rate: data.current_rate ? parseFloat(data.current_rate) : undefined,
+}));
 export type PropertyUpdateValues = z.infer<typeof propertyUpdateSchema>;
-export const initializePropertyForm = (property?: Property): PropertyFormValues => {
+
+// Initialize form values
+export function initializePropertyForm(property?: Property): PropertyFormValues {
   return {
-    name: property?.name || "",
-    address: property?.address || "",
-    property_type: property?.property_type || "",
-    carpet_area: property?.carpet_area !== null ? property.carpet_area.toString() : "",
-    exclusive_area: property?.exclusive_area !== null ? property.exclusive_area.toString() : "",
-    common_area: property?.common_area !== null ? property.common_area.toString() : "",
-    floor_number: property?.floor_number !== null ? property.floor_number.toString() : "",
-    parking_details: property?.parking_details || "",
-    amenities: property?.amenities || [],
-    initial_rate: property?.initial_rate !== undefined ? property.initial_rate.toString() : "0",
-    current_rate: property?.current_rate !== undefined ? property.current_rate.toString() : "0",
-    developer: property?.developer || "",
-    rera_id: property?.rera_id || "",
+    name: property?.name ?? "",
+    address: property?.address ?? "",
+    property_type: property?.property_type ?? "",
+    carpet_area: property?.carpet_area?.toString() ?? "0",
+    exclusive_area: property?.exclusive_area?.toString() ?? "0",
+    common_area: property?.common_area?.toString() ?? "0", 
+    floor_number: property?.floor_number?.toString() ?? "0",
+    initial_rate: property?.initial_rate?.toString() ?? "0",
+    current_rate: property?.current_rate?.toString() ?? "0",
+    parking_details: property?.parking_details ?? "",
+    amenities: property?.amenities ?? [],
+    developer: property?.developer ?? "",
+    rera_id: property?.rera_id ?? "",
   };
-};
+}
 
 
 // Purchase schemas
@@ -237,30 +124,30 @@ export const purchaseFormSchema = z.object({
   purchase_date: z.string().nonempty("Purchase date is required"),
   registration_date: z.string().optional(),
   possession_date: z.string().optional(),
-  base_cost: z.string().transform(val => parseFloat(val) || 0),
-  other_charges: z.string().transform(val => parseFloat(val) || 0),
-  ifms: z.string().transform(val => parseFloat(val) || 0),
-  lease_rent: z.string().transform(val => parseFloat(val) || 0),
-  amc: z.string().transform(val => parseFloat(val) || 0),
-  gst: z.string().transform(val => parseFloat(val) || 0),
+  base_cost: z.string(),
+  other_charges: z.string(),
+  ifms: z.string(),
+  lease_rent: z.string(),
+  amc: z.string(),
+  gst: z.string(),
   seller: z.string().optional(),
   remarks: z.string().optional(),
 });
 export type PurchaseFormValues = z.infer<typeof purchaseFormSchema>;
 export const purchaseUpdateSchema = purchaseFormSchema.partial();
 export type PurchaseUpdateValues = z.infer<typeof purchaseUpdateSchema>;
-export const initializePurchaseForm = (purchase?: Purchase, propertyId?: number): PurchaseFormValues => {
+export const initializePurchaseForm = (purchase?: PurchaseCreate, propertyId?: number): PurchaseFormValues => {
   return {
-    property_id: propertyId?.toString() || "",
+    property_id: propertyId?.toString() || purchase?.property_id?.toString() || "",
     purchase_date: purchase?.purchase_date || new Date().toISOString().split('T')[0],
-    registration_date: purchase?.registration_date || "", 
+    registration_date: purchase?.registration_date || "",
     possession_date: purchase?.possession_date || "",
-    base_cost: purchase?.base_cost !== undefined ? purchase.base_cost.toString() : "0",
-    other_charges: purchase?.other_charges !== undefined ? purchase.other_charges.toString() : "0",
-    ifms: purchase?.ifms !== undefined ? purchase.ifms.toString() : "0",
-    lease_rent: purchase?.lease_rent !== undefined ? purchase.lease_rent.toString() : "0",
-    amc: purchase?.amc !== undefined ? purchase.amc.toString() : "0",
-    gst: purchase?.gst !== undefined ? purchase.gst.toString() : "0",
+    base_cost: purchase?.base_cost?.toString() || "0",
+    other_charges: purchase?.other_charges?.toString() || "0",
+    ifms: purchase?.ifms?.toString() || "0",
+    lease_rent: purchase?.lease_rent?.toString() || "0",
+    amc: purchase?.amc?.toString() || "0",
+    gst: purchase?.gst?.toString() || "0",
     seller: purchase?.seller || "",
     remarks: purchase?.remarks || "",
   };
@@ -268,38 +155,59 @@ export const initializePurchaseForm = (purchase?: Purchase, propertyId?: number)
 
 
 // Loan schemas
-export const loanFormSchema = z.object({
+const loanSchema = z.object({
   purchase_id: z.string().nonempty("Purchase is required"),
   name: z.string().nonempty("Loan name is required"),
   institution: z.string().nonempty("Institution is required"),
   agent: z.string().optional(),
   sanction_date: z.string().nonempty("Sanction date is required"),
-  sanction_amount: z.number().min(1, "Amount must be greater than 0"),
-  total_disbursed_amount: z.number().default(0),
-  processing_fee: z.number().default(0),
-  other_charges: z.number().default(0),
-  loan_sanction_charges: z.number().default(0),
-  interest_rate: z.number().min(0, "Interest rate must be positive"),
-  tenure_months: z.number().int().min(1, "Tenure must be at least 1 month"),
+  sanction_amount: z.string(),
+  total_disbursed_amount: z.string(),
+  processing_fee: z.string(),
+  other_charges: z.string(),
+  loan_sanction_charges: z.string(),
+  interest_rate: z.string(),
+  tenure_months: z.string(),
   is_active: z.boolean().default(true),
 });
-export type LoanFormValues = z.infer<typeof loanFormSchema>;
-export const loanUpdateSchema = loanFormSchema.partial();
+
+export const loanFormSchema = loanSchema.transform(data => ({
+  ...data,
+  sanction_amount: parseFloat(data.sanction_amount) || 0,
+  total_disbursed_amount: parseFloat(data.total_disbursed_amount) || 0,
+  processing_fee: parseFloat(data.processing_fee) || 0,
+  other_charges: parseFloat(data.other_charges) || 0,
+  loan_sanction_charges: parseFloat(data.loan_sanction_charges) || 0,
+  interest_rate: parseFloat(data.interest_rate) || 0,
+  tenure_months: parseInt(data.tenure_months) || 0,
+}));
+
+export type LoanFormValues = z.input<typeof loanFormSchema>;
+export const loanUpdateSchema = loanSchema.partial().transform((data: Partial<z.infer<typeof loanSchema>>) => ({
+  ...data,
+  sanction_amount: data.sanction_amount ? parseFloat(data.sanction_amount) : undefined,
+  total_disbursed_amount: data.total_disbursed_amount ? parseFloat(data.total_disbursed_amount) : undefined,
+  processing_fee: data.processing_fee ? parseFloat(data.processing_fee) : undefined,
+  other_charges: data.other_charges ? parseFloat(data.other_charges) : undefined,
+  loan_sanction_charges: data.loan_sanction_charges ? parseFloat(data.loan_sanction_charges) : undefined,
+  interest_rate: data.interest_rate ? parseFloat(data.interest_rate) : undefined,
+  tenure_months: data.tenure_months ? parseInt(data.tenure_months) : undefined,
+}));
 export type LoanUpdateValues = z.infer<typeof loanUpdateSchema>;
-export const initializeLoanForm = (loan?: Loan, purchaseId?: number): LoanFormValues => {
+export const initializeLoanForm = (loan?: LoanCreate, purchaseId?: number): LoanFormValues => {
   return {
-    purchase_id: loan?.purchase_id?.toString() || purchaseId?.toString() || "",
+    purchase_id: purchaseId?.toString() || loan?.purchase_id?.toString() || "",
     name: loan?.name || "",
     institution: loan?.institution || "",
     agent: loan?.agent || "",
     sanction_date: loan?.sanction_date || new Date().toISOString().split('T')[0],
-    sanction_amount: loan?.sanction_amount || 0,
-    total_disbursed_amount: loan?.total_disbursed_amount || 0,
-    processing_fee: loan?.processing_fee || 0,
-    other_charges: loan?.other_charges || 0,
-    loan_sanction_charges: loan?.loan_sanction_charges || 0,
-    interest_rate: loan?.interest_rate || 0,
-    tenure_months: loan?.tenure_months || 0,
+    sanction_amount: loan?.sanction_amount?.toString() || "0",
+    total_disbursed_amount: loan?.total_disbursed_amount?.toString() || "0",
+    processing_fee: loan?.processing_fee?.toString() || "0",
+    other_charges: loan?.other_charges?.toString() || "0",
+    loan_sanction_charges: loan?.loan_sanction_charges?.toString() || "0",
+    interest_rate: loan?.interest_rate?.toString() || "0",
+    tenure_months: loan?.tenure_months?.toString() || "0",
     is_active: loan?.is_active ?? true,
   };
 };
@@ -351,28 +259,35 @@ export const initializePaymentSourceForm = (source?: PaymentSource): PaymentSour
 
 
 // Payment schemas
-export const paymentFormSchema = z.object({
+const paymentSchema = z.object({
   invoice_id: z.string().nonempty("Invoice is required"),
   payment_date: z.string(),
-  amount: z.number(),
+  amount: z.string(),
   source_id: z.string().nonempty("Payment source is required"),
   payment_mode: z.string(),
   transaction_reference: z.string().optional(),
-  
-  // Receipt details
   receipt_date: z.string().optional(),
   receipt_number: z.string().optional(),
   notes: z.string().optional(),
 });
-export type PaymentFormValues = z.infer<typeof paymentFormSchema>;
-export const paymentUpdateSchema = paymentFormSchema.partial();
+
+export const paymentFormSchema = paymentSchema.transform(data => ({
+  ...data,
+  amount: parseFloat(data.amount) || 0,
+}));
+
+export type PaymentFormValues = z.input<typeof paymentFormSchema>;
+export const paymentUpdateSchema = paymentSchema.partial().transform((data: Partial<z.infer<typeof paymentSchema>>) => ({
+  ...data,
+  amount: data.amount ? parseFloat(data.amount) : undefined,
+}));
 export type PaymentUpdateValues = z.infer<typeof paymentUpdateSchema>;
-export const initializePaymentForm = (payment?: Payment, invoiceId?: number): PaymentFormValues => {
+export const initializePaymentForm = (payment?: PaymentCreate, invoiceId?: number): PaymentFormValues => {
   return {
-    invoice_id: payment?.invoice_id?.toString() || invoiceId?.toString() || "",
+    invoice_id: invoiceId?.toString() || "",
     payment_date: payment?.payment_date || new Date().toISOString().split('T')[0],
-    amount: payment?.amount || 0,
-    source_id: payment?.source_name || "",
+    amount: payment?.amount?.toString() || "0",
+    source_id: payment?.source_id?.toString() || "",
     payment_mode: payment?.payment_mode || "online",
     transaction_reference: payment?.transaction_reference || "",
     receipt_date: payment?.receipt_date || "",
@@ -383,58 +298,82 @@ export const initializePaymentForm = (payment?: Payment, invoiceId?: number): Pa
 
 
 // Add LoanRepayment form schema
-export const loanRepaymentFormSchema = z.object({
+const loanRepaymentSchema = z.object({
   loan_id: z.string().nonempty("Loan is required"),
   payment_date: z.string().nonempty("Payment date is required"),
-  principal_amount: z.number().min(0, "Principal amount must be positive"),
-  interest_amount: z.number().min(0, "Interest amount must be positive"),
-  other_fees: z.number().min(0, "Other fees must be positive").default(0),
-  penalties: z.number().min(0, "Penalties must be positive").default(0),
+  principal_amount: z.string(),
+  interest_amount: z.string(),
+  other_fees: z.string(),
+  penalties: z.string(),
   source_id: z.string().nonempty("Payment source is required"),
   payment_mode: z.string().nonempty("Payment mode is required"),
   transaction_reference: z.string().optional(),
   notes: z.string().optional(),
 });
-export type LoanRepaymentFormValues = z.infer<typeof loanRepaymentFormSchema>;
-export const loanRepaymentUpdateSchema = loanRepaymentFormSchema.partial();
+
+export const loanRepaymentFormSchema = loanRepaymentSchema.transform(data => ({
+  ...data,
+  principal_amount: parseFloat(data.principal_amount) || 0,
+  interest_amount: parseFloat(data.interest_amount) || 0,
+  other_fees: parseFloat(data.other_fees) || 0,
+  penalties: parseFloat(data.penalties) || 0,
+}));
+
+export type LoanRepaymentFormValues = z.input<typeof loanRepaymentFormSchema>;
+export const loanRepaymentUpdateSchema = loanRepaymentSchema.partial().transform((data: Partial<z.infer<typeof loanRepaymentSchema>>) => ({
+  ...data,
+  principal_amount: data.principal_amount ? parseFloat(data.principal_amount) : undefined,
+  interest_amount: data.interest_amount ? parseFloat(data.interest_amount) : undefined,
+  other_fees: data.other_fees ? parseFloat(data.other_fees) : undefined,
+  penalties: data.penalties ? parseFloat(data.penalties) : undefined,
+}));
 export type LoanRepaymentUpdateValues = z.infer<typeof loanRepaymentUpdateSchema>;
-export const initializeLoanRepaymentForm = (repayment?: LoanRepayment, loanId?: number): LoanRepaymentFormValues => {
+export const initializeLoanRepaymentForm = (repayment?: LoanRepaymentCreate, loanId?: number): LoanRepaymentFormValues => {
   return {
-    loan_id: repayment?.loan_id?.toString() || loanId?.toString() || "",
+    loan_id: loanId?.toString() || "",
     payment_date: repayment?.payment_date || new Date().toISOString().split('T')[0],
-    principal_amount: repayment?.principal_amount !== undefined ? Number(repayment.principal_amount) : 0,
-    interest_amount: repayment?.interest_amount !== undefined ? Number(repayment.interest_amount) : 0,
-    other_fees: repayment?.other_fees !== undefined ? Number(repayment.other_fees) : 0,
-    penalties: repayment?.penalties !== undefined ? Number(repayment.penalties) : 0,
-    source_id: repayment?.source_name || "",
+    principal_amount: repayment?.principal_amount?.toString() || "0",
+    interest_amount: repayment?.interest_amount?.toString() || "0",
+    other_fees: repayment?.other_fees?.toString() || "0",
+    penalties: repayment?.penalties?.toString() || "0",
+    source_id: repayment?.source_id?.toString() || "",
     payment_mode: repayment?.payment_mode || "online",
     transaction_reference: repayment?.transaction_reference || "",
     notes: repayment?.notes || "",
   };
-}; 
+};
 
 
 // Invoice schemas
-export const invoiceFormSchema = z.object({
+const invoiceSchema = z.object({
   purchase_id: z.string().min(1, "Property purchase is required"),
   invoice_number: z.string().min(1, "Invoice number is required"),
   invoice_date: z.string().min(1, "Invoice date is required"),
   due_date: z.string().optional(),
-  amount: z.string().transform(val => parseFloat(val) || 0),
+  amount: z.string(),
   status: z.string().min(1, "Status is required"),
   milestone: z.string().optional(),
   description: z.string().optional(),
 });
-export type InvoiceFormValues = z.infer<typeof invoiceFormSchema>;
-export const invoiceUpdateSchema = invoiceFormSchema.partial();
+
+export const invoiceFormSchema = invoiceSchema.transform(data => ({
+  ...data,
+  amount: parseFloat(data.amount) || 0,
+}));
+
+export type InvoiceFormValues = z.input<typeof invoiceFormSchema>;
+export const invoiceUpdateSchema = invoiceSchema.partial().transform((data: Partial<z.infer<typeof invoiceSchema>>) => ({
+  ...data,
+  amount: data.amount ? parseFloat(data.amount) : undefined,
+}));
 export type InvoiceUpdateValues = z.infer<typeof invoiceUpdateSchema>;
-export const initializeInvoiceForm = (invoice?: Invoice, purchaseId?: number): InvoiceFormValues => {
+export const initializeInvoiceForm = (invoice?: InvoiceCreate, purchaseId?: number): InvoiceFormValues => {
   return {
-    purchase_id: invoice ? invoice.purchase_id.toString() : purchaseId ? purchaseId.toString() : "",
+    purchase_id: invoice?.purchase_id?.toString() || purchaseId?.toString() || "",
     invoice_number: invoice?.invoice_number || "",
     invoice_date: invoice?.invoice_date ? new Date(invoice.invoice_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
     due_date: invoice?.due_date ? new Date(invoice.due_date).toISOString().split('T')[0] : "",
-    amount: invoice?.amount ? invoice.amount.toString() : "",
+    amount: invoice?.amount?.toString() || "0",
     status: invoice?.status || "pending",
     milestone: invoice?.milestone || "",
     description: invoice?.description || "",

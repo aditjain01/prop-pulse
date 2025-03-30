@@ -57,7 +57,7 @@ class InvoicePublic(BaseModel):
     description: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
-    paid_amount: Decimal = Decimal("0")
+    paid_amount: Decimal = 0.0
     
     model_config = ConfigDict(from_attributes=True)
 

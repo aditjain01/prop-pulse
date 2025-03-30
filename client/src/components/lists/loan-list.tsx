@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Landmark, Home } from "lucide-react";
-import { type Loan } from "@/lib/api/schemas";
+import { type LoanPublic } from "@/lib/api/schemas";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/api/base";
@@ -12,7 +12,7 @@ import { DeleteConfirmation } from "@/components/delete-confirmation";
 import { Link, useLocation } from "wouter";
 
 type LoanListProps = {
-  loans: Loan[] | undefined;
+  loans: LoanPublic[] | undefined;
   isLoading: boolean;
 };
 
@@ -21,7 +21,7 @@ export function LoanList({
   isLoading
 }: LoanListProps) {
   const { toast } = useToast();
-  const [loanToDelete, setLoanToDelete] = useState<Loan | null>(null);
+  const [loanToDelete, setLoanToDelete] = useState<LoanPublic | null>(null);
   const [, navigate] = useLocation();
   
   const deleteMutation = useMutation({
@@ -47,7 +47,7 @@ export function LoanList({
     },
   });
 
-  const handleDelete = (loan: Loan) => {
+  const handleDelete = (loan: LoanPublic) => {
     setLoanToDelete(loan);
   };
 
@@ -97,15 +97,7 @@ export function LoanList({
                   <div className="flex items-center space-x-3 mb-3">
                     <Landmark className="h-5 w-5" />
                     <span>{loan.institution}</span>
-                  </div>
-                  
-                  {(loan as any).property_name && (
-                    <div className="flex items-center space-x-3 mb-3">
-                      <Home className="h-5 w-5" />
-                      <span>{(loan as any).property_name}</span>
-                    </div>
-                  )}
-                  
+                  </div>        
                   <div className="space-y-1 text-sm mb-4">
                     <p><span className="font-medium">Amount:</span> ₹{Number(loan.sanction_amount).toLocaleString()}</p>
                     <p><span className="font-medium">Disbursed:</span> ₹{Number(loan.total_disbursed_amount).toLocaleString()}</p>

@@ -11,7 +11,11 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   // Ensure we're using a relative URL that will be proxied by Vite
-  const apiUrl = url.startsWith('http') ? new URL(url).pathname : url;
+  const apiUrl = url.startsWith('http') 
+    ? new URL(url).pathname 
+    : url.startsWith('/api') 
+      ? url 
+      : `/api${url}`;
   
   const res = await fetch(apiUrl, {
     method,

@@ -55,61 +55,6 @@ def create_loan_repayment(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router_dev.get("", response_model=List[schemas.LoanRepaymentOld], include_in_schema=False)
-@router_dev.get("/", response_model=List[schemas.LoanRepaymentOld])
-def get_loan_repayments_old(
-    loan_id: Optional[int] = None,
-    source_id: Optional[int] = None,
-    from_date: Optional[str] = None,
-    to_date: Optional[str] = None,
-    db: Session = Depends(get_db),
-) -> List[schemas.LoanRepaymentOld]:
-    """
-    Get a list of old loan repayments with optional filters.
-    """
-    try:
-        query = db.query(models.LoanRepayment)
-
-        # Apply filters if provided
-        if loan_id:
-            query = query.filter(models.LoanRepayment.loan_id == loan_id)
-        if source_id:
-            query = query.filter(models.LoanRepayment.source_id == source_id)
-        if from_date:
-            query = query.filter(models.LoanRepayment.payment_date >= from_date)
-        if to_date:
-            query = query.filter(models.LoanRepayment.payment_date <= to_date)
-
-        # Order by payment date (newest first)
-        query = query.order_by(models.LoanRepayment.payment_date.desc())
-
-        repayments = query.all()
-        return repayments
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router_dev.get("/{repayment_id}", response_model=schemas.LoanRepaymentOld, include_in_schema=False)
-@router_dev.get("/{repayment_id}/", response_model=schemas.LoanRepaymentOld)
-def get_loan_repayment_old(
-    repayment_id: int, db: Session = Depends(get_db)
-) -> schemas.LoanRepaymentOld:
-    """
-    Get details of a specific old loan repayment by ID.
-    """
-    try:
-        repayment = (
-            db.query(models.LoanRepayment)
-            .filter(models.LoanRepayment.id == repayment_id)
-            .first()
-        )
-        if repayment is None:
-            raise HTTPException(status_code=404, detail="Loan repayment not found")
-        return repayment
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 @router.put("/{repayment_id}", response_model=schemas.LoanRepaymentOld, include_in_schema=False)
 @router.put("/{repayment_id}/", response_model=schemas.LoanRepaymentOld)
 def update_loan_repayment(

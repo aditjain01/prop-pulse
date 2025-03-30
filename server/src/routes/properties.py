@@ -7,9 +7,6 @@ from fastapi import APIRouter
 
 # Create a router instance
 router = APIRouter(prefix="/properties", tags=["properties"])
-# V2 routes for frontend-aligned endpoints
-router_dev = APIRouter(prefix="/v2/properties", tags=["properties"])
-
 
 # Property routes
 @router.post("", response_model=schemas.PropertyOld, include_in_schema=False)
@@ -71,39 +68,6 @@ def get_property(
         return db_property
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@router_dev.get("", response_model=List[schemas.PropertyOld], include_in_schema=False)
-@router_dev.get("/", response_model=List[schemas.PropertyOld])
-def get_properties_old(
-    skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
-) -> List[schemas.PropertyOld]:
-    """
-    Get a list of properties with pagination support.
-    """
-    try:
-        properties = db.query(models.Property).offset(skip).limit(limit).all()
-        return properties
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router_dev.get("/{property_id}", response_model=schemas.PropertyOld, include_in_schema=False)
-@router_dev.get("/{property_id}/", response_model=schemas.PropertyOld)
-def get_property_old(property_id: int, db: Session = Depends(get_db)) -> schemas.PropertyOld:
-    """
-    Get a detailed view of a single property using the old schema.
-    """
-    try:
-        db_property = (
-            db.query(models.Property).filter(models.Property.id == property_id).first()
-        )
-        if db_property is None:
-            raise HTTPException(status_code=404, detail="Property not found")
-        return db_property
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.put("/{property_id}", response_model=schemas.PropertyOld, include_in_schema=False)
 @router.put("/{property_id}/", response_model=schemas.PropertyOld)

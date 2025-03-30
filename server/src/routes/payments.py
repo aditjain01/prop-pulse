@@ -7,8 +7,6 @@ from src.database import get_db, models
 
 # Create a router instance
 router = APIRouter(prefix="/payments", tags=["payments"])
-# V2 routes for frontend-aligned endpoints
-router_dev = APIRouter(prefix="/v2/payments", tags=["payments"])
 
 
 # Create a new payment
@@ -37,6 +35,8 @@ def create_payment(
                 status_code=400,
                 detail="Payment amount exceeds invoice's balance amount",
             )
+        if payment.amount <= 0:
+            raise HTTPException(status_code=400, detail="Payment amount must be greater than 0")
 
         payment_source = (
             db.query(models.PaymentSource)
@@ -74,62 +74,6 @@ def create_payment(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# Get all payments with optional filters
-@router_dev.get("", response_model=List[schemas.PaymentOld], include_in_schema=False, description="Get all payments with optional filters")
-@router_dev.get("/", response_model=List[schemas.PaymentOld], description="Get all payments with optional filters")
-def get_payments_old(
-    purchase_id: Optional[int] = None,
-    payment_source_id: Optional[int] = None,
-    milestone: Optional[str] = None,
-    payment_mode: Optional[str] = None,
-    from_date: Optional[str] = None,
-    to_date: Optional[str] = None,
-    db: Session = Depends(get_db),
-) -> List[schemas.PaymentOld]:
-    try:
-        query = db.query(models.Payment)
-
-        # Apply filters if provided
-        if purchase_id:
-            query = query.filter(models.Payment.purchase_id == purchase_id)
-        if payment_source_id:
-            query = query.filter(models.Payment.payment_source_id == payment_source_id)
-        if milestone:
-            query = query.filter(models.Payment.milestone == milestone)
-        if payment_mode:
-            query = query.filter(models.Payment.payment_mode == payment_mode)
-        if from_date:
-            query = query.filter(models.Payment.payment_date >= from_date)
-        if to_date:
-            query = query.filter(models.Payment.payment_date <= to_date)
-
-        # Order by payment date (newest first)
-        query = query.order_by(models.Payment.payment_date.desc())
-
-        payments = query.all()
-        return payments
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# Get a specific payment by ID
-@router_dev.get("/{payment_id}", response_model=schemas.PaymentOld, include_in_schema=False, description="Get a specific payment by ID")
-@router_dev.get("/{payment_id}/", response_model=schemas.PaymentOld, description="Get a specific payment by ID")
-def get_payment_old(payment_id: int, db: Session = Depends(get_db)) -> schemas.PaymentOld:
-    try:
-        payment = (
-            db.query(models.Payment).filter(models.Payment.id == payment_id).first()
-        )
-        if payment is None:
-            raise HTTPException(status_code=404, detail="Payment not found")
-        return payment
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 # Update a payment
 @router.put("/{payment_id}", response_model=schemas.PaymentOld, include_in_schema=False, description="Update a payment")
 @router.put("/{payment_id}/", response_model=schemas.PaymentOld, description="Update a payment")
@@ -163,17 +107,18 @@ def update_payment(
             .filter(models.Payment.id != payment_id)
             .all()
         )
-        
-        # Calculate total paid amount excluding the current payment
-        total_paid = sum(p.amount for p in invoice_payments)
+
         
         # Check if the updated payment amount would exceed the invoice balance
-        if payment.amount and payment.amount > invoice.amount - total_paid:
+        if payment.amount and payment.amount > invoice.amount - sum(p.amount for p in invoice_payments):
             raise HTTPException(
                 status_code=400,
                 detail="Payment amount exceeds invoice's balance amount",
             )
         
+        if payment.amount <= 0:
+            raise HTTPException(status_code=400, detail="Payment amount must be greater than 0")
+
         # If payment source is being updated, check if it exists
         if payment.source_id:
             payment_source = (

@@ -8,9 +8,6 @@ from src.database import get_db, models
 # Create a router instance
 router = APIRouter(prefix="/purchases", tags=["purchases"])
 
-# V2 routes for frontend-aligned endpoints
-router_dev = APIRouter(prefix="/v2/purchases", tags=["purchases"])
-
 
 # Purchase routes
 @router.post("", response_model=schemas.PurchaseOld, include_in_schema=False)
@@ -32,46 +29,6 @@ def create_purchase(
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
-
-@router_dev.get("", response_model=List[schemas.PurchaseOld], include_in_schema=False)
-@router_dev.get("/", response_model=List[schemas.PurchaseOld])
-def get_purchases_old(
-    property_id: Optional[int] = None,
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db),
-) -> List[schemas.PurchaseOld]:
-    """
-    Get a list of old purchases with optional filtering by property_id.
-    """
-    try:
-        query = db.query(models.Purchase)
-
-        # Filter by property_id if provided
-        if property_id:
-            query = query.filter(models.Purchase.property_id == property_id)
-
-        purchases = query.offset(skip).limit(limit).all()
-        return purchases
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router_dev.get("/{purchase_id}", response_model=schemas.PurchaseOld, include_in_schema=False)
-@router_dev.get("/{purchase_id}/", response_model=schemas.PurchaseOld)
-def get_purchase_old(purchase_id: int, db: Session = Depends(get_db)) -> schemas.PurchaseOld:
-    """
-    Get details of an old purchase by purchase_id.
-    """
-    try:
-        db_purchase = (
-            db.query(models.Purchase).filter(models.Purchase.id == purchase_id).first()
-        )
-        if db_purchase is None:
-            raise HTTPException(status_code=404, detail="Purchase not found")
-        return db_purchase
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/{purchase_id}", response_model=schemas.PurchaseOld, include_in_schema=False)
 @router.put("/{purchase_id}/", response_model=schemas.PurchaseOld)

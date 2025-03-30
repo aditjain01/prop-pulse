@@ -13,17 +13,14 @@ import { useToast } from "@/hooks/use-toast";
 import { SlideDialog } from "@/components/slide-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DocumentUpload } from "@/components/document-upload";
-import { type Loan, type Document as PropertyDocument } from "@/lib/api/schemas";
+import { type LoanPublic } from "@/lib/api/schemas";
 import { LoanRepaymentForm } from "@/components/forms/loan-repayment-form";
-import { LoanDetail } from "@/components/details/loan-detail";
-import { LoanStatusCard } from "@/components/loan-status";
 import { LoanList } from "@/components/lists/loan-list";
-import { useLocation } from "wouter";
 
 export default function LoanListPage() {
   const { toast } = useToast();
   
-  const { data: loans, isLoading } = useQuery<Loan[]>({
+  const { data: loans, isLoading } = useQuery<LoanPublic[]>({
     queryKey: ["/api/loans"],
   });
 

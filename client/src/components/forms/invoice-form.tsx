@@ -17,8 +17,8 @@ import {
   invoiceFormSchema,
   type InvoiceFormValues,
   type Invoice,
+  type PurchasePublic,
   initializeInvoiceForm,
-  type Purchase
 } from "@/lib/api/schemas";
 
 type InvoiceFormProps = {
@@ -32,21 +32,9 @@ export function InvoiceForm({ purchaseId, invoice, onSuccess }: InvoiceFormProps
   const [, navigate] = useLocation();
   
   // Fetch purchases for dropdown
-  const { data: purchases, isLoading: purchasesLoading } = useQuery<Purchase[]>({
+  const { data: purchases, isLoading: purchasesLoading } = useQuery<PurchasePublic[]>({
     queryKey: ["/api/purchases/"],
   });
-  
-  // Fetch properties to display property names with purchases
-  const { data: properties } = useQuery({
-    queryKey: ["/api/properties"],
-  });
-  
-  // Helper function to get property name for a purchase
-  const getPropertyName = (purchaseId: number) => {
-    const purchase = purchases?.find(p => p.id === purchaseId);
-    !purchase ? "Unknown Property" : purchase.property_name;
-    
-  };
   
   const form = useForm<InvoiceFormValues>({
     resolver: zodResolver(invoiceFormSchema),
@@ -55,13 +43,13 @@ export function InvoiceForm({ purchaseId, invoice, onSuccess }: InvoiceFormProps
 
   const mutation = useMutation({
     mutationFn: async (data: InvoiceFormValues) => {
-      const endpoint = invoice ? `/api/invoices/${invoice.id}` : "/api/invoices";
+      const endpoint = invoice ? `/api/invoices/${invoice.id}` : "/api/invoices/";
       const method = invoice ? "PUT" : "POST";
       
       const payload = {
         ...data,
         purchase_id: parseInt(data.purchase_id),
-        amount: data.amount,
+        amount: parseFloat(data.amount),
       };
       
       const res = await apiRequest(method, endpoint, payload);
@@ -121,7 +109,7 @@ export function InvoiceForm({ purchaseId, invoice, onSuccess }: InvoiceFormProps
                     <SelectContent>
                       {purchases?.map((purchase) => (
                         <SelectItem key={purchase.id} value={purchase.id.toString()}>
-                          {getPropertyName(purchase.id)}
+                          {purchase.property_name}
                         </SelectItem>
                       ))}
                     </SelectContent>

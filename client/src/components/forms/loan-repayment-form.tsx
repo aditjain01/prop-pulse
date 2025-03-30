@@ -1,25 +1,24 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest } from '@/lib/api/base';
+import { apiRequest } from "@/lib/api/base";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SlideDialog } from "@/components/slide-dialog";
-import { PaymentSourceForm } from "@/components/forms/payment-source-form";
-import { Plus } from "lucide-react";
-import { useState } from "react";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { useLocation } from "wouter";
-import { 
-  loanRepaymentFormSchema, 
-  type LoanRepaymentFormValues, 
+import {
+  loanRepaymentFormSchema,
+  type LoanRepaymentFormValues,
   type LoanRepayment,
-  initializeLoanRepaymentForm 
+  type Loan,
+  type PaymentSource,
+  initializeLoanRepaymentForm,
 } from "@/lib/api/schemas";
 
 type LoanRepaymentFormProps = {
@@ -30,55 +29,62 @@ type LoanRepaymentFormProps = {
 
 export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymentFormProps) {
   const { toast } = useToast();
-  const [paymentSourceDialogOpen, setPaymentSourceDialogOpen] = useState(false);
   const [, navigate] = useLocation();
-  const [isLoading, setIsLoading] = useState(false);
-  
-  // Fetch loans if loanId is not provided
-  const { data: loans = [] } = useQuery<Loan[]>({
+
+  // Fetch loans for dropdown
+  const { data: loans, isLoading: loansLoading } = useQuery<Loan[]>({
     queryKey: ["/api/loans"],
-    enabled: !loanId,
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/loans");
+      return res.json();
+    }
   });
-  
-  // Fetch payment sources for the dropdown
-  const { data: paymentSources = [] } = useQuery<PaymentSource[]>({
+
+  // Fetch payment sources for dropdown
+  const { data: sources, isLoading: sourcesLoading } = useQuery<PaymentSource[]>({
     queryKey: ["/api/payment-sources"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/payment-sources");
+      return res.json();
+    }
   });
-  
+
   const form = useForm<LoanRepaymentFormValues>({
     resolver: zodResolver(loanRepaymentFormSchema),
     defaultValues: initializeLoanRepaymentForm(repayment, loanId),
-    mode: "onChange",
   });
 
-  // Calculate total payment
-  const principalAmount = Number(form.watch("principal_amount")) || 0;
-  const interestAmount = Number(form.watch("interest_amount")) || 0;
-  const otherFees = Number(form.watch("other_fees")) || 0;
-  const penalties = Number(form.watch("penalties")) || 0;
-  const totalPayment = principalAmount + interestAmount + otherFees + penalties;
-
-  // Create or update the repayment
-  const saveMutation = useMutation({
+  const mutation = useMutation({
     mutationFn: async (data: LoanRepaymentFormValues) => {
-      const url = repayment 
-        ? `/api/repayments/${repayment.id}` 
-        : "/api/repayments";
-      
+      const endpoint = repayment ? `/api/repayments/${repayment.id}` : "/api/repayments";
       const method = repayment ? "PUT" : "POST";
-      
-      const res = await apiRequest(method, url, data);
+
+      const payload = {
+        ...data,
+        loan_id: parseInt(data.loan_id),
+        source_id: parseInt(data.source_id),
+        principal_amount: parseFloat(data.principal_amount),
+        interest_amount: parseFloat(data.interest_amount),
+        other_fees: parseFloat(data.other_fees),
+        penalties: parseFloat(data.penalties),
+      };
+
+      const res = await apiRequest(method, endpoint, payload);
       return res.json();
     },
-    onSuccess: () => {
-      toast({
-        title: `Repayment ${repayment ? "updated" : "created"}`,
-        description: `The repayment has been ${repayment ? "updated" : "created"} successfully.`,
-      });
-      
-      if (onSuccess) {
-        onSuccess();
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/repayments"] });
+      if (loanId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/loans", loanId.toString()] });
       }
+      toast({
+        title: repayment ? "Repayment updated" : "Repayment created",
+        description: repayment
+          ? "The repayment has been updated successfully."
+          : "The repayment has been created successfully.",
+      });
+      if (onSuccess) onSuccess();
+      if (!repayment && !loanId) navigate("/repayments");
     },
     onError: (error: Error) => {
       toast({
@@ -87,132 +93,118 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
         variant: "destructive",
       });
     },
-    onSettled: () => {
-      setIsLoading(false);
-    },
   });
 
   const onSubmit = (data: LoanRepaymentFormValues) => {
-    setIsLoading(true);
-    
-    // Handle loan_id conversion for compatibility with backend
-    let formattedData = {
-      ...data,
-      // If the repayment has a loan_id field but not a loan_name (backward compatibility),
-      // keep the loan_id. Otherwise, we'll send the form data as is.
-      loan_id: repayment?.loan_id ? repayment.loan_id : parseInt(data.loan_id)
-    };
-    
-    saveMutation.mutate(formattedData);
+    mutation.mutate(data);
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="loan_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Loan</FormLabel>
-              <Select 
-                disabled={!!loanId || isLoading} 
-                onValueChange={field.onChange} 
-                value={field.value || ""} // Ensure value is not undefined
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a loan" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {loans?.map((loan) => (
-                    <SelectItem key={loan.id} value={loan.id.toString()}>
-                      {loan.name} - {loan.institution}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="payment_date"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Payment Date</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="source_id"
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex justify-between items-center">
-                  <FormLabel>Payment Source</FormLabel>
-                  <SlideDialog
-                    trigger={
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 px-2 text-xs"
-                        onClick={() => setPaymentSourceDialogOpen(true)}
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Add New
-                      </Button>
-                    }
-                    title="Add Payment Source"
-                    open={paymentSourceDialogOpen}
-                    onOpenChange={setPaymentSourceDialogOpen}
-                  >
-                    <PaymentSourceForm 
-                      onSuccess={() => {
-                        setPaymentSourceDialogOpen(false);
-                        queryClient.invalidateQueries({ queryKey: ["/api/payment-sources"] });
-                      }} 
-                    />
-                  </SlideDialog>
-                </div>
-                <Select 
-                  disabled={isLoading} 
-                  onValueChange={field.onChange} 
-                  value={field.value || ""} // Ensure value is not undefined
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a payment source" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {paymentSources?.map((source) => (
-                      <SelectItem key={source.id} value={source.id.toString()}>
-                        {source.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Payment Details</CardTitle>
+            <CardTitle>{repayment ? "Edit Repayment" : "Create New Repayment"}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <FormField
+              control={form.control}
+              name="loan_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Loan</FormLabel>
+                  <Select
+                    disabled={loansLoading || !!loanId}
+                    onValueChange={field.onChange}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a loan" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {loans?.map((loan) => (
+                        <SelectItem key={loan.id} value={loan.id.toString()}>
+                          {loan.name} - {loan.institution}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="payment_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Payment Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="payment_mode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Payment Mode</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select payment mode" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="online">Online</SelectItem>
+                        <SelectItem value="cheque">Cheque</SelectItem>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="source_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Source</FormLabel>
+                  <Select
+                    disabled={sourcesLoading}
+                    onValueChange={field.onChange}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a payment source" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {sources?.map((source) => (
+                        <SelectItem key={source.id} value={source.id.toString()}>
+                          {source.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -221,11 +213,11 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
                   <FormItem>
                     <FormLabel>Principal Amount (₹)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        {...field} 
-                        value={field.value}
-                        onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -240,11 +232,11 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
                   <FormItem>
                     <FormLabel>Interest Amount (₹)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        {...field} 
-                        value={field.value}
-                        onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -261,11 +253,11 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
                   <FormItem>
                     <FormLabel>Other Fees (₹)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        {...field} 
-                        value={field.value}
-                        onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -280,62 +272,12 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
                   <FormItem>
                     <FormLabel>Penalties (₹)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        {...field} 
-                        value={field.value}
-                        onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        {...field}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="bg-muted p-4 rounded-md">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold">Total Payment:</span>
-                <span className="font-bold text-lg">₹{totalPayment.toLocaleString()}</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="payment_mode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Payment Mode</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}> // Ensure value is not undefined
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select payment mode" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="online">Online Transfer</SelectItem>
-                        <SelectItem value="cheque">Cheque</SelectItem>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="card">Card</SelectItem>
-                        <SelectItem value="upi">UPI</SelectItem>
-                        <SelectItem value="auto_debit">Auto Debit</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="transaction_reference"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Transaction Reference</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -345,12 +287,30 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
 
             <FormField
               control={form.control}
+              name="transaction_reference"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Transaction Reference (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Cheque number, UPI ID" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes</FormLabel>
+                  <FormLabel>Notes (Optional)</FormLabel>
                   <FormControl>
-                    <Textarea {...field} rows={3} />
+                    <Textarea
+                      placeholder="Additional notes about this repayment"
+                      className="resize-none"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -359,9 +319,21 @@ export function LoanRepaymentForm({ loanId, repayment, onSuccess }: LoanRepaymen
           </CardContent>
         </Card>
 
-        <Button type="submit" className="w-full" disabled={isLoading || !paymentSources?.length}>
-          {isLoading ? (repayment ? "Updating Repayment..." : "Recording Repayment...") : (repayment ? "Update Repayment" : "Record Repayment")}
-        </Button>
+        <div className="flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              if (onSuccess) onSuccess();
+              else navigate("/repayments");
+            }}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={mutation.isPending}>
+            {mutation.isPending ? "Saving..." : repayment ? "Update Repayment" : "Create Repayment"}
+          </Button>
+        </div>
       </form>
     </Form>
   );

@@ -38,7 +38,8 @@ class LoanOld(LoanBase):
 
 class LoanUpdate(BaseModel):
     """Schema for updating loan details, allowing partial updates with optional fields."""
-    purchase_id: Optional[int] = None
+    # purchase_id: Optional[int] = None
+    name: Optional[str] = None
     institution: Optional[str] = None
     agent: Optional[str] = None
     sanction_date: Optional[date] = None
