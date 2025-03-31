@@ -1,7 +1,13 @@
 import { Link } from "wouter";
-import { Building2, LogOut, Home, CreditCard, Landmark, DollarSign, FileText } from "lucide-react";
+import { Building2, LogOut, Home, CreditCard, Landmark, DollarSign, FileText, MoreHorizontal } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function NavBar() {
   const { user, logoutMutation } = useAuth();
@@ -12,12 +18,6 @@ export function NavBar() {
         <Link href="/" className="font-bold text-lg mr-6">Property Manager</Link>
         
         <nav className="flex items-center space-x-4 lg:space-x-6">
-          <Link href="/properties" className="text-sm font-medium transition-colors hover:text-primary">
-            <div className="flex items-center">
-              <Building2 className="mr-1 h-4 w-4" />
-              Properties
-            </div>
-          </Link>
           <Link href="/purchases" className="text-sm font-medium transition-colors hover:text-primary">
             <div className="flex items-center">
               <Home className="mr-1 h-4 w-4" />
@@ -36,12 +36,6 @@ export function NavBar() {
               Payments
             </div>
           </Link>
-          <Link href="/payment-sources" className="text-sm font-medium transition-colors hover:text-primary">
-            <div className="flex items-center">
-              <CreditCard className="mr-1 h-4 w-4" />
-              Payment Sources
-            </div>
-          </Link>
           <Link href="/loans" className="text-sm font-medium transition-colors hover:text-primary">
             <div className="flex items-center">
               <Landmark className="mr-1 h-4 w-4" />
@@ -56,7 +50,28 @@ export function NavBar() {
           </Link>
         </nav>
 
-        <div className="flex items-center space-x-4">
+        <div className="ml-auto flex items-center space-x-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href="/properties" className="flex items-center">
+                  <Building2 className="mr-2 h-4 w-4" />
+                  Properties
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/payment-sources" className="flex items-center">
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Payment Sources
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <span className="text-sm text-muted-foreground">
             {user?.username}
           </span>
