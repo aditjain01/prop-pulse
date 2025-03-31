@@ -60,7 +60,7 @@ export function SlideDialog({
     return (
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>{trigger}</DialogTrigger>
-        <DialogContent className={cn("sm:max-w-[600px]", contentClassName)}>
+        <DialogContent className={cn("sm:max-w-[600px] flex flex-col max-h-[85vh]", contentClassName)}>
           <div className="absolute right-4 top-4">
             <Button
               variant="ghost"
@@ -72,12 +72,14 @@ export function SlideDialog({
             </Button>
           </div>
           {(title || description) && (
-            <DialogHeader>
+            <DialogHeader className="flex-none">
               {title && <DialogTitle>{title}</DialogTitle>}
               {description && <DialogDescription>{description}</DialogDescription>}
             </DialogHeader>
           )}
-          {children}
+          <div className="flex-1 overflow-y-auto py-4">
+            {children}
+          </div>
         </DialogContent>
       </Dialog>
     );
@@ -87,15 +89,17 @@ export function SlideDialog({
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent className={className}>
-        <div className="mx-auto w-full max-w-sm">
+        <div className="mx-auto w-full max-w-sm flex flex-col h-[calc(100vh-4rem)]">
           {(title || description) && (
-            <DrawerHeader>
+            <DrawerHeader className="flex-none">
               {title && <DrawerTitle>{title}</DrawerTitle>}
               {description && <DrawerDescription>{description}</DrawerDescription>}
             </DrawerHeader>
           )}
-          <div className="px-4">{children}</div>
-          <DrawerFooter>
+          <div className="flex-1 overflow-y-auto px-4">
+            {children}
+          </div>
+          <DrawerFooter className="flex-none">
             <DrawerClose asChild>
               <Button variant="outline">Cancel</Button>
             </DrawerClose>
