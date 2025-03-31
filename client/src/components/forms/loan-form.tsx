@@ -10,6 +10,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useLocation } from "wouter";
+import { SlideDialog } from "@/components/slide-dialog";
+import { PurchaseForm } from "@/components/forms/purchase-form";
+import { Plus } from "lucide-react";
+import { useState } from "react";
 import { 
   loanFormSchema, 
   type LoanFormValues, 
@@ -28,6 +32,7 @@ type LoanFormProps = {
 export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [showPurchaseForm, setShowPurchaseForm] = useState(false);
   
   // Fetch purchases for dropdown
   const { data: purchases, isLoading: purchasesLoading } = useQuery<PurchasePublic[]>({
@@ -92,139 +97,118 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
     },
   });
 
+  const handlePurchaseCreated = () => {
+    setShowPurchaseForm(false);
+    queryClient.invalidateQueries({ queryKey: ["/api/purchases"] });
+  };
+
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="purchase_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Property Purchase</FormLabel>
-              <Select 
-                disabled={!!purchaseId || purchasesLoading} 
-                onValueChange={field.onChange} 
-                value={field.value}
+    <>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+          <div className="flex items-end gap-2">
+            <FormField
+              control={form.control}
+              name="purchase_id"
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <FormLabel>Property Purchase</FormLabel>
+                  <Select 
+                    disabled={!!purchaseId || purchasesLoading} 
+                    onValueChange={field.onChange} 
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a property purchase" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {purchases?.map((purchase) => (
+                        <SelectItem key={purchase.id} value={purchase.id.toString()}>
+                          {purchase.property_name} - {new Date(purchase.purchase_date).toLocaleDateString()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {!purchaseId && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setShowPurchaseForm(true)}
               >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a property purchase" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {purchases?.map((purchase) => (
-                    <SelectItem key={purchase.id} value={purchase.id.toString()}>
-                      {purchase.property_name} - {new Date(purchase.purchase_date).toLocaleDateString()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <Plus className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
 
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Loan Name</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="institution"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Institution</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="agent"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Agent</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="sanction_date"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Sanction Date</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="sanction_amount"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Sanction Amount (₹)</FormLabel>
-              <FormControl>
-                <Input 
-                  type="number" 
-                  step="0.01"
-                  {...field} 
-                  onChange={e => field.onChange(e.target.value)} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="total_disbursed_amount"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Total Disbursed Amount (₹)</FormLabel>
-              <FormControl>
-                <Input 
-                  type="number" 
-                  step="0.01"
-                  {...field} 
-                  onChange={e => field.onChange(e.target.value)} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="grid grid-cols-3 gap-4">
           <FormField
             control={form.control}
-            name="processing_fee"
+            name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Processing Fee (₹)</FormLabel>
+                <FormLabel>Loan Name</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="institution"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Institution</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="agent"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Agent</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="sanction_date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Sanction Date</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="sanction_amount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Sanction Amount (₹)</FormLabel>
                 <FormControl>
                   <Input 
                     type="number" 
@@ -240,10 +224,10 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
 
           <FormField
             control={form.control}
-            name="other_charges"
+            name="total_disbursed_amount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Other Charges (₹)</FormLabel>
+                <FormLabel>Total Disbursed Amount (₹)</FormLabel>
                 <FormControl>
                   <Input 
                     type="number" 
@@ -257,90 +241,131 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="loan_sanction_charges"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Sanction Charges (₹)</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    step="0.01"
-                    {...field} 
-                    onChange={e => field.onChange(e.target.value)} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+          <div className="grid grid-cols-3 gap-4">
+            <FormField
+              control={form.control}
+              name="processing_fee"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Processing Fee (₹)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      step="0.01"
+                      {...field} 
+                      onChange={e => field.onChange(e.target.value)} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="interest_rate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Interest Rate (%)</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    step="0.01" 
-                    {...field} 
-                    onChange={e => field.onChange(e.target.value)} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="other_charges"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Other Charges (₹)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      step="0.01"
+                      {...field} 
+                      onChange={e => field.onChange(e.target.value)} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="tenure_months"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tenure (months)</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    {...field} 
-                    onChange={e => field.onChange(e.target.value)} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+            <FormField
+              control={form.control}
+              name="loan_sanction_charges"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sanction Charges (₹)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      step="0.01"
+                      {...field} 
+                      onChange={e => field.onChange(e.target.value)} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
-        <FormField
-          control={form.control}
-          name="is_active"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <FormLabel className="text-base">Active Loan</FormLabel>
-                <FormMessage />
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="interest_rate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Interest Rate (%)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      step="0.01" 
+                      {...field} 
+                      onChange={e => field.onChange(e.target.value)} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <Button type="submit" className="w-full" disabled={mutation.isPending}>
-          {mutation.isPending 
-            ? (loan ? "Updating Loan..." : "Creating Loan...") 
-            : (loan ? "Update Loan" : "Create Loan")}
-        </Button>
-      </form>
-    </Form>
+            <FormField
+              control={form.control}
+              name="tenure_months"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tenure (months)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      {...field} 
+                      onChange={e => field.onChange(e.target.value)} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                if (onSuccess) onSuccess();
+                else setLocation("/loans");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? "Saving..." : loan ? "Update Loan" : "Create Loan"}
+            </Button>
+          </div>
+        </form>
+      </Form>
+
+      {/* Purchase Form Dialog */}
+      <SlideDialog
+        trigger={<></>}
+        title="Add Purchase"
+        open={showPurchaseForm}
+        onOpenChange={setShowPurchaseForm}
+      >
+        <PurchaseForm onSuccess={handlePurchaseCreated} />
+      </SlideDialog>
+    </>
   );
 }

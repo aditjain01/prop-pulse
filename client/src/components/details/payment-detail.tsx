@@ -50,6 +50,7 @@ type PaymentDetailProps = {
 };
 
 export function PaymentDetail({ paymentId }: PaymentDetailProps) {
+  // Move all hooks to the top
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -59,7 +60,50 @@ export function PaymentDetail({ paymentId }: PaymentDetailProps) {
   const { data: payment, isLoading: paymentLoading } = useQuery<Payment>({
     queryKey: [`/api/payments/${paymentId}`],
   });
-  
+
+  // Delete payment mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/payments/${id}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
+      toast({
+        title: "Payment deleted",
+        description: "The payment has been deleted successfully.",
+      });
+      navigate("/payments");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      setShowDeleteDialog(false);
+    },
+  });
+
+  const handleEdit = () => {
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: [`/api/payments/${paymentId}`] });
+    setIsEditDialogOpen(false);
+  };
+
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteMutation.mutate(paymentId);
+    setShowDeleteDialog(false);
+  };
+
+  // Loading state
   if (paymentLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -78,7 +122,8 @@ export function PaymentDetail({ paymentId }: PaymentDetailProps) {
       </div>
     );
   }
-  
+
+  // Not found state
   if (!payment) {
     return (
       <div className="min-h-screen bg-background">
@@ -107,48 +152,6 @@ export function PaymentDetail({ paymentId }: PaymentDetailProps) {
       </div>
     );
   }
-  
-  // Delete payment mutation
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/payments/${id}`);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
-      toast({
-        title: "Payment deleted",
-        description: "The payment has been deleted successfully.",
-      });
-      // Navigate back to payments list or call onDelete
-      navigate("/payments");
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-      setShowDeleteDialog(false);
-    },
-  });
-
-  const handleEdit = () => {
-    setIsEditDialogOpen(true);
-  };
-
-  const handleEditSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: [`/api/payments/${paymentId}`] });
-    setIsEditDialogOpen(false);
-  };
-
-  const handleDelete = () => {
-    setShowDeleteDialog(true);
-  };
-  const handleConfirmDelete = () => {
-    deleteMutation.mutate(paymentId);
-    setShowDeleteDialog(false);
-  };
   
   return (
     <div className="grid gap-6">
