@@ -43,11 +43,11 @@ services:
         max-size: "10m"
         max-file: "3"
   
-  prop-pulse-backend:
+  backend:
     build: 
       context: ./server
       dockerfile: Dockerfile
-    image: ghcr.io/aditjain01/prop-pulse-backend:cdbdd2d 
+    image: ghcr.io/aditjain01/prop-pulse-backend:$IMAGE_TAG 
     networks:
       - prop-pulse-network
     deploy:
@@ -81,11 +81,11 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  prop-pulse-ui:
+  ui:
     build:
       context: ./client
       dockerfile: Dockerfile
-    image: ghcr.io/aditjain01/prop-pulse-ui:cdbdd2d 
+    image: ghcr.io/aditjain01/prop-pulse-ui:$IMAGE_TAG 
     networks:
       - prop-pulse-network
     ports:
@@ -102,7 +102,7 @@ services:
       restart_policy:
         condition: on-failure
     environment:
-      - VITE_BACKEND_URL=http://prop-pulse-backend:8000
+      - VITE_BACKEND_URL=http://backend:8000
     depends_on:
       - prop-pulse-backend
     logging:
