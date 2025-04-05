@@ -1,9 +1,8 @@
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from .models import ConstructionStatus, User
-from .base import SQLALCHEMY_DATABASE_URL
+from .base import engine
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -275,6 +274,3 @@ def init_views():
         db.close()
 
 
-if __name__ == "__main__":
-    init_construction_status()
-    init_example_user()

@@ -50,9 +50,9 @@ class Property(Base):
     address = Column(String, nullable=True)
     property_type = Column(String, nullable=True)
 
-    carpet_area = Column(Numeric)
-    exclusive_area = Column(Numeric)
-    common_area = Column(Numeric)
+    carpet_area = Column(Numeric, nullable=True)
+    exclusive_area = Column(Numeric, nullable=True)
+    common_area = Column(Numeric, nullable=True)
     super_area = Column(
         Numeric, Computed("carpet_area + exclusive_area + common_area"), nullable=True
     )
@@ -61,12 +61,12 @@ class Property(Base):
     parking_details = Column(String)
     amenities = Column(ARRAY(String))
 
-    initial_rate = Column(Numeric, nullable=False)
-    current_rate = Column(Numeric, nullable=False)
+    initial_rate = Column(Numeric, nullable=True)
+    current_rate = Column(Numeric, nullable=True)
     current_price = Column(
         Numeric,
         Computed("current_rate * (carpet_area + exclusive_area + common_area)"),
-        nullable=False,
+        nullable=True,
     )
 
     # status_id = Column(Integer, ForeignKey("construction_status.id"))
@@ -90,6 +90,16 @@ class Purchase(Base):
     property_id = Column(Integer, ForeignKey("properties.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
+    carpet_area = Column(Numeric)
+    exclusive_area = Column(Numeric)
+    common_area = Column(Numeric)
+    super_area = Column(
+        Numeric, Computed("carpet_area + exclusive_area + common_area"), nullable=False
+    )
+    floor_number = Column(Integer)
+
+    purchase_rate = Column(Numeric)
+
     base_cost = Column(Numeric, nullable=False)
     other_charges = Column(Numeric)
     ifms = Column(Numeric)
@@ -98,7 +108,7 @@ class Purchase(Base):
     gst = Column(Numeric)
 
     property_cost = Column(Numeric,Computed("base_cost + other_charges"), nullable=False)
-    total_cost = Column(Numeric,Computed("base_cost + other_charges + ifms + lease_rent + amc "), nullable=False)
+    total_cost = Column(Numeric,Computed("base_cost + other_charges + gst"), nullable=False)
     total_sale_cost = Column(Numeric, Computed("base_cost+ other_charges + ifms + lease_rent + amc + gst"), nullable=False)
 
     purchase_date = Column(Date, nullable=False)
@@ -114,7 +124,7 @@ class Purchase(Base):
     # Relationships
     property = relationship("Property", back_populates="purchases")
     user = relationship("User", back_populates="purchases")
-    # payments = relationship("Payment", back_populates="purchase")
+    payments = relationship("Payment", back_populates="purchase")
     documents = relationship("Document", back_populates="purchase")
     loans = relationship("Loan", primaryjoin="Purchase.id == Loan.purchase_id", back_populates="purchase")
     invoices = relationship("Invoice", back_populates="purchase")
@@ -128,7 +138,7 @@ class Loan(Base):
     purchase_id = Column(Integer, ForeignKey("purchases.id"), nullable=False)
 
     # Basic loan information
-    name = Column(String, nullable=False)  # Descriptive name for the loan
+    name = Column(String, nullable=False)  # TODO: This has to be changed to loan number
     institution = Column(String, nullable=False)  # Bank or financial institution
     agent = Column(String)  # Loan agent or relationship manager
 
@@ -139,14 +149,14 @@ class Loan(Base):
     sanction_amount = Column(Numeric(precision=15, scale=2), nullable=False)
     processing_fee = Column(Numeric(precision=15, scale=2), default=0)
     other_charges = Column(Numeric(precision=15, scale=2), default=0)
-    loan_sanction_charges = Column(Numeric(precision=15, scale=2), default=0)
+    loan_sanction_charges = Column(Numeric(precision=15, scale=2), default=0) # TODO: Depracte this in the schema
 
     # Terms
     interest_rate = Column(Numeric(precision=5, scale=2), nullable=False)  # Annual interest rate
     tenure_months = Column(Integer, nullable=False)  # Loan tenure in months
 
     # Status
-    is_active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True) #TODO: Make this this computed, to be active if disbured amount is less than sanction amount
     total_disbursed_amount = Column(Numeric(precision=15, scale=2), default=0)
 
     # Timestamps
@@ -195,10 +205,10 @@ class Payment(Base):
     __tablename__ = "payments"
 
     id = Column(Integer, primary_key=True, index=True)
-    # purchase_id = Column(Integer, ForeignKey("purchases.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    purchase_id = Column(Integer, ForeignKey("purchases.id"), nullable=False)
     source_id = Column(Integer, ForeignKey("payment_sources.id"), nullable=False)
-    invoice_id = Column(Integer, ForeignKey("invoices.id"), nullable=False)
+    invoice_id = Column(Integer, ForeignKey("invoices.id"), nullable=True)
 
     # Basic payment details
     payment_date = Column(Date, nullable=False)
@@ -217,7 +227,7 @@ class Payment(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
-    # purchase = relationship("Purchase", back_populates="payments")
+    purchase = relationship("Purchase", back_populates="payments")
     user = relationship("User", back_populates="payments")
     payment_source = relationship("PaymentSource", back_populates="payments")
     invoice = relationship("Invoice", back_populates="payments")
