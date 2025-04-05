@@ -43,15 +43,15 @@ services:
         max-size: "10m"
         max-file: "3"
   
-  prop-pulse-backend:
+  backend:
     build: 
       context: ./server
       dockerfile: Dockerfile
-    image: prop-pulse-backend:exp # exp for dev, $IMAGE_TAG for prod
+    image: ghcr.io/aditjain01/prop-pulse-backend:$IMAGE_TAG 
     networks:
       - prop-pulse-network
     deploy:
-      replicas: 2
+      replicas: 1
       resources:
         limits:
           cpus: '2'
@@ -81,11 +81,11 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  prop-pulse-nginx:
+  ui:
     build:
       context: ./client
       dockerfile: Dockerfile
-    image: prop-pulse-ui:exp # exp for dev, $IMAGE_TAG for prod
+    image: ghcr.io/aditjain01/prop-pulse-ui:$IMAGE_TAG 
     networks:
       - prop-pulse-network
     ports:
@@ -102,7 +102,7 @@ services:
       restart_policy:
         condition: on-failure
     environment:
-      - VITE_BACKEND_URL=http://prop-pulse-backend:8000
+      - VITE_BACKEND_URL=http://backend:8000
     depends_on:
       - prop-pulse-backend
     logging:

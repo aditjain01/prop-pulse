@@ -88,7 +88,7 @@ export function LoanDetail({ loanId }: LoanDetailProps) {
     0
   ) || 0;
   
-  const outstandingPrincipal = loan.total_disbursed_amount - totalPrincipalPaid;
+  const outstandingPrincipal = (loan.total_disbursed_amount as any) - (totalPrincipalPaid as any);
 
   const handleEdit = () => {
     setIsEditDialogOpen(true);

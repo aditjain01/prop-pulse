@@ -47,14 +47,14 @@ class Property(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    address = Column(String, nullable=False)
-    property_type = Column(String, nullable=False)
+    address = Column(String, nullable=True)
+    property_type = Column(String, nullable=True)
 
     carpet_area = Column(Numeric)
     exclusive_area = Column(Numeric)
     common_area = Column(Numeric)
     super_area = Column(
-        Numeric, Computed("carpet_area + exclusive_area + common_area"), nullable=False
+        Numeric, Computed("carpet_area + exclusive_area + common_area"), nullable=True
     )
     floor_number = Column(Integer)
 

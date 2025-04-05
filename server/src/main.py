@@ -13,7 +13,16 @@ from src.database import (
     init_example_user,
 )
 from sqlalchemy import func
+import logging  
 
+# Configure root logger
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    filename='logs/app.log'
+)
+
+logger = logging.getLogger(__name__)
 app = FastAPI()
 
 # Add CORS middleware
