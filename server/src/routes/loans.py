@@ -1,13 +1,16 @@
 from fastapi import APIRouter
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List, Optional
 from src import schemas
 from src.database import get_db, models
 from src.routes.payment_sources import create_payment_source
+import logging
 
 # Create a router instance
-router = APIRouter(prefix="/loans", tags=["loans"])
+router = APIRouter(prefix="/loans", tags=["loans"])     
+logger = logging.getLogger(__name__)
 
 # Loan routes
 @router.post("", response_model=schemas.LoanOld, include_in_schema=False)
@@ -183,12 +186,18 @@ def get_loans(
 ) -> List[schemas.LoanPublic]:
     """
     Get a list of loans with essential information for the frontend.
-    Optimized for frontend listing views with enhanced filtering.
+    Optimized for frontend listing views with enhanced filtering using a single SQL query.
     """
     try:
-        query = db.query(models.Loan).filter(
-            models.Loan.user_id == 1
-        )  # Replace with actual user ID
+        query = (
+            db.query(
+                models.Loan,
+                func.coalesce(func.sum(models.Payment.amount), 0).label('total_disbursed_amount')
+            )
+            .outerjoin(models.PaymentSource, models.Loan.id == models.PaymentSource.loan_id)
+            .outerjoin(models.Payment, models.PaymentSource.id == models.Payment.source_id)
+            .group_by(models.Loan.id)
+        )
 
         # Apply filters if provided
         if purchase_id:
@@ -203,11 +212,26 @@ def get_loans(
         if to_amount:
             query = query.filter(models.Loan.sanction_amount <= to_amount)
 
-        loans = query.all()
-        return loans
-    except HTTPException:
+        # Execute the query
+        results = query.all()
+        
+        # Convert to LoanPublic schema objects
+        return [
+            {
+                "id": loan.id,
+                "name": loan.name,
+                "institution": loan.institution,
+                "sanction_amount": loan.sanction_amount,
+                "total_disbursed_amount": total_disbursed,
+                "is_active": loan.is_active,
+            }
+            for loan, total_disbursed in results
+        ]
+    except HTTPException as e:
+        logger.error(f"Error in get_loans: {e}") 
         raise
     except Exception as e:
+        logger.error(f"Error in get_loans: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{loan_id}", response_model=schemas.Loan, include_in_schema=False)
@@ -229,7 +253,9 @@ def get_loan(loan_id: int, db: Session = Depends(get_db)) -> schemas.Loan:
             .filter(models.Loan.id == loan_id)
             .first()
         )
-        
+        source = db.query(models.PaymentSource).filter(models.PaymentSource.loan_id == loan_id).first()
+        payments = db.query(models.Payment).filter(models.Payment.source_id == source.id).all()
+
         if result is None:
             raise HTTPException(status_code=404, detail="Loan not found")
             
@@ -240,7 +266,7 @@ def get_loan(loan_id: int, db: Session = Depends(get_db)) -> schemas.Loan:
             "id": loan.id,
             "name": loan.name,
             "institution": loan.institution,
-            "total_disbursed_amount": loan.total_disbursed_amount,
+            "total_disbursed_amount": sum(payment.amount for payment in payments) if payments else 0,
             "sanction_amount": loan.sanction_amount,
             "property_name": property_name,
             "processing_fee": loan.processing_fee,

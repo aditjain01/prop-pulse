@@ -62,8 +62,8 @@ export type Document = {
 // Property schemas
 const propertySchema = z.object({
   name: z.string().nonempty("Name is required"),
-  address: z.string().nonempty("Address is required"),
-  property_type: z.string().nonempty("Property type is required"),
+  address: z.string().optional(),
+  property_type: z.string().optional(),
   carpet_area: z.string().optional(),
   exclusive_area: z.string().optional(),
   common_area: z.string().optional(),
@@ -121,26 +121,28 @@ export function initializePropertyForm(property?: Property): PropertyFormValues 
 // Purchase schemas
 export const purchaseFormSchema = z.object({
   property_id: z.string().nonempty("Property is required"),
-  purchase_date: z.string().nonempty("Purchase date is required"),
-  registration_date: z.string().optional(),
-  possession_date: z.string().optional(),
-  base_cost: z.string(),
-  other_charges: z.string(),
-  ifms: z.string(),
-  lease_rent: z.string(),
-  amc: z.string(),
-  gst: z.string(),
+  purchase_date: z.string().transform(val => val || null),
+  registration_date: z.string().transform(val => val || null),
+  possession_date: z.string().transform(val => val || null),
+  base_cost: z.string().transform(val => parseFloat(val) || 0),
+  other_charges: z.string().transform(val => parseFloat(val) || 0),
+  ifms: z.string().transform(val => parseFloat(val) || 0),
+  lease_rent: z.string().transform(val => parseFloat(val) || 0),
+  amc: z.string().transform(val => parseFloat(val) || 0),
+  gst: z.string().transform(val => parseFloat(val) || 0),
   seller: z.string().optional(),
   remarks: z.string().optional(),
 });
-export type PurchaseFormValues = z.infer<typeof purchaseFormSchema>;
+
+export type PurchaseFormValues = z.input<typeof purchaseFormSchema>;
 export const purchaseUpdateSchema = purchaseFormSchema.partial();
 export type PurchaseUpdateValues = z.infer<typeof purchaseUpdateSchema>;
+
 export const initializePurchaseForm = (purchase?: PurchaseCreate, propertyId?: number): PurchaseFormValues => {
   return {
     property_id: propertyId?.toString() || purchase?.property_id?.toString() || "",
     purchase_date: purchase?.purchase_date || new Date().toISOString().split('T')[0],
-    registration_date: purchase?.registration_date || "",
+    registration_date: purchase?.registration_date || new Date().toISOString().split('T')[0],
     possession_date: purchase?.possession_date || "",
     base_cost: purchase?.base_cost?.toString() || "0",
     other_charges: purchase?.other_charges?.toString() || "0",
@@ -160,7 +162,7 @@ const loanSchema = z.object({
   name: z.string().nonempty("Loan name is required"),
   institution: z.string().nonempty("Institution is required"),
   agent: z.string().optional(),
-  sanction_date: z.string().nonempty("Sanction date is required"),
+  sanction_date: z.string().transform(val => val || null),
   sanction_amount: z.string(),
   total_disbursed_amount: z.string(),
   processing_fee: z.string(),
@@ -261,12 +263,12 @@ export const initializePaymentSourceForm = (source?: PaymentSource): PaymentSour
 // Payment schemas
 const paymentSchema = z.object({
   invoice_id: z.string().nonempty("Invoice is required"),
-  payment_date: z.string(),
+  payment_date: z.string().transform(val => val || null),
   amount: z.string(),
   source_id: z.string().nonempty("Payment source is required"),
   payment_mode: z.string(),
   transaction_reference: z.string().optional(),
-  receipt_date: z.string().optional(),
+  receipt_date: z.string().transform(val => val || null),
   receipt_number: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -300,7 +302,7 @@ export const initializePaymentForm = (payment?: PaymentCreate, invoiceId?: numbe
 // Add LoanRepayment form schema
 const loanRepaymentSchema = z.object({
   loan_id: z.string().nonempty("Loan is required"),
-  payment_date: z.string().nonempty("Payment date is required"),
+  payment_date: z.string().transform(val => val || null),
   principal_amount: z.string(),
   interest_amount: z.string(),
   other_fees: z.string(),
@@ -348,8 +350,8 @@ export const initializeLoanRepaymentForm = (repayment?: LoanRepaymentCreate, loa
 const invoiceSchema = z.object({
   purchase_id: z.string().min(1, "Property purchase is required"),
   invoice_number: z.string().min(1, "Invoice number is required"),
-  invoice_date: z.string().min(1, "Invoice date is required"),
-  due_date: z.string().optional(),
+  invoice_date: z.string().transform(val => val || null),
+  due_date: z.string().transform(val => val || null),
   amount: z.string(),
   status: z.string().min(1, "Status is required"),
   milestone: z.string().optional(),

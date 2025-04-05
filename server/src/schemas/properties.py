@@ -7,8 +7,8 @@ from decimal import Decimal
 class PropertyBase(BaseModel):
     """Base schema for property details including name, address, type, and various area measurements."""
     name: str
-    address: str
-    property_type: str
+    address: Optional[str] = None
+    property_type: Optional[str] = None
 
     carpet_area: Optional[Decimal] = None
     exclusive_area: Optional[Decimal] = None
@@ -61,7 +61,7 @@ class PropertyPublic(BaseModel):
     """Schema for listing properties with minimal information needed for the frontend."""
     id: int
     name: str
-    address: str
+    address: Optional[str] = None
     developer: Optional[str] = None
     
     model_config = ConfigDict(from_attributes=True)
@@ -78,5 +78,5 @@ class Property(PropertyPublic):
     initial_rate: Decimal
     current_rate: Decimal
     
-    property_type: str
+    property_type: Optional[str] = None
     rera_id: Optional[str] = None

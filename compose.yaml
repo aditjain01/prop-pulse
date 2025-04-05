@@ -47,11 +47,11 @@ services:
     build: 
       context: ./server
       dockerfile: Dockerfile
-    image: prop-pulse-backend:exp # exp for dev, $IMAGE_TAG for prod
+    image: ghcr.io/aditjain01/prop-pulse-backend:cdbdd2d 
     networks:
       - prop-pulse-network
     deploy:
-      replicas: 2
+      replicas: 1
       resources:
         limits:
           cpus: '2'
@@ -81,11 +81,11 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  prop-pulse-nginx:
+  prop-pulse-ui:
     build:
       context: ./client
       dockerfile: Dockerfile
-    image: prop-pulse-ui:exp # exp for dev, $IMAGE_TAG for prod
+    image: ghcr.io/aditjain01/prop-pulse-ui:cdbdd2d 
     networks:
       - prop-pulse-network
     ports:
