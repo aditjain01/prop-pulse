@@ -21,5 +21,9 @@ EXPOSE 8000
 # RUN useradd -m appuser
 # USER appuser
 
+# Don't run migrations during build - they should be run at container startup
+# Use ENTRYPOINT to run migrations
+ENTRYPOINT ["/server/.venv/bin/alembic", "-c", "src/database/alembic.ini", "upgrade", "head"]
+
 # Run the application.
 CMD ["/server/.venv/bin/uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
