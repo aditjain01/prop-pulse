@@ -17,13 +17,12 @@ RUN mkdir -p logs && touch logs/app.log && chmod -R 775 logs/app.log
 
 EXPOSE 8000
 
+# Make entrypoint script executable
+RUN chmod +x /server/entrypoint.sh
+
 # (Optional) Uncomment below to switch to a non-root user for enhanced security.
 # RUN useradd -m appuser
 # USER appuser
 
-# Don't run migrations during build - they should be run at container startup
-# Use ENTRYPOINT to run migrations
-ENTRYPOINT ["/server/.venv/bin/alembic", "-c", "src/database/alembic.ini", "upgrade", "head"]
-
-# Run the application.
-CMD ["/server/.venv/bin/uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run both migrations and the application using the entrypoint script
+CMD ["/server/entrypoint.sh"]
