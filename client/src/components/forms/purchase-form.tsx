@@ -85,211 +85,334 @@ export function PurchaseForm({ propertyId, purchase, onSuccess }: PurchaseFormPr
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
-        {/* Property Selection Field */}
-        <FormField
-          control={form.control}
-          name="property_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Property</FormLabel>
-              <div className="flex space-x-2">
-                <Select 
-                  onValueChange={field.onChange} 
-                  defaultValue={field.value}
-                  disabled={!!propertyId}
-                >
-                  <FormControl>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select a property" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {properties?.map((property) => (
-                      <SelectItem key={property.id} value={property.id.toString()}>
-                        {property.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {!propertyId && (
-                  <SlideDialog
-                    trigger={
-                      <Button type="button" variant="outline" size="icon">
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    }
-                    title="Add Property"
-                    open={showPropertyForm}
-                    onOpenChange={setShowPropertyForm}
+      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-8">
+        {/* Section: Basic Information */}
+        <div>
+          <h3 className="text-base font-medium mb-4 pb-2 border-b">Basic Information</h3>
+          
+          {/* Property Selection Field */}
+          <FormField
+            control={form.control}
+            name="property_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Property</FormLabel>
+                <div className="flex space-x-2">
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value}
+                    disabled={!!propertyId}
                   >
-                    <PropertyForm 
-                      onSuccess={() => {
-                        queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
-                        setShowPropertyForm(false);
-                      }} 
-                    />
-                  </SlideDialog>
-                )}
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                    <FormControl>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Select a property" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {properties?.map((property) => (
+                        <SelectItem key={property.id} value={property.id.toString()}>
+                          {property.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {!propertyId && (
+                    <SlideDialog
+                      trigger={
+                        <Button type="button" variant="outline" size="icon">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      }
+                      title="Add Property"
+                      open={showPropertyForm}
+                      onOpenChange={setShowPropertyForm}
+                    >
+                      <PropertyForm 
+                        onSuccess={() => {
+                          queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
+                          setShowPropertyForm(false);
+                        }} 
+                      />
+                    </SlideDialog>
+                  )}
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="purchase_date"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Purchase Date</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <FormField
+              control={form.control}
+              name="purchase_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Purchase Date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="base_cost"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Base Cost (₹)</FormLabel>
-              <FormControl>
-                <Input type="number" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="seller"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Seller Information</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
-        <FormField
-          control={form.control}
-          name="other_charges"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Other Charges (₹)</FormLabel>
-              <FormControl>
-                <Input type="number" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <FormField
+              control={form.control}
+              name="registration_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Registration Date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} value={field.value || ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="ifms"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>IFMS (₹)</FormLabel>
-              <FormControl>
-                <Input type="number" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="possession_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Possession Date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} value={field.value || ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
 
-        <FormField
-          control={form.control}
-          name="lease_rent"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Lease Rent (₹)</FormLabel>
-              <FormControl>
-                <Input type="number" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Section: Area Details */}
+        <div>
+          <h3 className="text-base font-medium mb-4 pb-2 border-b">Area Details</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="carpet_area"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Carpet Area (sq.ft)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="amc"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>AMC (₹)</FormLabel>
-              <FormControl>
-                <Input type="number" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="exclusive_area"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Exclusive Area (sq.ft)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
-        <FormField
-          control={form.control}
-          name="gst"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>GST (₹)</FormLabel>
-              <FormControl>
-                <Input type="number" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <FormField
+              control={form.control}
+              name="common_area"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Common Area (sq.ft)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="registration_date"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Registration Date</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} value={field.value || ''} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="floor_number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Floor Number</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
 
-        <FormField
-          control={form.control}
-          name="possession_date"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Possession Date</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} value={field.value || ''} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Section: Rate and Cost Details */}
+        <div>
+          <h3 className="text-base font-medium mb-4 pb-2 border-b">Rate and Cost Details</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="purchase_rate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Purchase Rate (₹/sq.ft)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="seller"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Seller Information</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="current_rate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Current Rate (₹/sq.ft)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
-        <FormField
-          control={form.control}
-          name="remarks"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Remarks</FormLabel>
-              <FormControl>
-                <Textarea {...field} rows={3} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <FormField
+              control={form.control}
+              name="base_cost"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Base Cost (₹)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="other_charges"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Other Charges (₹)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="mt-4">
+            <FormField
+              control={form.control}
+              name="gst"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>GST (₹)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Section: Additional Charges */}
+        <div>
+          <h3 className="text-base font-medium mb-4 pb-2 border-b">Additional Charges</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="ifms"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>IFMS (₹)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="lease_rent"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Lease Rent (₹)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="mt-4">
+            <FormField
+              control={form.control}
+              name="amc"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>AMC (₹)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Section: Notes */}
+        <div>
+          <h3 className="text-base font-medium mb-4 pb-2 border-b">Notes</h3>
+          <FormField
+            control={form.control}
+            name="remarks"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Remarks</FormLabel>
+                <FormControl>
+                  <Textarea {...field} rows={3} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
           {mutation.isPending 

@@ -5,7 +5,6 @@ import { SlideDialog } from "@/components/slide-dialog";
 import { PropertyForm } from "@/components/forms/property-form";
 import { useState } from "react";
 import { DeleteConfirmation } from "@/components/delete-confirmation";
-import { type Property, type Purchase, type Document as PropertyDocument } from "@/lib/api/schemas";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Pencil, Trash2 } from "lucide-react";
@@ -15,6 +14,20 @@ import { DocumentUpload } from "@/components/document-upload";
 import { PurchaseList } from "@/components/lists/purchase-list";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { components } from "@/lib/api";
+
+// Using the types directly from the API schema
+type Property = components["schemas"]["Property"];
+type Purchase = components["schemas"]["PurchasePublic"];
+type Document = {
+  id: number;
+  entity_type: string;
+  entity_id: number;
+  file_path: string;
+  document_vector: string | null;
+  metadata: Record<string, any> | null;
+  created_at: string;
+};
 
 type PropertyDetailProps = {
   propertyId: number;
@@ -29,19 +42,20 @@ export function PropertyDetail({ propertyId, showHeader = false, onEdit, onDelet
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  // Fetch property details
+  // Fetch property data
   const { data: property, isLoading: propertyLoading } = useQuery<Property>({
     queryKey: [`/api/properties/${propertyId}`],
+    enabled: !!propertyId,
   });
 
-  // Fetch purchases for the property
-  const { data: purchases, isLoading: purchasesLoading } = useQuery<Purchase[]>({
+  // Fetch purchases for this property
+  const { data: purchases = [], isLoading: purchasesLoading } = useQuery<Purchase[]>({
     queryKey: [`/api/purchases`, { property_id: propertyId }],
     enabled: !!propertyId,
   });
   
   // Fetch documents for this property
-  const { data: documents = [], isLoading: documentsLoading } = useQuery<PropertyDocument[]>({
+  const { data: documents = [], isLoading: documentsLoading } = useQuery<Document[]>({
     queryKey: [`/api/documents`, { entity_type: "property", entity_id: propertyId }],
     enabled: !!propertyId,
   });
@@ -161,36 +175,6 @@ export function PropertyDetail({ propertyId, showHeader = false, onEdit, onDelet
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Carpet Area</h3>
-                      <p className="mt-1">{property.carpet_area ? `${property.carpet_area} sq.ft` : "N/A"}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Exclusive Area</h3>
-                      <p className="mt-1">{property.exclusive_area ? `${property.exclusive_area} sq.ft` : "N/A"}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Common Area</h3>
-                      <p className="mt-1">{property.common_area ? `${property.common_area} sq.ft` : "N/A"}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Floor Number</h3>
-                      <p className="mt-1">{property.floor_number || "N/A"}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Initial Rate</h3>
-                      <p className="mt-1">{property.initial_rate ? `₹${property.initial_rate}/sq.ft` : "N/A"}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Current Rate</h3>
-                      <p className="mt-1">{property.current_rate ? `₹${property.current_rate}/sq.ft` : "N/A"}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
                       <h3 className="text-sm font-medium text-muted-foreground">Developer</h3>
                       <p className="mt-1">{property.developer || "N/A"}</p>
                     </div>
@@ -256,7 +240,7 @@ export function PropertyDetail({ propertyId, showHeader = false, onEdit, onDelet
                 <DocumentUpload 
                   entityType="property" 
                   entityId={propertyId} 
-                  documents={documents as any} 
+                  documents={documents} 
                 />
               )}
             </CardContent>

@@ -50,6 +50,14 @@ class Property(Base):
     address = Column(String, nullable=True)
     property_type = Column(String, nullable=True)
 
+    parking_details = Column(String)
+    amenities = Column(ARRAY(String))
+
+    # status_id = Column(Integer, ForeignKey("construction_status.id"))
+    developer = Column(String)
+    rera_id = Column(String)
+
+    # TODO: Deprecated, migrate to new purchase table and remove these fields after testing
     carpet_area = Column(Numeric, nullable=True)
     exclusive_area = Column(Numeric, nullable=True)
     common_area = Column(Numeric, nullable=True)
@@ -57,9 +65,6 @@ class Property(Base):
         Numeric, Computed("carpet_area + exclusive_area + common_area"), nullable=True
     )
     floor_number = Column(Integer)
-
-    parking_details = Column(String)
-    amenities = Column(ARRAY(String))
 
     initial_rate = Column(Numeric, nullable=True)
     current_rate = Column(Numeric, nullable=True)
@@ -69,9 +74,6 @@ class Property(Base):
         nullable=True,
     )
 
-    # status_id = Column(Integer, ForeignKey("construction_status.id"))
-    developer = Column(String)
-    rera_id = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -99,8 +101,9 @@ class Purchase(Base):
     floor_number = Column(Integer)
 
     purchase_rate = Column(Numeric)
+    current_rate = Column(Numeric)
 
-    base_cost = Column(Numeric, nullable=False)
+    base_cost = Column(Numeric, nullable=False) # NOTE: Check if this can become a computed column from purchase_rate * super_area
     other_charges = Column(Numeric)
     ifms = Column(Numeric)
     lease_rent = Column(Numeric)

@@ -8,11 +8,21 @@ class PurchaseBase(BaseModel):
     """Base schema for purchase details including property ID, dates, costs, and seller information."""
     property_id: int
 
+    # Area fields moved from Property to Purchase
+    carpet_area: Decimal
+    exclusive_area: Optional[Decimal] = None
+    common_area: Optional[Decimal] = None
+    floor_number: Optional[int] = None
+    
+    # Rate fields moved from Property to Purchase
+    purchase_rate: Decimal
+    current_rate: Decimal
+
     purchase_date: date
     registration_date: Optional[date] = None
     possession_date: Optional[date] = None
 
-    base_cost: Decimal  # Have to figure out a way to derive this from Property initial_price * super_area
+    base_cost: Decimal  # Derived from purchase_rate * super_area
     other_charges: Optional[Decimal] = None
     ifms: Optional[Decimal] = None
     lease_rent: Optional[Decimal] = None
@@ -41,6 +51,16 @@ class PurchaseUpdate(BaseModel):
     """Schema for updating purchase details, allowing partial updates with optional fields."""
     property_id: Optional[int] = None
 
+    # Area fields moved from Property to Purchase
+    carpet_area: Optional[float] = None
+    exclusive_area: Optional[float] = None
+    common_area: Optional[float] = None
+    floor_number: Optional[int] = None
+    
+    # Rate fields moved from Property to Purchase
+    purchase_rate: Optional[float] = None
+    current_rate: Optional[float] = None
+
     purchase_date: Optional[date] = None
     registration_date: Optional[date] = None
     possession_date: Optional[date] = None
@@ -64,16 +84,27 @@ class PurchasePublic(BaseModel):
     id: int
     property_name: str  # From Purchase -> Property relationship
     purchase_date: date
-    total_purchase_cost: Decimal  # This is total_sale_cost from the model
+    super_area: Decimal  # Added to show total area in list view
+    total_sale_cost: Decimal  # This is total_sale_cost from the model
     
     model_config = ConfigDict(from_attributes=True)
 
 
-class Purchase(BaseModel):
+class Purchase(PurchasePublic):
     """Schema for detailed view of a single purchase, extending public schema with additional details."""
     # Dates
     registration_date: Optional[date] = None
     possession_date: Optional[date] = None
+    
+    # Area fields moved from Property to Purchase
+    carpet_area: Decimal
+    exclusive_area: Optional[Decimal] = None
+    common_area: Optional[Decimal] = None
+    floor_number: Optional[int] = None
+    
+    # Rate fields moved from Property to Purchase
+    purchase_rate: Decimal
+    current_rate: Decimal
     
     # Costs
     base_cost: Decimal
@@ -83,7 +114,9 @@ class Purchase(BaseModel):
     amc: Optional[Decimal] = None
     gst: Optional[Decimal] = None
     property_cost: Decimal  # base_cost + other_charges
-    total_cost: Decimal  # property_cost + ifms + lease_rent + amc
+    total_cost: Decimal  # property_cost +gst
+
+    remarks: Optional[str] = None
     
     # Additional information
     seller: Optional[str] = None

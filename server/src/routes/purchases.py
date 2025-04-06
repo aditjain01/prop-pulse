@@ -4,9 +4,11 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from src import schemas
 from src.database import get_db, models
+import logging
 
 # Create a router instance
 router = APIRouter(prefix="/purchases", tags=["purchases"])
+logger = logging.getLogger(__name__)
 
 
 # Purchase routes
@@ -19,13 +21,15 @@ def create_purchase(
     Create a new purchase.
     """
     try:
-        print(purchase.dict())
+        logger.info(f"Creating new purchase for property_id={purchase.property_id}")
         db_property = models.Purchase(**purchase.dict())
         db.add(db_property)
         db.commit()
         db.refresh(db_property)
+        logger.info(f"Purchase created successfully: purchase_id={db_property.id}")
         return db_property
     except Exception as e:
+        logger.error(f"Error in create_purchase: {e}")
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -41,25 +45,30 @@ def update_purchase(
     Update an existing purchase by purchase_id.
     """
     try:
+        logger.info(f"Updating purchase: purchase_id={purchase_id}")
         # Get the existing property
         db_purchase = (
             db.query(models.Purchase).filter(models.Purchase.id == purchase_id).first()
         )
         if not db_purchase:
+            logger.warning(f"Purchase not found: purchase_id={purchase_id}")
             raise HTTPException(status_code=404, detail="Purchase not found")
 
         # Update property attributes
         purchase_data = purchase_update.dict(exclude_unset=True)
+        logger.debug(f"Updating purchase with data: {purchase_data}")
         for key, value in purchase_data.items():
             setattr(db_purchase, key, value)
 
         # Save changes
         db.commit()
         db.refresh(db_purchase)
+        logger.info(f"Purchase updated successfully: purchase_id={db_purchase.id}")
         return db_purchase
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error in update_purchase: {e}")
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -70,20 +79,24 @@ def delete_purchase(purchase_id: int, db: Session = Depends(get_db)):
     Delete a purchase by purchase_id.
     """
     try:
+        logger.info(f"Deleting purchase: purchase_id={purchase_id}")
         # Check if purchase exists
         purchase = (
             db.query(models.Purchase).filter(models.Purchase.id == purchase_id).first()
         )
         if purchase is None:
+            logger.warning(f"Purchase not found: purchase_id={purchase_id}")
             raise HTTPException(status_code=404, detail="Purchase not found")
 
         # Delete the purchase
         db.delete(purchase)
         db.commit()
+        logger.info(f"Purchase deleted successfully: purchase_id={purchase_id}")
         return {"message": "Purchase deleted successfully"}
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error in delete_purchase: {e}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -104,6 +117,11 @@ def get_purchases(
     Optimized for frontend listing views.
     """
     try:
+        logger.info("Fetching purchases with filters")
+        logger.debug(f"Filters: property_id={property_id}, developer={developer}, "
+                    f"from_date={from_date}, to_date={to_date}, "
+                    f"min_amount={min_amount}, max_amount={max_amount}")
+        
         # Start with a query that joins Purchase with Property
         query = (
             db.query(
@@ -134,20 +152,23 @@ def get_purchases(
 
         # Execute query
         results = query.all()
+        logger.info(f"Found {len(results)} purchases matching the criteria")
         
         # Convert the results to the expected schema format
-        purchases = []
-        for purchase, property_name in results:
-            purchase_dict = {
+        purchases = [
+            {
                 "id": purchase.id,
                 "property_name": property_name,
                 "purchase_date": purchase.purchase_date,
-                "total_purchase_cost": purchase.total_sale_cost,
-            }
-            purchases.append(purchase_dict)
+                "carpet_area": purchase.carpet_area,
+                "super_area": purchase.super_area,
+                "total_sale_cost": purchase.total_sale_cost,
+            } for purchase, property_name in results
+        ]
             
         return purchases
     except Exception as e:
+        logger.error(f"Error in get_purchases: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{purchase_id}", response_model=schemas.Purchase, include_in_schema=False)
@@ -158,6 +179,7 @@ def get_purchase(purchase_id: int, db: Session = Depends(get_db)) -> schemas.Pur
     Optimized for frontend detail views.
     """
     try:
+        logger.info(f"Fetching purchase details: purchase_id={purchase_id}")
         # Query with join to Property
         result = (
             db.query(
@@ -170,17 +192,31 @@ def get_purchase(purchase_id: int, db: Session = Depends(get_db)) -> schemas.Pur
         )
         
         if result is None:
+            logger.warning(f"Purchase not found: purchase_id={purchase_id}")
             raise HTTPException(status_code=404, detail="Purchase not found")
             
         purchase, property_name = result
+        logger.debug(f"Found purchase: id={purchase.id}, property={property_name}")
         
         # Convert to the expected schema format
-        purchase_dict = {
+        return {
             "id": purchase.id,
             "property_name": property_name,
             "purchase_date": purchase.purchase_date,
             "registration_date": purchase.registration_date,
             "possession_date": purchase.possession_date,
+            
+            # Area fields moved from Property to Purchase
+            "carpet_area": purchase.carpet_area,
+            "exclusive_area": purchase.exclusive_area,
+            "common_area": purchase.common_area,
+            "floor_number": purchase.floor_number,
+            "super_area": purchase.super_area,
+            
+            # Rate fields moved from Property to Purchase
+            "purchase_rate": purchase.purchase_rate,
+            "current_rate": purchase.current_rate,
+            
             "base_cost": purchase.base_cost,
             "other_charges": purchase.other_charges,
             "ifms": purchase.ifms,
@@ -189,12 +225,12 @@ def get_purchase(purchase_id: int, db: Session = Depends(get_db)) -> schemas.Pur
             "gst": purchase.gst,
             "property_cost": purchase.property_cost,
             "total_cost": purchase.total_cost,
-            "total_purchase_cost": purchase.total_sale_cost,
+            "total_sale_cost": purchase.total_sale_cost,
             "seller": purchase.seller,
+            "remarks": purchase.remarks,
         }
-            
-        return purchase_dict
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error in get_purchase: {e}")
         raise HTTPException(status_code=500, detail=str(e))

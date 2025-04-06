@@ -145,81 +145,124 @@ export function PurchaseDetail({ purchaseId, onEdit, onDelete, onClose }: Purcha
                   <div className="animate-pulse">Loading...</div>
                 </div>
               ) : purchase ? (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Property</h3>
-                      <p className="mt-1">{purchase.property_name}</p>
+                <div className="space-y-8">
+                  {/* Section: Basic Information */}
+                  <div>
+                    <h3 className="text-base font-medium mb-4 pb-2 border-b">Basic Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Property</h3>
+                        <p className="mt-1">{purchase.property_name}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Purchase Date</h3>
+                        <p className="mt-1">{formatDate(purchase.purchase_date)}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Seller</h3>
+                        <p className="mt-1">{purchase.seller || 'N/A'}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Purchase Date</h3>
-                      <p className="mt-1">{formatDate(purchase.purchase_date)}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Total Purchase Cost</h3>
-                      <p className="mt-1">{formatCurrency(purchase.total_purchase_cost)}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Registration Date</h3>
-                      <p className="mt-1">{formatDate(purchase.registration_date)}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Possession Date</h3>
-                      <p className="mt-1">{formatDate(purchase.possession_date)}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Seller</h3>
-                      <p className="mt-1">{purchase.seller || 'N/A'}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Base Cost</h3>
-                      <p className="mt-1">{formatCurrency(purchase.base_cost)}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Other Charges</h3>
-                      <p className="mt-1">{formatCurrency(purchase.other_charges || 0)}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Property Cost</h3>
-                      <p className="mt-1">{formatCurrency(purchase.property_cost)}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Registration Date</h3>
+                        <p className="mt-1">{formatDate(purchase.registration_date)}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Possession Date</h3>
+                        <p className="mt-1">{formatDate(purchase.possession_date)}</p>
+                      </div>
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">IFMS</h3>
-                      <p className="mt-1">{formatCurrency(purchase.ifms || 0)}</p>
+                  {/* Section: Area Details */}
+                  <div>
+                    <h3 className="text-base font-medium mb-4 pb-2 border-b">Area Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Carpet Area</h3>
+                        <p className="mt-1">{purchase.carpet_area ? `${purchase.carpet_area} sq.ft` : "N/A"}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Exclusive Area</h3>
+                        <p className="mt-1">{purchase.exclusive_area ? `${purchase.exclusive_area} sq.ft` : "N/A"}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Common Area</h3>
+                        <p className="mt-1">{purchase.common_area ? `${purchase.common_area} sq.ft` : "N/A"}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Lease Rent</h3>
-                      <p className="mt-1">{formatCurrency(purchase.lease_rent || 0)}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Annual Maintenance Charge</h3>
-                      <p className="mt-1">{formatCurrency(purchase.amc || 0)}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Super Area</h3>
+                        <p className="mt-1">{purchase.super_area ? `${purchase.super_area} sq.ft` : "N/A"}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Floor Number</h3>
+                        <p className="mt-1">{purchase.floor_number || "N/A"}</p>
+                      </div>
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">GST</h3>
-                      <p className="mt-1">{formatCurrency(purchase.gst || 0)}</p>
+                  {/* Section: Rate and Cost Details */}
+                  <div>
+                    <h3 className="text-base font-medium mb-4 pb-2 border-b">Rate and Cost Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Purchase Rate</h3>
+                        <p className="mt-1">{purchase.purchase_rate ? `₹${purchase.purchase_rate}/sq.ft` : "N/A"}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Current Rate</h3>
+                        <p className="mt-1">{purchase.current_rate ? `₹${purchase.current_rate}/sq.ft` : "N/A"}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Total Cost</h3>
-                      <p className="mt-1 font-semibold">{formatCurrency(purchase.total_cost)}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Base Cost</h3>
+                        <p className="mt-1">{formatCurrency(purchase.base_cost)}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Other Charges</h3>
+                        <p className="mt-1">{formatCurrency(purchase.other_charges || 0)}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">GST</h3>
+                        <p className="mt-1">{formatCurrency(purchase.gst || 0)}</p>
+                      </div>
+                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">IFMS</h3>
+                        <p className="mt-1">{formatCurrency(purchase.ifms || 0)}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Lease Rent</h3>
+                        <p className="mt-1">{formatCurrency(purchase.lease_rent || 0)}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Annual Maintenance Charge</h3>
+                        <p className="mt-1">{formatCurrency(purchase.amc || 0)}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Property Cost</h3>
+                        <p className="mt-1">{formatCurrency(purchase.property_cost)}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Total Purchase Cost</h3>
+                        <p className="mt-1 font-semibold">
+                          {formatCurrency(purchase.total_sale_cost)}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
+                  {/* Section: Notes */}
                   {purchase.remarks && (
                     <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Remarks</h3>
+                      <h3 className="text-base font-medium mb-4 pb-2 border-b">Notes</h3>
                       <p className="mt-1 text-sm">{purchase.remarks}</p>
                     </div>
                   )}
@@ -301,9 +344,9 @@ export function PurchaseDetail({ purchaseId, onEdit, onDelete, onClose }: Purcha
                   <DocumentUpload 
                     entityType="purchase" 
                     entityId={purchaseId} 
-                  documents={documents as any} 
+                    documents={documents} 
                   />
-        )}
+              )}
             </CardContent>
           </Card>
         </TabsContent>
