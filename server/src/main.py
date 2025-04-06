@@ -7,10 +7,7 @@ from src.database import (
     get_db,
     models,
     views,
-    init_construction_status,
-    init_views,
-    init_db,
-    init_example_user,
+    init as db_init,
 )
 from sqlalchemy import func
 import logging  
@@ -38,10 +35,7 @@ app.add_middleware(
 # Create database tables and initialize construction status on app startup
 @app.on_event("startup")
 def startup_db_client():
-    init_db()
-    init_views()
-    init_construction_status()
-    init_example_user()
+    db_init()
 
 
 # Mount the router to the main app

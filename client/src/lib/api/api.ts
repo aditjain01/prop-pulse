@@ -154,13 +154,17 @@ export interface paths {
         /**
          * Get Loans
          * @description Get a list of loans with essential information for the frontend.
-         *     Optimized for frontend listing views with enhanced filtering.
+         *     Optimized for frontend listing views with enhanced filtering using a single SQL query.
          */
         get: operations["get_loans_loans__get"];
         put?: never;
         /**
          * Create Loan
          * @description Create a new loan and automatically create a payment source for it.
+         *     Validates that:
+         *     1. The purchase exists
+         *     2. The loan amount doesn't exceed total invoice amounts for the purchase
+         *     3. The loan sanction amount doesn't exceed purchase total cost
          */
         post: operations["create_loan_loans__post"];
         delete?: never;
@@ -396,10 +400,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Get Invoices
-         * @description Get a list of invoices with property information and enhanced filtering
-         */
+        /** Get Invoices */
         get: operations["get_invoices_invoices__get"];
         put?: never;
         /**
@@ -420,10 +421,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Get Invoice
-         * @description Get a detailed view of a single invoice with property information
-         */
+        /** Get Invoice */
         get: operations["get_invoice_invoices__invoice_id__get"];
         /**
          * Update Invoice
@@ -1104,8 +1102,6 @@ export interface components {
             created_at: string;
             /** Updated At */
             updated_at?: string | null;
-            /** Total Payment */
-            readonly total_payment: string;
         };
         /**
          * LoanRepaymentPublic
@@ -1205,8 +1201,8 @@ export interface components {
          * @description Schema for updating loan details, allowing partial updates with optional fields.
          */
         LoanUpdate: {
-            /** Purchase Id */
-            purchase_id?: number | null;
+            /** Name */
+            name?: string | null;
             /** Institution */
             institution?: string | null;
             /** Agent */
@@ -1491,17 +1487,9 @@ export interface components {
             /** Name */
             name: string;
             /** Address */
-            address: string;
+            address?: string | null;
             /** Developer */
             developer?: string | null;
-            /** Carpet Area */
-            carpet_area?: string | null;
-            /** Exclusive Area */
-            exclusive_area?: string | null;
-            /** Common Area */
-            common_area?: string | null;
-            /** Floor Number */
-            floor_number?: number | null;
             /** Parking Details */
             parking_details?: string | null;
             /**
@@ -1509,12 +1497,8 @@ export interface components {
              * @default []
              */
             amenities: string[];
-            /** Initial Rate */
-            initial_rate: string;
-            /** Current Rate */
-            current_rate: string;
             /** Property Type */
-            property_type: string;
+            property_type?: string | null;
             /** Rera Id */
             rera_id?: string | null;
         };
@@ -1526,17 +1510,9 @@ export interface components {
             /** Name */
             name: string;
             /** Address */
-            address: string;
+            address?: string | null;
             /** Property Type */
-            property_type: string;
-            /** Carpet Area */
-            carpet_area?: number | string | null;
-            /** Exclusive Area */
-            exclusive_area?: number | string | null;
-            /** Common Area */
-            common_area?: number | string | null;
-            /** Floor Number */
-            floor_number?: number | null;
+            property_type?: string | null;
             /** Parking Details */
             parking_details?: string | null;
             /**
@@ -1544,10 +1520,6 @@ export interface components {
              * @default []
              */
             amenities: string[];
-            /** Initial Rate */
-            initial_rate: number | string;
-            /** Current Rate */
-            current_rate: number | string;
             /** Developer */
             developer?: string | null;
             /** Rera Id */
@@ -1561,17 +1533,9 @@ export interface components {
             /** Name */
             name: string;
             /** Address */
-            address: string;
+            address?: string | null;
             /** Property Type */
-            property_type: string;
-            /** Carpet Area */
-            carpet_area?: string | null;
-            /** Exclusive Area */
-            exclusive_area?: string | null;
-            /** Common Area */
-            common_area?: string | null;
-            /** Floor Number */
-            floor_number?: number | null;
+            property_type?: string | null;
             /** Parking Details */
             parking_details?: string | null;
             /**
@@ -1579,10 +1543,6 @@ export interface components {
              * @default []
              */
             amenities: string[];
-            /** Initial Rate */
-            initial_rate: string;
-            /** Current Rate */
-            current_rate: string;
             /** Developer */
             developer?: string | null;
             /** Rera Id */
@@ -1599,10 +1559,6 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
-            /** Super Area */
-            super_area?: string | null;
-            /** Current Price */
-            current_price?: string | null;
         };
         /**
          * PropertyPublic
@@ -1614,7 +1570,7 @@ export interface components {
             /** Name */
             name: string;
             /** Address */
-            address: string;
+            address?: string | null;
             /** Developer */
             developer?: string | null;
         };
@@ -1629,22 +1585,10 @@ export interface components {
             address?: string | null;
             /** Property Type */
             property_type?: string | null;
-            /** Carpet Area */
-            carpet_area?: number | null;
-            /** Exclusive Area */
-            exclusive_area?: number | null;
-            /** Common Area */
-            common_area?: number | null;
-            /** Floor Number */
-            floor_number?: number | null;
             /** Parking Details */
             parking_details?: string | null;
             /** Amenities */
             amenities?: string[] | null;
-            /** Initial Rate */
-            initial_rate?: number | null;
-            /** Current Rate */
-            current_rate?: number | null;
             /** Developer */
             developer?: string | null;
             /** Rera Id */
@@ -1655,10 +1599,35 @@ export interface components {
          * @description Schema for detailed view of a single purchase, extending public schema with additional details.
          */
         Purchase: {
+            /** Id */
+            id: number;
+            /** Property Name */
+            property_name: string;
+            /**
+             * Purchase Date
+             * Format: date
+             */
+            purchase_date: string;
+            /** Super Area */
+            super_area: string;
+            /** Total Sale Cost */
+            total_sale_cost: string;
             /** Registration Date */
             registration_date?: string | null;
             /** Possession Date */
             possession_date?: string | null;
+            /** Carpet Area */
+            carpet_area: string;
+            /** Exclusive Area */
+            exclusive_area?: string | null;
+            /** Common Area */
+            common_area?: string | null;
+            /** Floor Number */
+            floor_number?: number | null;
+            /** Purchase Rate */
+            purchase_rate: string;
+            /** Current Rate */
+            current_rate: string;
             /** Base Cost */
             base_cost: string;
             /** Other Charges */
@@ -1685,6 +1654,18 @@ export interface components {
         PurchaseCreate: {
             /** Property Id */
             property_id: number;
+            /** Carpet Area */
+            carpet_area: number | string;
+            /** Exclusive Area */
+            exclusive_area?: number | string | null;
+            /** Common Area */
+            common_area?: number | string | null;
+            /** Floor Number */
+            floor_number?: number | null;
+            /** Purchase Rate */
+            purchase_rate: number | string;
+            /** Current Rate */
+            current_rate: number | string;
             /**
              * Purchase Date
              * Format: date
@@ -1723,6 +1704,18 @@ export interface components {
         PurchaseOld: {
             /** Property Id */
             property_id: number;
+            /** Carpet Area */
+            carpet_area: string;
+            /** Exclusive Area */
+            exclusive_area?: string | null;
+            /** Common Area */
+            common_area?: string | null;
+            /** Floor Number */
+            floor_number?: number | null;
+            /** Purchase Rate */
+            purchase_rate: string;
+            /** Current Rate */
+            current_rate: string;
             /**
              * Purchase Date
              * Format: date
@@ -1772,8 +1765,10 @@ export interface components {
              * Format: date
              */
             purchase_date: string;
-            /** Total Purchase Cost */
-            total_purchase_cost: string;
+            /** Super Area */
+            super_area: string;
+            /** Total Sale Cost */
+            total_sale_cost: string;
         };
         /**
          * PurchaseUpdate
@@ -1782,6 +1777,18 @@ export interface components {
         PurchaseUpdate: {
             /** Property Id */
             property_id?: number | null;
+            /** Carpet Area */
+            carpet_area?: number | null;
+            /** Exclusive Area */
+            exclusive_area?: number | null;
+            /** Common Area */
+            common_area?: number | null;
+            /** Floor Number */
+            floor_number?: number | null;
+            /** Purchase Rate */
+            purchase_rate?: number | null;
+            /** Current Rate */
+            current_rate?: number | null;
             /** Purchase Date */
             purchase_date?: string | null;
             /** Registration Date */
