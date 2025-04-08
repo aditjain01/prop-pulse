@@ -62,7 +62,7 @@ class LoanRepaymentPublic(BaseModel):
     """Schema for listing loan repayments with essential information for the frontend."""
     id: int
     loan_name: str  # From Repayment -> Loan
-    loan_institution: str  # From Repayment -> Loan -> institution
+    loan_institution: Optional[str]  # From Repayment -> Loan -> institution
     property_name: str  # From Repayment -> Loan -> Purchase -> Property
     total_payment: Decimal
     source_name: str  # From Repayment -> PaymentSource

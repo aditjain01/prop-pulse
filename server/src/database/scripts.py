@@ -213,10 +213,10 @@ def init_views():
         CREATE OR REPLACE VIEW loan_repayment_details AS
         SELECT
             l.user_id,
-            l.name AS loan_name,
+            l.loan_number AS loan_number,
             l.sanction_amount AS loan_sanctioned_amount,
-            l.total_disbursed_amount AS loan_disbursed_amount,
-            l.sanction_amount - l.total_disbursed_amount AS loan_outstanding_amount,
+            COALESCE(SUM(p.amount), 0) AS loan_disbursed_amount,
+            l.sanction_amount - COALESCE(SUM(p.amount), 0) AS loan_outstanding_amount,
             r.payment_date,
             r.principal_amount AS principal_amount,
             r.interest_amount AS interest_amount,
@@ -225,10 +225,21 @@ def init_views():
             r.total_payment AS amount,
             SUM(r.principal_amount) OVER (PARTITION BY l.user_id, l.id ORDER BY r.payment_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS total_principal_paid,
             SUM(r.total_payment) OVER (PARTITION BY l.user_id, l.id ORDER BY r.payment_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS total_paid,
-            l.total_disbursed_amount - SUM(r.principal_amount) OVER (PARTITION BY l.user_id, l.id ORDER BY r.payment_date) AS principal_balance
+            COALESCE(SUM(p.amount), 0) - SUM(r.principal_amount) OVER (PARTITION BY l.user_id, l.id ORDER BY r.payment_date) AS principal_balance
         FROM
             loan_repayments AS r
         JOIN loans AS l ON r.loan_id = l.id
+        LEFT JOIN payment_sources ps ON ps.loan_id = l.id
+        LEFT JOIN payments p ON p.source_id = ps.id
+        GROUP BY
+            l.user_id,
+            l.id,
+            r.payment_date,
+            r.principal_amount,
+            r.interest_amount,
+            r.other_fees,
+            r.penalties,
+            r.total_payment
         ORDER BY
             l.user_id,
             l.id,
@@ -243,10 +254,10 @@ def init_views():
         SELECT
             l.user_id,
             l.id AS loan_id,
-            l.name AS loan_name,
+            l.loan_number AS loan_number,
             pr.name AS property_name,
             l.sanction_amount AS loan_sanctioned_amount,
-            l.total_disbursed_amount AS loan_disbursed_amount,
+            COALESCE(SUM(p.amount), 0) AS loan_disbursed_amount,
             SUM(r.principal_amount) AS total_principal_paid,
             SUM(r.interest_amount) AS total_interest_paid,
             SUM(r.other_fees) AS total_other_fees,
@@ -254,14 +265,16 @@ def init_views():
             SUM(r.total_payment) AS total_amount_paid,
             COUNT(r.id) AS total_payments,
             MAX(r.payment_date) AS last_repayment_date, 
-            l.total_disbursed_amount - SUM(r.principal_amount) AS principal_balance
+            COALESCE(SUM(p.amount), 0) - SUM(r.principal_amount) AS principal_balance
         FROM
-            loan_repayments AS r
-        JOIN loans AS l ON r.loan_id = l.id
-        JOIN purchases AS p ON l.purchase_id = p.id
-        JOIN properties AS pr ON p.property_id = pr.id
+            loans l
+        LEFT JOIN loan_repayments r ON r.loan_id = l.id
+        JOIN purchases p2 ON l.purchase_id = p2.id
+        JOIN properties pr ON p2.property_id = pr.id
+        LEFT JOIN payment_sources ps ON ps.loan_id = l.id
+        LEFT JOIN payments p ON p.source_id = ps.id
         GROUP BY
-            l.user_id, l.id, l.name, pr.name;
+            l.user_id, l.id, l.loan_number, pr.name;
         """)
         )
 

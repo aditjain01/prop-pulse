@@ -75,7 +75,12 @@ export function LoanList({
             <Link href={`/loans/${loan.id}`} className="block">
               <Card key={loan.id} className="overflow-hidden">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-lg font-medium">{loan.name}</CardTitle>
+                  <div>
+                    <CardTitle className="text-lg font-medium">{loan.name}</CardTitle>
+                    {loan.loan_number && (
+                      <p className="text-sm text-muted-foreground">{loan.loan_number}</p>
+                    )}
+                  </div>
                   <div className="flex items-center space-x-2">
                     <Badge variant={loan.is_active ? "default" : "secondary"}>
                       {loan.is_active ? "Active" : "Inactive"}
@@ -99,8 +104,8 @@ export function LoanList({
                     <span>{loan.institution}</span>
                   </div>        
                   <div className="space-y-1 text-sm mb-4">
-                    <p><span className="font-medium">Amount:</span> ₹{Number(loan.sanction_amount).toLocaleString()}</p>
-                    <p><span className="font-medium">Disbursed:</span> ₹{Number(loan.total_disbursed_amount).toLocaleString()}</p>
+                    <p><span className="font-medium">Sanctioned Amount:</span> ₹{Number(loan.sanction_amount).toLocaleString()}</p>
+                    <p><span className="font-medium">Disbursed Amount:</span> ₹{Number(loan.total_disbursed_amount).toLocaleString()}</p>
                   </div>
                 </CardContent>
               </Card>

@@ -180,7 +180,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Get Loan
+         * @description Get a detailed view of a single loan with property information.
+         *     Optimized for frontend detail views.
+         */
+        get: operations["get_loan_loans__loan_id___get"];
         /**
          * Update Loan
          * @description Update the details of an existing loan and its associated payment source.
@@ -192,27 +197,6 @@ export interface paths {
          * @description Delete a loan and its associated payment sources, if they have no associated payments.
          */
         delete: operations["delete_loan_loans__loan_id___delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/loans/{loan_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Loan
-         * @description Get a detailed view of a single loan with property information.
-         *     Optimized for frontend detail views.
-         */
-        get: operations["get_loan_loans__loan_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -828,28 +812,42 @@ export interface components {
         Loan: {
             /** Id */
             id: number;
-            /** Name */
-            name: string;
+            /** Loan Number */
+            loan_number?: string | null;
             /** Institution */
-            institution: string;
-            /** Total Disbursed Amount */
+            institution?: string | null;
+            /**
+             * Total Disbursed Amount
+             * @default 0
+             */
             total_disbursed_amount: string;
             /** Sanction Amount */
-            sanction_amount: string;
+            sanction_amount: string | null;
             /** Is Active */
-            is_active: boolean;
+            is_active?: boolean | null;
+            /** Name */
+            name: string;
             /** Property Name */
             property_name: string;
-            /** Processing Fee */
+            /**
+             * Processing Fee
+             * @default 0
+             */
             processing_fee: string;
-            /** Other Charges */
+            /**
+             * Other Charges
+             * @default 0
+             */
             other_charges: string;
-            /** Loan Sanction Charges */
+            /**
+             * Loan Sanction Charges
+             * @default 0
+             */
             loan_sanction_charges: string;
             /** Interest Rate */
-            interest_rate: string;
+            interest_rate?: string | null;
             /** Tenure Months */
-            tenure_months: number;
+            tenure_months?: number | null;
         };
         /**
          * LoanCreate
@@ -858,8 +856,8 @@ export interface components {
         LoanCreate: {
             /** Purchase Id */
             purchase_id: number;
-            /** Name */
-            name: string;
+            /** Loan Number */
+            loan_number: string;
             /** Institution */
             institution: string;
             /** Agent */
@@ -871,11 +869,6 @@ export interface components {
             sanction_date: string;
             /** Sanction Amount */
             sanction_amount: number | string;
-            /**
-             * Total Disbursed Amount
-             * @default 0
-             */
-            total_disbursed_amount: number | string;
             /**
              * Processing Fee
              * @default 0
@@ -913,8 +906,8 @@ export interface components {
         LoanOld: {
             /** Purchase Id */
             purchase_id: number;
-            /** Name */
-            name: string;
+            /** Loan Number */
+            loan_number: string;
             /** Institution */
             institution: string;
             /** Agent */
@@ -926,11 +919,6 @@ export interface components {
             sanction_date: string;
             /** Sanction Amount */
             sanction_amount: string;
-            /**
-             * Total Disbursed Amount
-             * @default 0
-             */
-            total_disbursed_amount: string;
             /**
              * Processing Fee
              * @default 0
@@ -974,16 +962,21 @@ export interface components {
         LoanPublic: {
             /** Id */
             id: number;
-            /** Name */
-            name: string;
+            /** Loan Number */
+            loan_number?: string | null;
             /** Institution */
-            institution: string;
-            /** Total Disbursed Amount */
+            institution?: string | null;
+            /**
+             * Total Disbursed Amount
+             * @default 0
+             */
             total_disbursed_amount: string;
             /** Sanction Amount */
-            sanction_amount: string;
+            sanction_amount: string | null;
             /** Is Active */
-            is_active: boolean;
+            is_active?: boolean | null;
+            /** Name */
+            name: string;
         };
         /**
          * LoanRepayment
@@ -995,7 +988,7 @@ export interface components {
             /** Loan Name */
             loan_name: string;
             /** Loan Institution */
-            loan_institution: string;
+            loan_institution: string | null;
             /** Property Name */
             property_name: string;
             /** Total Payment */
@@ -1113,7 +1106,7 @@ export interface components {
             /** Loan Name */
             loan_name: string;
             /** Loan Institution */
-            loan_institution: string;
+            loan_institution: string | null;
             /** Property Name */
             property_name: string;
             /** Total Payment */
@@ -1201,8 +1194,8 @@ export interface components {
          * @description Schema for updating loan details, allowing partial updates with optional fields.
          */
         LoanUpdate: {
-            /** Name */
-            name?: string | null;
+            /** Loan Number */
+            loan_number?: string | null;
             /** Institution */
             institution?: string | null;
             /** Agent */
@@ -1211,8 +1204,6 @@ export interface components {
             sanction_date?: string | null;
             /** Sanction Amount */
             sanction_amount?: number | null;
-            /** Total Disbursed Amount */
-            total_disbursed_amount?: number | null;
             /** Processing Fee */
             processing_fee?: number | null;
             /** Other Charges */
@@ -1644,6 +1635,8 @@ export interface components {
             property_cost: string;
             /** Total Cost */
             total_cost: string;
+            /** Remarks */
+            remarks?: string | null;
             /** Seller */
             seller?: string | null;
         };
@@ -2224,6 +2217,37 @@ export interface operations {
             };
         };
     };
+    get_loan_loans__loan_id___get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                loan_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Loan"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     update_loan_loans__loan_id___put: {
         parameters: {
             query?: never;
@@ -2277,37 +2301,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_loan_loans__loan_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                loan_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Loan"];
                 };
             };
             /** @description Validation Error */

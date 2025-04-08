@@ -141,26 +141,25 @@ class Loan(Base):
     purchase_id = Column(Integer, ForeignKey("purchases.id"), nullable=False)
 
     # Basic loan information
-    name = Column(String, nullable=False)  # TODO: This has to be changed to loan number
-    institution = Column(String, nullable=False)  # Bank or financial institution
+    loan_number = Column(String)  # Loan account number or reference number
+    institution = Column(String)  # Bank or financial institution
     agent = Column(String)  # Loan agent or relationship manager
 
     # Dates
-    sanction_date = Column(Date, nullable=False)
+    sanction_date = Column(Date)
 
     # Financial details
-    sanction_amount = Column(Numeric(precision=15, scale=2), nullable=False)
+    sanction_amount = Column(Numeric(precision=15, scale=2), default=0)
     processing_fee = Column(Numeric(precision=15, scale=2), default=0)
     other_charges = Column(Numeric(precision=15, scale=2), default=0)
     loan_sanction_charges = Column(Numeric(precision=15, scale=2), default=0) # TODO: Depracte this in the schema
 
     # Terms
-    interest_rate = Column(Numeric(precision=5, scale=2), nullable=False)  # Annual interest rate
-    tenure_months = Column(Integer, nullable=False)  # Loan tenure in months
+    interest_rate = Column(Numeric(precision=5, scale=2))  # Annual interest rate
+    tenure_months = Column(Integer)  # Loan tenure in months
 
     # Status
     is_active = Column(Boolean, default=True) #TODO: Make this this computed, to be active if disbured amount is less than sanction amount
-    total_disbursed_amount = Column(Numeric(precision=15, scale=2), default=0)
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -88,7 +88,7 @@ export function LoanDetail({ loanId }: LoanDetailProps) {
     0
   ) || 0;
   
-  const outstandingPrincipal = (loan.total_disbursed_amount as any) - (totalPrincipalPaid as any);
+  const outstandingPrincipal = Number(loan.total_disbursed_amount) - totalPrincipalPaid;
 
   const handleEdit = () => {
     setIsEditDialogOpen(true);
@@ -138,10 +138,10 @@ export function LoanDetail({ loanId }: LoanDetailProps) {
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div>
                 <CardTitle className="text-2xl">
-                  {loan.name}
+                  {loan.loan_name}
                 </CardTitle>
                 <CardDescription>
-                  {loan.property_name || 'No property'} - {loan.institution}
+                  {loan.loan_number} - {loan.institution}
                 </CardDescription>
               </div>
               <div className="flex space-x-2">
@@ -160,7 +160,15 @@ export function LoanDetail({ loanId }: LoanDetailProps) {
                   onOpenChange={setIsEditDialogOpen}
                 >
                   <LoanForm 
-                    loan={loan}
+                    loan={{
+                      ...loan,
+                      loan_number: loan.loan_number || "",
+                      institution: loan.institution || "",
+                      sanction_amount: Number(loan.sanction_amount),
+                      processing_fee: Number(loan.processing_fee),
+                      other_charges: Number(loan.other_charges),
+                      loan_sanction_charges: Number(loan.loan_sanction_charges),
+                    }}
                     onSuccess={handleEditSuccess}
                   />
                 </SlideDialog>

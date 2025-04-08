@@ -7,12 +7,11 @@ from decimal import Decimal
 class LoanBase(BaseModel):
     """Base schema for loan details, containing common attributes for all loan-related operations."""
     purchase_id: int
-    name: str
+    loan_number: str
     institution: str
     agent: Optional[str] = None
     sanction_date: date
     sanction_amount: Decimal
-    total_disbursed_amount: Decimal = Decimal("0")
     processing_fee: Decimal = Decimal("0")
     other_charges: Decimal = Decimal("0")
     loan_sanction_charges: Decimal = Decimal("0")
@@ -39,12 +38,11 @@ class LoanOld(LoanBase):
 class LoanUpdate(BaseModel):
     """Schema for updating loan details, allowing partial updates with optional fields."""
     # purchase_id: Optional[int] = None
-    name: Optional[str] = None
+    loan_number: Optional[str] = None
     institution: Optional[str] = None
     agent: Optional[str] = None
     sanction_date: Optional[date] = None
     sanction_amount: Optional[float] = None
-    total_disbursed_amount: Optional[float] = None
     processing_fee: Optional[float] = None
     other_charges: Optional[float] = None
     loan_sanction_charges: Optional[float] = None
@@ -57,11 +55,12 @@ class LoanUpdate(BaseModel):
 class LoanPublic(BaseModel):
     """Schema for listing loans with essential information for the frontend."""
     id: int
-    name: str
-    institution: str
-    total_disbursed_amount: Decimal
-    sanction_amount: Decimal
-    is_active: bool
+    loan_number: Optional[str] = None
+    institution: Optional[str] = None
+    total_disbursed_amount: Decimal = Decimal("0")
+    sanction_amount: Optional[Decimal]
+    is_active: Optional[bool] = None
+    name: str  # Computed from payment source name
     
     model_config = ConfigDict(from_attributes=True)
 
@@ -69,8 +68,8 @@ class LoanPublic(BaseModel):
 class Loan(LoanPublic):
     """Schema for detailed view of a single loan, including additional financial details."""
     property_name: str  # From Loan->Purchase->Property relationship
-    processing_fee: Decimal
-    other_charges: Decimal
-    loan_sanction_charges: Decimal
-    interest_rate: Decimal
-    tenure_months: int
+    processing_fee: Decimal = Decimal("0")
+    other_charges: Decimal = Decimal("0")
+    loan_sanction_charges: Decimal = Decimal("0")
+    interest_rate: Optional[Decimal] = None
+    tenure_months: Optional[int] = None

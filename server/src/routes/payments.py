@@ -163,22 +163,7 @@ def update_payment(
                     .filter(models.Loan.id == payment_source.loan_id)
                     .first()
                 )
-                if loan:
-                    loan_payments = (
-                        db.query(models.Payment)
-                        .filter(models.Payment.source_id == payment_source.id)
-                        .filter(models.Payment.id != payment_id)
-                        .all()
-                    )
-                    loan_balance = loan.total_disbursed_amount - sum(p.amount for p in loan_payments)
-                    logger.debug(f"Loan balance: {loan_balance}, payment amount: {payment.amount}")
-                    if payment.amount and payment.amount > loan_balance:
-                        logger.warning(f"Payment amount {payment.amount} exceeds loan balance {loan_balance}")
-                        raise HTTPException(
-                            status_code=400, 
-                            detail="Payment amount exceeds loan's disbursed amount"
-                        )
-                else:
+                if not loan:
                     logger.warning(f"Loan not found: loan_id={payment_source.loan_id}")
                     raise HTTPException(status_code=404, detail="Loan not found")
 

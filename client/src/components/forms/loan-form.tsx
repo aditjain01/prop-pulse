@@ -126,10 +126,10 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
 
         <FormField
           control={form.control}
-          name="name"
+          name="loan_number"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Loan Name</FormLabel>
+              <FormLabel>Loan Number</FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
@@ -186,25 +186,6 @@ export function LoanForm({ loan, purchaseId, onSuccess }: LoanFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Sanction Amount (₹)</FormLabel>
-              <FormControl>
-                <Input 
-                  type="number" 
-                  step="0.01"
-                  {...field} 
-                  onChange={e => field.onChange(e.target.value)} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="total_disbursed_amount"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Total Disbursed Amount (₹)</FormLabel>
               <FormControl>
                 <Input 
                   type="number" 

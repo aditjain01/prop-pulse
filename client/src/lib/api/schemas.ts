@@ -147,12 +147,11 @@ export const initializePurchaseForm = (purchase?: PurchaseCreate, propertyId?: n
 // Loan schemas
 const loanSchema = z.object({
   purchase_id: z.string().nonempty("Purchase is required"),
-  name: z.string().nonempty("Loan name is required"),
+  loan_number: z.string().nonempty("Loan number is required"),
   institution: z.string().nonempty("Institution is required"),
   agent: z.string().optional(),
   sanction_date: z.string().transform(val => val || null),
   sanction_amount: z.string(),
-  total_disbursed_amount: z.string(),
   processing_fee: z.string(),
   other_charges: z.string(),
   loan_sanction_charges: z.string(),
@@ -164,7 +163,6 @@ const loanSchema = z.object({
 export const loanFormSchema = loanSchema.transform(data => ({
   ...data,
   sanction_amount: parseFloat(data.sanction_amount) || 0,
-  total_disbursed_amount: parseFloat(data.total_disbursed_amount) || 0,
   processing_fee: parseFloat(data.processing_fee) || 0,
   other_charges: parseFloat(data.other_charges) || 0,
   loan_sanction_charges: parseFloat(data.loan_sanction_charges) || 0,
@@ -173,26 +171,43 @@ export const loanFormSchema = loanSchema.transform(data => ({
 }));
 
 export type LoanFormValues = z.input<typeof loanFormSchema>;
-export const loanUpdateSchema = loanSchema.partial().transform((data: Partial<z.infer<typeof loanSchema>>) => ({
-  ...data,
-  sanction_amount: data.sanction_amount ? parseFloat(data.sanction_amount) : undefined,
-  total_disbursed_amount: data.total_disbursed_amount ? parseFloat(data.total_disbursed_amount) : undefined,
-  processing_fee: data.processing_fee ? parseFloat(data.processing_fee) : undefined,
-  other_charges: data.other_charges ? parseFloat(data.other_charges) : undefined,
-  loan_sanction_charges: data.loan_sanction_charges ? parseFloat(data.loan_sanction_charges) : undefined,
-  interest_rate: data.interest_rate ? parseFloat(data.interest_rate) : undefined,
-  tenure_months: data.tenure_months ? parseInt(data.tenure_months) : undefined,
-}));
+
+// Update the loanUpdateSchema to ensure all fields are properly typed
+export const loanUpdateSchema = z.object({
+  loan_number: z.string().optional(),
+  institution: z.string().optional(),
+  agent: z.string().optional(),
+  sanction_date: z.string().optional(),
+  sanction_amount: z.number().optional(),
+  processing_fee: z.number().optional(),
+  other_charges: z.number().optional(),
+  loan_sanction_charges: z.number().optional(),
+  interest_rate: z.number().optional(),
+  tenure_months: z.number().optional(),
+  is_active: z.boolean().optional(),
+}).transform((data: Partial<z.infer<typeof loanSchema>>) => {
+  // Ensure all number fields are properly converted from strings if needed
+  return {
+    ...data,
+    sanction_amount: data.sanction_amount?.toString(),
+    processing_fee: data.processing_fee?.toString(),
+    other_charges: data.other_charges?.toString(),
+    loan_sanction_charges: data.loan_sanction_charges?.toString(),
+    interest_rate: data.interest_rate?.toString(),
+    tenure_months: data.tenure_months,
+  };
+});
+
 export type LoanUpdateValues = z.infer<typeof loanUpdateSchema>;
+
 export const initializeLoanForm = (loan?: LoanCreate, purchaseId?: number): LoanFormValues => {
   return {
     purchase_id: purchaseId?.toString() || loan?.purchase_id?.toString() || "",
-    name: loan?.name || "",
+    loan_number: loan?.loan_number || "",
     institution: loan?.institution || "",
     agent: loan?.agent || "",
     sanction_date: loan?.sanction_date || new Date().toISOString().split('T')[0],
     sanction_amount: loan?.sanction_amount?.toString() || "0",
-    total_disbursed_amount: loan?.total_disbursed_amount?.toString() || "0",
     processing_fee: loan?.processing_fee?.toString() || "0",
     other_charges: loan?.other_charges?.toString() || "0",
     loan_sanction_charges: loan?.loan_sanction_charges?.toString() || "0",
